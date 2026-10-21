@@ -88,7 +88,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         METADATA_COLUMNS_TO_KEEP,
     )
     from endo_pipeline.settings.manifest_names import (
-        NOISE_STATISTICS_MANIFEST_NAME_PREFIXES,
+        NOISE_STATISTICS_MANIFEST_NAMES,
         VECTOR_FIELD_MANIFEST_NAMES,
     )
     from endo_pipeline.settings.workflow_defaults import (
@@ -136,8 +136,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to compute noise statistics.
-    name_prefix = NOISE_STATISTICS_MANIFEST_NAME_PREFIXES[patch_type]
-    noise_statistics_manifest_name = f"{name_prefix}_{name_suffix}"
+    noise_statistics_manifest_name = NOISE_STATISTICS_MANIFEST_NAMES[patch_type]
     noise_statistics_manifest = create_dataframe_manifest(
         noise_statistics_manifest_name, workflow_name=__file__
     )
@@ -245,7 +244,9 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         noise_statistics_for_dataset = pd.concat(noise_statistics_dataframe_list, ignore_index=True)
 
         # Save dataframe to file
-        save_path = output_path / f"{name_prefix}_{dataset_name}_{name_suffix}.parquet"
+        save_path = (
+            output_path / f"{noise_statistics_manifest_name}_{dataset_name}_{name_suffix}.parquet"
+        )
         noise_statistics_for_dataset.to_parquet(save_path, index=False)
 
         # Create location object with output path

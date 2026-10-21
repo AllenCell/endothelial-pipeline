@@ -59,11 +59,8 @@ WINDOW_SWEEP_MANIFEST_NAMES = {
 }
 """Mapping of swept boundary to window sweep dataframe manifest name."""
 
-GRID_BASED_NOISE_STATISTICS_MANIFEST_NAME_PREFIX: str = "noise_statistics_grid_based"
-"""Dataframe manifest name for noise statistics of grid-based features."""
-
-NOISE_STATISTICS_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
-    "grid_based": GRID_BASED_NOISE_STATISTICS_MANIFEST_NAME_PREFIX,
+NOISE_STATISTICS_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": "noise_statistics_grid_based",
     "cell_centered": "noise_statistics_cell_centered",
 }
 """Mapping of patch type to noise statistics dataframe manifest name."""
