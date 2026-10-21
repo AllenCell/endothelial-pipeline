@@ -71,8 +71,12 @@ HEATMAP_TOP_MARGIN = 0.25
 HEATMAP_FIG_WIDTH = PANEL_BLOCK_WIDTH + COLORBAR_PAD + COLORBAR_WIDTH + COLORBAR_LABEL_SPACE
 assert HEATMAP_FIG_WIDTH <= MAX_FIGURE_WIDTH
 
-FP_LOCATION_FIG_HEIGHT = 3.5
-FP_LOCATION_BOTTOM_MARGIN = 1.2
+# the bottom margin of the fixed point location figure is adjusted at draw time to fit the legend
+# right underneath the x-axis labels, so the final figure height differs from FP_LOCATION_FIG_HEIGHT
+# while the axes height (FP_LOCATION_FIG_HEIGHT - FP_LOCATION_BOTTOM_MARGIN - FP_LOCATION_TOP_MARGIN)
+# is kept
+FP_LOCATION_FIG_HEIGHT = 3.05
+FP_LOCATION_BOTTOM_MARGIN = 1.05
 FP_LOCATION_TOP_MARGIN = 0.25
 
 FileFormat = Literal[".png", ".svg", ".pdf"]
@@ -246,7 +250,9 @@ def plot_fixed_point_count_heatmaps(
         Path to the saved figure file.
     """
     parameter_space = get_parameter_space()
-    sweep_binwidths = sorted({bw for bw, _ in parameter_space})
+    # seaborn draws the first row of a heatmap at the top, so order the binwidths from largest to
+    # smallest to place the smallest binwidth at the bottom of the y-axis
+    sweep_binwidths = sorted({bw for bw, _ in parameter_space}, reverse=True)
     sweep_kernel_bandwidths = sorted({kb for _, kb in parameter_space})
 
     df_datasets = df_sweep.loc[df_sweep[ColumnName.DATASET].isin(datasets)]
@@ -464,18 +470,52 @@ def plot_fixed_point_location_summary(
                 ax.tick_params(axis="y", labelleft=False)
 
             # mark the parameter combination used in the main analysis
-            ax.axvline(
+            main_params_line = ax.axvline(
                 x=_format_param_combo(kb_original, bw_original),
                 color="red",
                 linestyle="--",
                 linewidth=1,
                 zorder=0,
+                label="Main analysis parameters",
             )
 
         dataset_axes[-1].set_xticklabels(
             dataset_axes[-1].get_xticklabels(), rotation=90, fontsize=FONTSIZE_XSMALL
         )
         dataset_axes[-1].set_xlabel("Parameters (kb, bw)", fontsize=FONTSIZE_SMALL)
+
+    # add a single legend for the main analysis parameter line, centered under the dataset columns
+    # right underneath the x-axis labels with a gap of half the legend font height. The x-axis
+    # labels are only positioned at draw time, so draw the figure first to measure where they are
+    fig.draw_without_rendering()
+    xlabels_bottom = min(ax.xaxis.label.get_window_extent().y0 for ax in axes[-1]) / fig.dpi
+    legend = fig.legend(
+        handles=[main_params_line],
+        loc="upper center",
+        borderpad=0,
+        borderaxespad=0,
+        frameon=False,
+        fontsize=FONTSIZE_XSMALL,
+    )
+    legend_height = legend.get_window_extent().height / fig.dpi
+    legend_gap = 0.5 * FONTSIZE_XSMALL / 72
+
+    # trim (or add) the space below the legend from the bottom margin and the figure height so the
+    # legend sits at the bottom edge of the figure, keeping the size of the axes unchanged
+    excess_height = xlabels_bottom - legend_gap - legend_height
+    fig_height = FP_LOCATION_FIG_HEIGHT - excess_height
+    fig.set_size_inches(PANEL_BLOCK_WIDTH, fig_height)
+    _apply_shared_horizontal_layout(
+        fig,
+        PANEL_BLOCK_WIDTH,
+        fig_height,
+        FP_LOCATION_BOTTOM_MARGIN - excess_height,
+        FP_LOCATION_TOP_MARGIN,
+    )
+    panel_block_center = (LEFT_MARGIN + PANEL_BLOCK_WIDTH - RIGHT_MARGIN) / 2 / PANEL_BLOCK_WIDTH
+    legend.set_bbox_to_anchor(
+        (panel_block_center, legend_height / fig_height), transform=fig.transFigure
+    )
 
     # the layout is set explicitly above, so skip tight layout that would shift the axes
     return save_plot_to_path(
