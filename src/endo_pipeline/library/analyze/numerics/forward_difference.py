@@ -14,18 +14,18 @@ logger = logging.getLogger(__name__)
 
 
 @overload
-def _take_dataframe_column_diff(
+def take_dataframe_column_diff(
     dataframe_column: pd.Series, diff_step: int, fillna_value: float | None = None
 ) -> pd.Series: ...
 
 
 @overload
-def _take_dataframe_column_diff(
+def take_dataframe_column_diff(
     dataframe_column: pd.DataFrame, diff_step: int, fillna_value: float | None = None
 ) -> pd.DataFrame: ...
 
 
-def _take_dataframe_column_diff(
+def take_dataframe_column_diff(
     dataframe_column: pd.Series | pd.DataFrame, diff_step: int, fillna_value: float | None = None
 ) -> pd.Series | pd.DataFrame:
     """Take the difference along a columns of a DataFrame given a specified step size.
@@ -61,7 +61,7 @@ def compute_forward_differences_along_trajectory(
     column_names: list,
     polar_angle_period: float = POLAR_ANGLE_PERIOD,
     time_lag: int = 1,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Compute forward differences at a given time lag along a trajectory in feature space.
 
     **Polar angle handling**
@@ -96,25 +96,27 @@ def compute_forward_differences_along_trajectory(
     Returns
     -------
     :
-        Array of feature values along the trajectory for the specified columns.
+        DataFrame of feature values along the trajectory for the specified columns.
     :
-        Array of forward differences in feature values along the trajectory for
+        DataFrame of forward differences in feature values along the trajectory for
         the specified columns.
 
     """
     # initialize name for difference columns
     diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
+    diff_columns_keep = [Column.TIMEPOINT, *diff_column_names]
+    traj_columns_keep = [Column.TIMEPOINT, *column_names]
     timepoint_diff_column = f"{Column.TIMEPOINT}{Column.DiffAEData.DIFFERENCE_SUFFIX}"
 
     # add column giving difference in timepoint between rows separated by
     # time_lag convert NaN to 0 -- occurs at end of trajectory
-    df_traj[timepoint_diff_column] = _take_dataframe_column_diff(
+    df_traj[timepoint_diff_column] = take_dataframe_column_diff(
         df_traj[Column.TIMEPOINT], time_lag, fillna_value=0
     )
 
     # add columns giving difference in feature values between consecutive
     # dataframe rows
-    df_traj[diff_column_names] = _take_dataframe_column_diff(
+    df_traj[diff_column_names] = take_dataframe_column_diff(
         df_traj[column_names], time_lag, fillna_value=0
     )
 
@@ -125,7 +127,7 @@ def compute_forward_differences_along_trajectory(
         df_traj[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"] = np.unwrap(
             df_traj[Column.DiffAEData.POLAR_ANGLE].values, period=polar_angle_period
         )
-        df_traj[angle_diff_column] = _take_dataframe_column_diff(
+        df_traj[angle_diff_column] = take_dataframe_column_diff(
             df_traj[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"], time_lag, fillna_value=0
         )
         df_traj.drop(columns=[f"{Column.DiffAEData.POLAR_ANGLE}_unwrapped"], inplace=True)
@@ -134,18 +136,21 @@ def compute_forward_differences_along_trajectory(
     # time_lag which includes the last point in the trajectory (which has time
     # difference set to 0)
     traj_mask = df_traj[timepoint_diff_column] <= time_lag
-    filtered_traj_array = df_traj[traj_mask][column_names].to_numpy()
+    filtered_traj_df = df_traj[traj_mask][traj_columns_keep]
     if time_lag > 1:
         # drop last time_lag - 1 points, as there is no valid difference there
-        filtered_traj_array = filtered_traj_array[: -time_lag + 1]
+        filtered_traj_df = filtered_traj_df[
+            filtered_traj_df[Column.TIMEPOINT]
+            <= filtered_traj_df[Column.TIMEPOINT].max() - time_lag + 1
+        ]
 
     # for the gradient, only keep steps where time difference is exactly
     # time_lag frames i.e., no valid difference at the end of the trajectory
     # (only forward differences)
     gradient_mask = df_traj[timepoint_diff_column] == time_lag
-    filtered_d_traj_array = df_traj[gradient_mask][diff_column_names].to_numpy()
+    filtered_d_traj_df = df_traj[gradient_mask][diff_columns_keep]
 
-    return filtered_traj_array, filtered_d_traj_array
+    return filtered_traj_df, filtered_d_traj_df
 
 
 def get_traj_and_diff(
@@ -195,7 +200,7 @@ def get_traj_and_diff(
     # initialize lists for storing outputs
     traj_list = []
     d_traj_list = []
-
+    diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
     # loop over each crop in the dataset
     for _, df_crop in df.groupby(Column.CROP_INDEX):
         # skip if time_lag is larger than number of timepoints in this trajectory
@@ -216,12 +221,17 @@ def get_traj_and_diff(
 
         # if either the returned trajectory or difference arrays are empty, skip
         # this trajectory
-        if filtered_traj.size == 0 or filtered_d_traj.size == 0:
+        if filtered_traj.empty or filtered_d_traj.empty:
             continue
 
+        # Keep only the feature columns as a numpy array for further numerical
+        # computations
+        filtered_traj_array = filtered_traj[column_names].to_numpy()
+        filtered_d_traj_array = filtered_d_traj[diff_column_names].to_numpy()
+
         # else, append and continue through the loop
-        traj_list.append(filtered_traj)
-        d_traj_list.append(filtered_d_traj)
+        traj_list.append(filtered_traj_array)
+        d_traj_list.append(filtered_d_traj_array)
 
     # if lists are empty, log warning
     if len(traj_list) == 0 or len(d_traj_list) == 0:
