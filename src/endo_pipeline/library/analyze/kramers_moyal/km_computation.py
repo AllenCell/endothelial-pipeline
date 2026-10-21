@@ -252,7 +252,11 @@ def _convolve_histogram_with_kernel(
     # coefficients and the 0th order coefficient to get the correct estimates of
     # the Kramers-Moyal coefficients.
     if powers.shape[0] > 1:
-        taylors = np.prod(factorial(powers[1:]), axis=1)
+        # Use factorial of the *total* order (sum of per-dimension powers), not
+        # the product of per-dimension factorials: the latter gives a factor of
+        # 1 (instead of 2) for mixed second-order terms like [1, 1], silently
+        # dropping the 1/2 factor that pure second-order terms like [2, 0] get.
+        taylors = factorial(np.sum(powers[1:], axis=1))
         kmc[1:, ~mask] /= taylors[..., None] * kmc[0, ~mask]
 
     return kmc
