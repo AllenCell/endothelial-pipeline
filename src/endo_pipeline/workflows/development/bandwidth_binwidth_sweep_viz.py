@@ -10,6 +10,7 @@ def main():
     from endo_pipeline.library.visualize.bandwidth_binwidth_sweep_viz import (
         load_sweep_fixed_points,
         plot_fixed_point_count_heatmaps,
+        plot_fixed_point_count_scatterplots,
         plot_fixed_point_location_summary,
     )
     from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
@@ -32,6 +33,9 @@ def main():
             continue
 
         plot_fixed_point_count_heatmaps(
+            df_sweep, stability, out_dir, datasets=SUPP_FIG_PARAM_SWEEP, file_format=file_format
+        )
+        plot_fixed_point_count_scatterplots(
             df_sweep, stability, out_dir, datasets=SUPP_FIG_PARAM_SWEEP, file_format=file_format
         )
         plot_fixed_point_location_summary(
