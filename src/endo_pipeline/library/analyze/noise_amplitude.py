@@ -101,7 +101,7 @@ def compute_kernel_residual_covariance(
     residuals: np.ndarray,
     bins: list[np.ndarray],
     kernel: KramersMoyalKernel | list[KramersMoyalKernel],
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Compute a kernel-smoothed estimate of the residual autocovariance,
     `<eta(t) eta(t)^T | x(t) = x>`, conditioned on the state `x(t)`.
@@ -132,24 +132,20 @@ def compute_kernel_residual_covariance(
     Returns
     -------
     :
-        Tuple of the symmetric kernel-smoothed covariance tensor, shape
-        `(*grid_shape, ndim, ndim)`, and the raw (unsmoothed) number of
-        samples contributing to each bin, shape `(*grid_shape,)`, for
-        diagnostic purposes.
+        Symmetric kernel-smoothed covariance tensor, shape
+        `(*grid_shape, ndim, ndim)`.
     """
     is_valid = ~np.isnan(residuals).any(axis=-1) & ~np.isnan(positions).any(axis=-1)
     x_valid = positions[is_valid]
     eta_valid = residuals[is_valid]
 
     covariance = get_kernel_residual_covariance(x_valid, eta_valid, bins=bins, kernel=kernel)
-    counts = np.histogramdd(x_valid, bins=bins)[0]
 
-    return covariance, counts
+    return covariance
 
 
 def create_noise_amplitude_vector_field_df(
     noise_amplitude: np.ndarray,
-    sample_counts: np.ndarray,
     column_names: list[str | Column.DiffAEData],
     feature_grid: tuple[np.ndarray, ...],
     metadata_dict: dict[str, str | float] | None = None,
@@ -173,15 +169,12 @@ def create_noise_amplitude_vector_field_df(
     ----------
     noise_amplitude
         Noise amplitude tensor field, shape `(*grid_shape, ndim, ndim)`.
-    sample_counts
-        Number of residual samples contributing to each bin, shape
-        `(*grid_shape,)`.
     column_names
         List of column names corresponding to the features used for computing
         the noise amplitude.
     feature_grid
         Tuple of ND arrays with the grid points in each dimension, matching
-        `sample_counts.shape`.
+        `noise_amplitude.shape[:-2]`.
     metadata_dict
         Optional, dictionary containing metadata to include in the output
         dataframe (e.g. dataset name, shear stress).
@@ -202,8 +195,6 @@ def create_noise_amplitude_vector_field_df(
         noise_amplitude_dataframe[tensor_column_name] = noise_amplitude[
             ..., feature_index_2, feature_index_1
         ].flatten()
-
-    noise_amplitude_dataframe[Column.NoiseAmplitude.SAMPLE_COUNT] = sample_counts.flatten()
 
     if metadata_dict is not None:
         for key in metadata_dict:

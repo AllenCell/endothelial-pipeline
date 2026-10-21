@@ -305,7 +305,7 @@ def main(
             )
 
             # Kernel-smoothed average R(x) = <eta(t) eta(t)^T | x(t) = x>
-            covariance, sample_counts = compute_kernel_residual_covariance(
+            covariance = compute_kernel_residual_covariance(
                 positions=positions, residuals=residuals, bins=bin_edges, kernel=kernels
             )
 
@@ -321,7 +321,6 @@ def main(
             noise_amplitude_dataframe_list.append(
                 create_noise_amplitude_vector_field_df(
                     noise_amplitude=noise_amplitude,
-                    sample_counts=sample_counts,
                     column_names=column_names,
                     feature_grid=feature_grid,
                     metadata_dict=metadata_dict,

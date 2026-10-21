@@ -679,12 +679,6 @@ class ColumnName:
         MEASUREMENT_NOISE_COVARIANCE = "measurement_noise_covariance"
         """Estimated covariance of the independent measurement error between feature_1 and feature_2."""
 
-    class NoiseAmplitude(StrEnum):
-        """Column name suffixes used for the histogram-based noise amplitude tensor field."""
-
-        SAMPLE_COUNT = "sample_count"
-        """Number of residual samples contributing to the noise amplitude estimate at this grid point."""
-
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 
