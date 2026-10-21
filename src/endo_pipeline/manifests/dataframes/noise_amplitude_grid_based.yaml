@@ -1,0 +1,49 @@
+name: noise_amplitude_grid_based
+workflow: compute_noise_amplitude
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  columns: [polar_theta, polar_r, rho]
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+  - column: polar_r
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+  - column: rho
+    name: gaussian
+    bandwidth: 0.15
+    period: null
+columns:
+  dataset: Name of dataset
+  polar_theta_mesh_grid: Vector field mesh grid in theta
+  polar_r_mesh_grid: Vector field mesh grid in r
+  rho_mesh_grid: Vector field mesh grid in rho
+  polar_theta_polar_theta_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features polar_theta, polar_theta
+  polar_theta_polar_r_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features polar_theta, polar_r
+  polar_theta_rho_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features polar_theta, rho
+  polar_r_polar_r_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features polar_r, polar_r
+  polar_r_rho_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features polar_r, rho
+  rho_rho_noise_amplitude: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features rho, rho
+  shear_stress: Shear stress value [dyn/cm^2]
+locations:
+  20250409_20X:
+    fmsid: 5428bb64a926484b818d869f9059682a
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: fd97acb01536487d9d63b0a739e43535
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: 9f487248d9854f70bc60db9d788e97fb
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: 2b3c16c70fb7469da3eebbd26aafeae6
+    path: null
+    s3uri: null

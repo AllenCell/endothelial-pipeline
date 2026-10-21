@@ -58,3 +58,9 @@ NOISE_STATISTICS_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "noise_statistics_cell_centered",
 }
 """Mapping of patch type to noise statistics dataframe manifest name."""
+
+NOISE_AMPLITUDE_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": "noise_amplitude_grid_based",
+    "cell_centered": "noise_amplitude_cell_centered",
+}
+"""Mapping of patch type to noise amplitude tensor field dataframe manifest name."""
