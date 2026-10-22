@@ -494,7 +494,7 @@ def plot_sweep_subset(
     fig, axes = plt.subplots(
         len(FIXED_POINT_COLUMNS),
         1,
-        figsize=(5, 2.5 * len(FIXED_POINT_COLUMNS)),
+        figsize=(1.75, 0.8 * len(FIXED_POINT_COLUMNS)),
         sharex=True,
         layout="constrained",
     )
@@ -521,17 +521,24 @@ def plot_sweep_subset(
             sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
             y_values,
             marker=marker_style.marker,
-            s=marker_style.markersize,
+            s=2 * marker_style.markersize,
             color=marker_style.color,
             edgecolors="black",
             linewidths=0.4,
         )
-        # Update x-axis tick labels to be "0" at middle boundary time, and ticks
-        # of 1 hour +/- 3 hours around the middle boundary time.
-        tick_range = range(int(middle_boundary_time - 3), int(middle_boundary_time + 4))
+        # Update x-axis tick labels to be centered at middle boundary time, and
+        # ticks of 1 hour +/- 3 hours around the middle boundary time.
+        tick_range = np.arange(middle_boundary_time - 3, middle_boundary_time + 4)
         ax.set_xticks(tick_range)
-        ax.set_xticklabels([str(t - middle_boundary_time) for t in tick_range])
         ax.set_xlim(middle_boundary_time - 3.1, middle_boundary_time + 3.1)
+        # add vertical dashed line at the middle boundary time
+        ax.axvline(
+            middle_boundary_time,
+            color="dimgray",
+            linestyle="--",
+            linewidth=0.8,
+            label="Median of actual annotations",
+        )
         # Fix the y-axis to each coordinate's limits (theta uses the paper
         # vector-field range, r and rho use their metadata limits) so panels
         # are comparable.
@@ -541,9 +548,15 @@ def plot_sweep_subset(
         # Use π-based tick labels for θ (matching the paper figures).
         metadata = COLUMN_METADATA[column_name]
         if column_name == Column.DiffAEData.POLAR_ANGLE and metadata.ticks is not None:
-            ax.set_yticks(list(metadata.ticks))
+            metadata_ticks = list(metadata.ticks)
+            if len(metadata_ticks) > 3:
+                metadata_ticks = metadata_ticks[::2]
+            ax.set_yticks(metadata_ticks)
             if metadata.tick_labels is not None:
-                ax.set_yticklabels(metadata.tick_labels)
+                metadata_tick_labels = list(metadata.tick_labels)
+                if len(metadata_tick_labels) > 3:
+                    metadata_tick_labels = metadata_tick_labels[::2]
+                ax.set_yticklabels(metadata_tick_labels)
         # Overlay the baseline fixed points (per-FOV windows) as horizontal
         # reference lines so the swept estimates can be compared against them.
         draw_baseline_fixed_points(
@@ -556,9 +569,16 @@ def plot_sweep_subset(
         ax.set_ylabel(column_label)
         ax.grid(True, alpha=0.3)
 
-    axes[-1].set_xlabel("Time relative to median of actual annotations (hours)")
+    if boundary == SweptBoundary.START_STEADY_STATE:
+        xlabel = "Start of steady state\n(hrs, all FOVs)"
+    elif boundary == SweptBoundary.START_CELL_PILING:
+        xlabel = "End of steady state\n(hrs, all FOVs)"
+
+    axes[-1].set_xlabel(xlabel)
 
     file_name = f"{dataset_config.name}_{boundary}_window_sweep"
-    file_path = save_plot_to_path(fig, output_path, file_name, file_format=".svg")
+    file_path = save_plot_to_path(
+        fig, output_path, file_name, file_format=".svg", tight_layout=False
+    )
 
     return file_path
