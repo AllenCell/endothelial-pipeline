@@ -14,83 +14,15 @@ columns:
   num_window_timepoints: Number of window timepoints (rows pooled across all FOVs).
   detection_rate: Fraction of bootstrap iterations in which a matched fixed point was found.
 locations:
-  20250402_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250402_20X_start_cell_piling_30min.parquet
-    s3uri: null
   20250409_20X:
     fmsid: null
     path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250409_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250611_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250618_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260126_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260126_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260128_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260128_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260202_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260202_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260209_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260209_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260211_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260211_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260225_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260225_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260302_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20260302_20X_start_cell_piling_30min.parquet
     s3uri: null
   20250319_20X:
     fmsid: null
     path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250319_20X_start_cell_piling_30min.parquet
     s3uri: null
-  20260114_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260114_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20260216_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260216_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250604_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250604_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250428_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250428_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250716_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250716_20X_start_cell_piling_30min.parquet
-    s3uri: null
   20260304_20X:
     fmsid: null
     path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260304_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250326_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-05/sweep_window_fixed_points/window_sweep_20250326_20X_start_cell_piling_30min.parquet
-    s3uri: null
-  20250813_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-05/sweep_window_fixed_points/window_sweep_20250813_20X_start_cell_piling_30min.parquet
     s3uri: null
