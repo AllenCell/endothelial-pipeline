@@ -137,7 +137,7 @@ def run_task_queue_with_multiprocessing(
     description: str,
     num_processes: int,
     chunksize: int,
-) -> None:
+) -> list[Any] | None:
     """
     Process tasks in queue with multiprocessing.
 
@@ -157,18 +157,19 @@ def run_task_queue_with_multiprocessing(
 
     logger.info("Starting multiprocessing...")
     with Pool(processes=num_processes) as pool:
-        list(
+        results = list(
             tqdm(
                 pool.imap(task, queue, chunksize=chunksize),
                 desc=f"{description} (MP)",
                 total=len(queue),
             )
         )
+    return results if any(results) else None
 
 
 def run_task_queue_in_series(
     task: Callable, queue: list[ImageProcessingArgs], description: str
-) -> None:
+) -> list[Any] | None:
     """
     Process tasks in queue in series.
 
@@ -183,8 +184,11 @@ def run_task_queue_in_series(
     """
 
     logger.info("Starting single-core processing...")
+    results: list[Any] = []
     for item in tqdm(queue, desc=f"{description} (1P)", total=len(queue)):
-        task(item)
+        results.append(task(item))
+
+    return results if any(results) else None
 
 
 def process_task_queue(
@@ -193,7 +197,7 @@ def process_task_queue(
     description: str,
     num_processes: int,
     chunksize: int,
-) -> None:
+) -> list[Any] | None:
     """
     Process tasks in queue in series or with multiprocessing.
 
@@ -215,9 +219,11 @@ def process_task_queue(
     """
 
     if num_processes > 1:
-        run_task_queue_with_multiprocessing(task, queue, description, num_processes, chunksize)
+        return run_task_queue_with_multiprocessing(
+            task, queue, description, num_processes, chunksize
+        )
     else:
-        run_task_queue_in_series(task, queue, description)
+        return run_task_queue_in_series(task, queue, description)
 
 
 def sequence_to_scalar(sequence_like: Sequence | pd.Series) -> Any:

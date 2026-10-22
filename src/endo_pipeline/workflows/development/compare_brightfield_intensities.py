@@ -1,7 +1,7 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) -> None:
+def main(datasets: Datasets | None = None, max_workers: int | None = None) -> None:
     """
     Compare brightfield intensities across datasets.
 
@@ -40,8 +40,8 @@ def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) ->
     ----------
     datasets
         List of datasets or dataset collections to compare.
-    exclude_bf_artifacts
-        True to exclude timepoints annotated with BF artifacts, False otherwise.
+    max_workers
+        Maximum number of worker processes to use for processing. If None, defaults to 1.
     """
 
     import logging
@@ -50,19 +50,18 @@ def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) ->
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import (
-        get_datasets_in_collection,
-        get_shear_stress_label_for_dataset,
-        load_dataset_config,
-    )
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.analyze.model_noise_sensitivity import (
-        get_bf_frame_intensities,
-        plot_bf_intensity_by_dataset,
+        get_bf_frame_intensities_multiproc_wrapper,
         summarize_bf_frame_intensities,
     )
-    from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.dataset_annotations import TIMEPOINT_OUTLIERS_MANIFEST_NAME
+    from endo_pipeline.library.process.general_image_preprocessing import (
+        build_analysis_queue,
+        process_task_queue,
+    )
+    from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+    from endo_pipeline.settings.column_names import ColumnName as Column
 
     plt.style.use("endo_pipeline.figure")
 
@@ -76,42 +75,44 @@ def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) ->
         logger.warning("DEMO MODE - Limiting to two datasets")
         dataset_names = dataset_names[:2]
 
-    # Load manifest containing mean BF intensities from timepoint outlier annotations
-    manifest = load_dataframe_manifest(TIMEPOINT_OUTLIERS_MANIFEST_NAME)
+    # Build analysis queue for multiprocessing
+    analysis_queue = build_analysis_queue(
+        dataset_names=dataset_names,
+        out_dir=output_path,
+        image_validation_frequency=None,
+        t_start=0,
+        t_final=50 if DEMO_MODE else None,
+        max_positions=2 if DEMO_MODE else None,
+    )
 
-    intensity_dfs = []
-    dataset_labels = {}
-    for dataset_name in dataset_names:
-        # Check if dataset available in annotations manifest
-        if dataset_name not in manifest.locations:
-            logger.warning(
-                "Dataset '%s' not found in manifest '%s'. Skipping.",
-                dataset_name,
-                TIMEPOINT_OUTLIERS_MANIFEST_NAME,
-            )
-            continue
-
-        logger.info("Loading BF intensities for dataset '%s'", dataset_name)
-        dataset_config = load_dataset_config(dataset_name)
-        annotations = load_dataframe(manifest.locations[dataset_name])
-
-        intensity_dfs.append(
-            get_bf_frame_intensities(annotations, dataset_config, exclude_bf_artifacts)
-        )
-        dataset_labels[dataset_name] = get_shear_stress_label_for_dataset(dataset_config)
-
-    intensities = pd.concat(intensity_dfs, ignore_index=True)
+    # Get log-normd std dev projection intensities at each timepoint (with multiprocessing)
+    intensity_dfs: list[dict] = process_task_queue(  # type: ignore
+        get_bf_frame_intensities_multiproc_wrapper,
+        analysis_queue,
+        description="Computing log-normd std dev projection intensities",
+        num_processes=max_workers or 1,  # Use specified number of processes or default to 1,
+        chunksize=1,
+    )
+    intensities = pd.DataFrame(intensity_dfs)
 
     # Save summary statistics of BF intensities for each dataset
     summary = summarize_bf_frame_intensities(intensities)
     summary.to_csv(output_path / "bf_intensity_summary.csv", index=False)
 
     # Plot BF intensity summary for each dataset
-    plot_bf_intensity_by_dataset(summary, output_path)
+    plot_cross_dataset_summaries(
+        summary,
+        output_path=output_path,
+        column_names=[Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN],
+        point_color="black",
+        ylabel_rotation=90,
+        ylabel_horizontal_alignment="center",
+        ylabel_vertical_alignment="bottom",
+        yaxis_for_fixed_points=False,
+    )
 
 
 if __name__ == "__main__":
-
     from endo_pipeline.cli import workflow_cli
 
     workflow_cli(main)

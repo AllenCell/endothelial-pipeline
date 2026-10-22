@@ -688,6 +688,27 @@ class ColumnName:
     MODEL_COMPARISON_LPIPS = "denoised_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
 
+    class ModelNoiseSensitivity(StrEnum):
+        """Column names used in model noise sensitivity analysis."""
+
+        LOG_NORMD_STDEV_MEAN = "log_normd_stdev_mean"
+        """Mean of log-normalized standard deviation of input images."""
+
+        LOG_NORMD_STDEV_STD = "log_normd_stdev_std"
+        """Standard deviation of log-normalized standard deviation of input images."""
+
+        LOG_NORMD_STDEV_MEDIAN = "log_normd_stdev_median"
+        """Median of log-normalized standard deviation of input images."""
+
+        LOG_NORMD_STDEV_MAX = "log_normd_stdev_max"
+        """Maximum of log-normalized standard deviation of input images."""
+
+        LOG_NORMD_STDEV_MIN = "log_normd_stdev_min"
+        """Minimum of log-normalized standard deviation of input images."""
+
+        LOG_NORMD_STDEV_VARIANCE = "log_normd_stdev_variance"
+        """Variance of log-normalized standard deviation of input images."""
+
 
 class ColumnNameTemplate(StrEnum):
     """Dataframe column name templates."""
@@ -850,5 +871,6 @@ ColumnNameType = (
     | ColumnName.OpticalFlow
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
+    | ColumnName.ModelNoiseSensitivity
 )
 """Type hint for all column name enums."""

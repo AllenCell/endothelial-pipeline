@@ -579,5 +579,36 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="LPIPS score",
         type=ColumnType.CONTINUOUS,
     ),
+    # ModelNoiseSensitivity workflows ==========================================
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN: ColumnMetadata(
+        name="Log-normalized standard deviation projection mean",
+        label="Log-normalized standard\ndeviation projection mean",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_STD: ColumnMetadata(
+        name="Log-normalized standard deviation projection std",
+        label="Log-normalized standard\ndeviation projection std",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEDIAN: ColumnMetadata(
+        name="Log-normalized standard deviation projection median",
+        label="Log-normalized standard\ndeviation projection median",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MAX: ColumnMetadata(
+        name="Log-normalized standard deviation projection max",
+        label="Log-normalized standard\ndeviation projection max",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MIN: ColumnMetadata(
+        name="Log-normalized standard deviation projection min",
+        label="Log-normalized standard\ndeviation projection min",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_VARIANCE: ColumnMetadata(
+        name="Log-normalized standard deviation projection variance",
+        label="Log-normalized standard\ndeviation projection variance",
+        type=ColumnType.CONTINUOUS,
+    ),
 }
 """Mapping of column names to column metadata."""
