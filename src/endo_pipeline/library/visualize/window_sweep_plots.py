@@ -30,6 +30,7 @@ from endo_pipeline.settings.dynamics_workflows import (
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -575,6 +576,10 @@ def plot_sweep_subset(
         xlabel = "End of steady state\n(hrs, all FOVs)"
 
     axes[-1].set_xlabel(xlabel)
+    shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+    shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
+    replicate_number = dataset_config.replicate_number
+    axes[0].set_title(f"{shear_stress_label} (replicate {replicate_number})")
 
     file_name = f"{dataset_config.name}_{boundary}_window_sweep"
     file_path = save_plot_to_path(
