@@ -246,7 +246,8 @@ def compute_window_detection_rates(
                 column_names=column_names,
                 kernels=kernels,
             )
-        except Exception:  # noqa: BLE001 - a failed fit is a miss, not a hard error
+        except Exception as e:  # noqa: BLE001 - a failed fit is a miss, not a hard error
+            logger.warning("Failed to compute fixed points: %s", e)
             fixed_points = pd.DataFrame()
         bootstrap_fixed_points.append(fixed_points)
 
