@@ -55,11 +55,10 @@ def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) ->
         get_shear_stress_label_for_dataset,
         load_dataset_config,
     )
-    from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
+    from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.model_noise_sensitivity import (
         get_bf_frame_intensities,
         plot_bf_intensity_by_dataset,
-        plot_bf_intensity_over_time,
         summarize_bf_frame_intensities,
     )
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -107,13 +106,8 @@ def main(datasets: Datasets | None = None, exclude_bf_artifacts: bool = True) ->
     summary = summarize_bf_frame_intensities(intensities)
     summary.to_csv(output_path / "bf_intensity_summary.csv", index=False)
 
-    # Plot BF intensity distributions for each dataset
-    fig = plot_bf_intensity_by_dataset(intensities, dataset_labels)
-    save_plot_to_path(fig, output_path, "bf_intensity_by_dataset", tight_layout=False)
-
-    # Plot BF intensity over time for each dataset
-    fig = plot_bf_intensity_over_time(intensities, dataset_labels)
-    save_plot_to_path(fig, output_path, "bf_intensity_over_time", tight_layout=False)
+    # Plot BF intensity summary for each dataset
+    plot_bf_intensity_by_dataset(summary, output_path)
 
 
 if __name__ == "__main__":
