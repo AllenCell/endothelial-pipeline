@@ -83,8 +83,7 @@ def main(
     logger = logging.getLogger(__name__)
     output_path = get_output_path(__file__)
 
-    if not NUM_WORKERS:
-        NUM_WORKERS = 1
+    max_workers = NUM_WORKERS or 1
 
     dataset_names = datasets or get_datasets_in_collection("shear_stress")
     if DEMO_MODE:
@@ -190,8 +189,8 @@ def main(
 
         for boundary in boundaries:
             # One worker per edge position (capped by CPUs); spare CPUs -> BLAS threads.
-            n_workers = max(1, min(NUM_WORKERS, len(edge_grid)))
-            blas_threads_per_worker = max(1, NUM_WORKERS // n_workers)
+            n_workers = max(1, min(max_workers, len(edge_grid)))
+            blas_threads_per_worker = max(1, max_workers // n_workers)
 
             logger.info(
                 "Dataset '%s': sweeping %s over %d edge position(s) [%d, %d] timepoints "
