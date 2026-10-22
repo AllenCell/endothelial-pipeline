@@ -146,6 +146,7 @@ def plot_bf_intensity_by_dataset(df: pd.DataFrame, dataset_labels: dict[str, str
         ax=ax,
     )
 
+    ax.set_xlim(left=0)
     ax.set_xlabel(BF_INTENSITY_LABEL)
     ax.set_ylabel("")
 
@@ -190,6 +191,7 @@ def plot_bf_intensity_over_time(
         height=2,
         aspect=1.5,
     )
+    grid.set(ylim=(0, None))
 
     grid.set_titles("{col_name}")
     grid.set_axis_labels("Timepoint (frames)", BF_INTENSITY_LABEL)
