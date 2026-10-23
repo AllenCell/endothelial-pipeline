@@ -162,9 +162,9 @@ def plot_noise_correlation_vs_lag(
 
     If `single_dataset` is False, the function will compute and plot the mean
     noise correlation over all datasets. It will also include the mean
-    measurement error variance over all datasets as text on the plot. The plots
-    also show the (5, 95) percentiles of the noise correlation over all
-    datasets.
+    measurement error variance, with its (5, 95) percentiles over all
+    datasets, as text on the plot. The plots also show the (5, 95) percentiles
+    of the noise correlation over all datasets.
 
     Parameters
     ----------
@@ -204,6 +204,14 @@ def plot_noise_correlation_vs_lag(
                 MEASUREMENT_NOISE_COVARIANCE_MEAN=(
                     Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE,
                     "mean",
+                ),
+                MEASUREMENT_NOISE_COVARIANCE_5=(
+                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE,
+                    lambda x: x.quantile(0.05),
+                ),
+                MEASUREMENT_NOISE_COVARIANCE_95=(
+                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE,
+                    lambda x: x.quantile(0.95),
                 ),
             )
             .reset_index()
@@ -256,7 +264,7 @@ def plot_noise_correlation_vs_lag(
             axis.set_ylabel(
                 f"{Unicode.KAPPA}$_\mathregular{{{column_label_i}, {column_label_j}}}$({Unicode.TAU})"
             )
-            # add measurement error variance as text if it is not NaN
+            # measurement error variance is only defined for diagonal (i == j) terms
             measurement_error_variance = pair_dataframe[
                 (
                     "MEASUREMENT_NOISE_COVARIANCE_MEAN"
@@ -264,11 +272,22 @@ def plot_noise_correlation_vs_lag(
                     else Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
                 )
             ].iloc[0]
-            if not pd.isna(measurement_error_variance):
+            if i == j and not pd.isna(measurement_error_variance):
+                sigma_varepsilon_text = (
+                    f"{Unicode.SIGMA}$_\\varepsilon$: {measurement_error_variance:.2e}"
+                )
+                if not single_dataset:
+                    measurement_error_variance_5 = pair_dataframe[
+                        "MEASUREMENT_NOISE_COVARIANCE_5"
+                    ].iloc[0]
+                    measurement_error_variance_95 = pair_dataframe[
+                        "MEASUREMENT_NOISE_COVARIANCE_95"
+                    ].iloc[0]
+                    sigma_varepsilon_text += f" ({measurement_error_variance_5:.2e}, {measurement_error_variance_95:.2e})"
                 axis.text(
                     0.95,
                     0.95,
-                    f"{Unicode.SIGMA}$_\\varepsilon$: {measurement_error_variance:.4f}",
+                    sigma_varepsilon_text,
                     transform=axis.transAxes,
                     ha="right",
                     va="top",
