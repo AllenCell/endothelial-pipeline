@@ -34,7 +34,7 @@ DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
 DIFFUSION_TENSOR_CONTOUR_VMIN: float = 0.0
 """Fixed minimum colorbar value for diffusion tensor entry contour plots."""
 
-DIFFUSION_TENSOR_CONTOUR_VMAX: float = 1.5
+DIFFUSION_TENSOR_CONTOUR_VMAX: float = 1.0
 """Fixed maximum colorbar value for diffusion tensor entry contour plots."""
 
 DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
@@ -321,6 +321,10 @@ def plot_noise_tensor_contours(
     axes_limits: tuple[tuple[float, float], tuple[float, float]],
     x_label: str,
     y_label: str,
+    x_ticks: list[float] | None = None,
+    x_tick_labels: list[str] | None = None,
+    y_ticks: list[float] | None = None,
+    y_tick_labels: list[str] | None = None,
     n_rows: int = NROWS_DIFFUSION_TENSOR_CONTOURS,
     n_cols: int = NCOLS_DIFFUSION_TENSOR_CONTOURS,
     figsize: tuple[float, float] = FIGSIZE_DIFFUSION_TENSOR_CONTOURS,
@@ -330,6 +334,7 @@ def plot_noise_tensor_contours(
     vmin: float = DIFFUSION_TENSOR_CONTOUR_VMIN,
     vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
     axis: plt.Axes | None = None,
+    show_colorbar: bool = True,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
@@ -350,6 +355,16 @@ def plot_noise_tensor_contours(
         Label for the x-axis, set on the bottom row of panels only.
     y_label
         Label for the y-axis, set on the left column of panels only.
+    x_ticks
+        Optional, override the default x-axis tick positions, applied to
+        every panel.
+    x_tick_labels
+        Optional, override the default x-axis tick labels for `x_ticks`.
+    y_ticks
+        Optional, override the default y-axis tick positions, applied to
+        every panel.
+    y_tick_labels
+        Optional, override the default y-axis tick labels for `y_ticks`.
     n_rows
         Number of rows of entry panels.
     n_cols
@@ -369,6 +384,9 @@ def plot_noise_tensor_contours(
     axis
         Optional, existing Axes to draw the single tensor entry on instead of
         creating a new figure. Only valid when `entry_labels` has one entry.
+    show_colorbar
+        False to skip drawing a colorbar for every panel in this call, e.g.
+        when a shared colorbar is drawn separately for only one panel.
 
     Returns
     -------
@@ -400,9 +418,10 @@ def plot_noise_tensor_contours(
         contour = ax_flat[entry_index].contourf(
             meshgrid[0], meshgrid[1], values, levels=contour_levels, cmap=colormap, extend="both"
         )
-        colorbar_ticks = np.linspace(vmin, vmax, cbar_num_ticks)
-        fig.colorbar(contour, ax=ax_flat[entry_index], ticks=colorbar_ticks, format="%.2f")
-        ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_MEDIUM)
+        if show_colorbar:
+            colorbar_ticks = np.linspace(vmin, vmax, cbar_num_ticks)
+            fig.colorbar(contour, ax=ax_flat[entry_index], ticks=colorbar_ticks, format="%.2f")
+        ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_SMALL)
 
     # hide any unused panels (e.g. fewer entries than n_rows * n_cols)
     for ax_ in ax_flat[len(entry_labels) :]:
@@ -410,13 +429,17 @@ def plot_noise_tensor_contours(
 
     ax_grid = ax.reshape(n_rows, n_cols)
     for ax_ in ax_grid[-1, :]:
-        ax_.set_xlabel(x_label, fontsize=FONTSIZE_MEDIUM)
+        ax_.set_xlabel(x_label, fontsize=FONTSIZE_SMALL)
     for ax_ in ax_grid[:, 0]:
-        ax_.set_ylabel(y_label, fontsize=FONTSIZE_MEDIUM, rotation=0)
+        ax_.set_ylabel(y_label, fontsize=FONTSIZE_SMALL, rotation=0)
     for ax_ in ax_flat[: len(entry_labels)]:
         ax_.set_xlim(*axes_limits[0])
         ax_.set_ylim(*axes_limits[1])
-        ax_.set_aspect("auto", adjustable="box")
+        ax_.set_box_aspect(1)
+        if x_ticks is not None:
+            ax_.set_xticks(x_ticks, labels=x_tick_labels)
+        if y_ticks is not None:
+            ax_.set_yticks(y_ticks, labels=y_tick_labels)
 
     return fig, ax
 
@@ -427,7 +450,8 @@ def plot_noise_tensor_contours_at_fixed_point(
     fixed_point: tuple[float, float, float],
     output_path: Path,
     file_name: str = "noise_tensor_contour_fixed_point",
-    figsize: tuple[float, float] = (5.0, 2.5),
+    plot_title: str | None = None,
+    figure_size: tuple[float, float] = (5.0, 2.5),
 ) -> Path:
     """Plot contours of the sigma_11 noise tensor entry over two 2D slices of
     state space through a fixed point, in a single figure with separate axes.
@@ -474,13 +498,34 @@ def plot_noise_tensor_contours_at_fixed_point(
     column_labels = [get_label_for_column(column) for column in column_names]
     sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
     axes_bounds = [(points[0], points[-1]) for points in grid_points_1d]
+    theta_metadata = COLUMN_METADATA[column_names[0]]
 
-    fig, axs = plt.subplots(1, 2, figsize=figsize, layout="constrained")
+    fig, axs = plt.subplots(1, 2, figsize=figure_size, layout="constrained")
 
-    # (axes to plot in 2D, axis being sliced over, value to slice at) for the two panels
-    for ax, (x_index, y_index), slice_axis_index, slice_value in zip(
-        axs, [(0, 1), (1, 2)], [2, 0], [rho_star, theta_star], strict=True
-    ):
+    for (
+        ax,
+        (x_index, y_index),
+        slice_axis_index,
+        slice_value,
+        show_colorbar,
+        x_ticks,
+        x_tick_labels,
+        y_ticks,
+        y_tick_labels,
+    ) in [
+        (
+            axs[0],
+            (0, 1),
+            2,
+            rho_star,
+            False,
+            theta_metadata.ticks[::2],
+            theta_metadata.tick_labels[::2],
+            None,
+            None,
+        ),
+        (axs[1], (1, 2), 0, theta_star, True, None, None, None, None),
+    ]:
         slice_indexes = get_slice_indexes(grid[slice_axis_index], slice_value)
         slice_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
         collapse_axis = np.where(np.array(slice_shape) == 1)[0][0]
@@ -493,15 +538,23 @@ def plot_noise_tensor_contours_at_fixed_point(
 
         axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.3f}"
 
-        plot_noise_tensor_contours(
+        fig, _ = plot_noise_tensor_contours(
             (x_grid, y_grid),
             sigma_11_slice,
             [axes_title_text],
             axes_limits=(axes_bounds[x_index], axes_bounds[y_index]),
             x_label=column_labels[x_index],
             y_label=column_labels[y_index],
+            x_ticks=x_ticks,
+            x_tick_labels=x_tick_labels,
+            y_ticks=y_ticks,
+            y_tick_labels=y_tick_labels,
             axis=ax,
+            show_colorbar=show_colorbar,
         )
+
+    if plot_title is not None:
+        fig.suptitle(plot_title, fontsize=FONTSIZE_MEDIUM, fontweight="bold")
 
     return save_plot_to_path(fig, output_path, file_name, tight_layout=False, file_format=".svg")
 
