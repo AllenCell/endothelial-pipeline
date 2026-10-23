@@ -74,6 +74,7 @@ def main(
     )
     from endo_pipeline.library.model.model_comparison import (
         ModelComparisonMetricsCalculator,
+        load_nuclei_segmentation_image,
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
     )
@@ -170,7 +171,7 @@ def main(
         model_location = model_manifest.locations[run_name]
         model_ = load_model(model_location, instantiate=False)
         config: DictConfig = cast(DictConfig, model_.cfg)
-        model = instantiate_model_target_class(model_)
+        model = instantiate_model_target_class(model_)  # type: ignore[reportArgumentType]
 
         for random_seed in seeds_to_evaluate:
             # Set RNG seed
@@ -182,6 +183,10 @@ def main(
                 diffusion_ex = load_transformed_diffusion_example_image(example, config)
                 next_diffusion_ex = load_transformed_diffusion_example_image(next_example, config)
 
+                # Load nuclei segmentation image for the example (used to refine segmentations which
+                # are used to compute segmentation-based features).
+                img_nuc_seg = load_nuclei_segmentation_image(example, config)
+
                 # Apply noise to conditioning image and then denoise
                 noise = rng.standard_normal(size=conditioning_ex.shape)
                 latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
@@ -189,17 +194,31 @@ def main(
                     model, latent, noise, num_gpus=NUM_GPUS
                 )
 
-                # Consume RNG state for reproducibility with model performance
-                # assessment outputs
+                # Consume RNG state for reproducibility with model performance assessment outputs
                 _ = rng.permuted(latent)
                 _ = rng.permuted(conditioning_ex.ravel())
 
-                # Calculate comparison metrics for baseline (between input
-                # diffusion image at current timepoint and the next timepoint)
-                # for the denoised image (between ground truth input diffusion
-                # image and result of denoising the conditioning image)
-                baseline_results = calculator.compute_all_metrics(diffusion_ex, next_diffusion_ex)
-                denoise_results = calculator.compute_all_metrics(diffusion_ex, denoised_ex)
+                # Calculate comparison metrics between the input image vs. itself,
+                # input image at the current timepoint vs. the next timepoint, and
+                # input image vs. denoised image for a given seed
+                self_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=diffusion_ex,
+                    img_nuc_seg=img_nuc_seg,
+                    example_name=str(example),
+                )
+                baseline_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=next_diffusion_ex,
+                    img_nuc_seg=img_nuc_seg,
+                    example_name=str(example),
+                )
+                denoise_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=denoised_ex,
+                    img_nuc_seg=img_nuc_seg,
+                    example_name=str(example),
+                )
 
                 results.append(
                     {
@@ -208,12 +227,27 @@ def main(
                         Column.EXAMPLE_KEY: str(example),
                         Column.RANDOM_SEED: random_seed,
                         Column.MODEL_COMPARISON_EXAMPLE_GROUP: group,
+                        Column.MODEL_COMPARISON_SELF_CORRELATION: self_results.correlation,
+                        Column.MODEL_COMPARISON_SELF_SSIM: self_results.ssim,
+                        Column.MODEL_COMPARISON_SELF_LPIPS: self_results.lpips,
+                        Column.MODEL_COMPARISON_SELF_HAUSDORFF: self_results.hausdorff,
+                        Column.MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE: self_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO: self_results.mean_relative_aspect_ratio,
+                        Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA: self_results.mean_relative_area,
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,
                         Column.MODEL_COMPARISON_BASELINE_SSIM: baseline_results.ssim,
+                        Column.MODEL_COMPARISON_BASELINE_HAUSDORFF: baseline_results.hausdorff,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE: baseline_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO: baseline_results.mean_relative_aspect_ratio,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA: baseline_results.mean_relative_area,
                         Column.MODEL_COMPARISON_BASELINE_LPIPS: baseline_results.lpips,
                         Column.MODEL_COMPARISON_CORRELATION: denoise_results.correlation,
                         Column.MODEL_COMPARISON_SSIM: denoise_results.ssim,
                         Column.MODEL_COMPARISON_LPIPS: denoise_results.lpips,
+                        Column.MODEL_COMPARISON_HAUSDORFF: denoise_results.hausdorff,
+                        Column.MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE: denoise_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO: denoise_results.mean_relative_aspect_ratio,
+                        Column.MODEL_COMPARISON_MEAN_RELATIVE_AREA: denoise_results.mean_relative_area,
                     }
                 )
 

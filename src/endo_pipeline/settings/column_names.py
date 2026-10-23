@@ -679,6 +679,18 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_LPIPS = "baseline_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint."""
 
+    MODEL_COMPARISON_BASELINE_HAUSDORFF = "baseline_hausdorff"
+    """Hausdorff distance between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE = "baseline_mean_orientation_difference"
+    """Mean orientation difference between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO = "baseline_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA = "baseline_mean_relative_area"
+    """Mean relative area between ground truth and next timepoint."""
+
     MODEL_COMPARISON_CORRELATION = "denoised_correlations"
     """Pearson correlation between input and denoised image."""
 
@@ -687,6 +699,39 @@ class ColumnName:
 
     MODEL_COMPARISON_LPIPS = "denoised_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
+
+    MODEL_COMPARISON_HAUSDORFF = "denoised_hausdorff"
+    """Hausdorff distance between input and denoised image."""
+
+    MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE = "denoised_mean_orientation_difference"
+    """Mean orientation difference between input and denoised image."""
+
+    MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO = "denoised_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between input and denoised image."""
+
+    MODEL_COMPARISON_MEAN_RELATIVE_AREA = "denoised_mean_relative_area"
+    """Mean relative area between input and denoised image."""
+
+    MODEL_COMPARISON_SELF_CORRELATION = "self_correlations"
+    """Pearson correlation between input and itself."""
+
+    MODEL_COMPARISON_SELF_SSIM = "self_ssim"
+    """Structural Similarity Index (SSIM) between input and itself."""
+
+    MODEL_COMPARISON_SELF_LPIPS = "self_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and itself."""
+
+    MODEL_COMPARISON_SELF_HAUSDORFF = "self_hausdorff"
+    """Hausdorff distance between input and itself."""
+
+    MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE = "self_mean_orientation_difference"
+    """Mean orientation difference between input and itself."""
+
+    MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO = "self_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between input and itself."""
+
+    MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA = "self_mean_relative_area"
+    """Mean relative area between input and itself."""
 
     class ModelNoiseSensitivity(StrEnum):
         """Column names used in model noise sensitivity analysis."""
