@@ -119,7 +119,7 @@ def main() -> None:
             column_names=column_names,
             fixed_point=fixed_point,
             output_path=output_path,
-            file_name="noise_tensor_contour_fixed_point",
+            file_name=f"noise_tensor_contour_fixed_point_{dataset_name}",
         )
         noise_amplitude_paths.append(noise_tensor_contour_path)
 
