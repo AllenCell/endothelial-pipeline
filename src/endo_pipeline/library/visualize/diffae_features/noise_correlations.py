@@ -518,6 +518,7 @@ def plot_noise_tensor_contours_at_fixed_point(
     tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
 
     fig, axs = plt.subplots(1, 2, figsize=figure_size, sharey=True, layout="constrained")
+    fig.get_layout_engine().set(w_pad=0.0, wspace=0.0)
 
     # panel b plots rho against the shared y axis (r), transposed from (r, rho)
     for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
@@ -556,7 +557,7 @@ def plot_noise_tensor_contours_at_fixed_point(
         ax.label_outer()
 
     if plot_title is not None:
-        fig.suptitle(plot_title, fontsize=FONTSIZE_MEDIUM, fontweight="bold")
+        fig.suptitle(plot_title, fontsize=FONTSIZE_MEDIUM, fontweight="bold", y=1.125)
 
     return save_plot_to_path(fig, output_path, file_name, tight_layout=False, file_format=".svg")
 
