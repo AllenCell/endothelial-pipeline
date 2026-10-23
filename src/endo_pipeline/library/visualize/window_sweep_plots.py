@@ -1,5 +1,8 @@
 """Plotting helpers for the analysis-window sweep of the fixed points."""
 
+import logging
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -7,23 +10,30 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from endo_pipeline.configs import (
+    DatasetConfig,
     TimepointAnnotation,
+    get_annotated_timepoints_for_position,
     get_start_of_steady_state_for_position,
     load_dataset_config,
 )
+from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.window_sweep import SweptBoundary
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_4 import wrap_theta_for_vector_field_vis
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
     DYNAMICS_COLUMN_NAMES,
     POLAR_ANGLE_PERIOD,
-    TIME_STEP_IN_MINUTES,
+    TIME_STEP_IN_HOURS,
 )
 from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 from endo_pipeline.settings.plot_defaults import FIXED_POINT_PLOT_STYLE, VECTOR_FIELD_THETA_RANGE
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
+
+logger = logging.getLogger(__name__)
 
 # Fixed-point coordinate columns, one per swept dynamics dimension.
 FIXED_POINT_COLUMNS = {
@@ -96,7 +106,7 @@ def get_annotation_hours(dataset_name: str) -> tuple[list[float], list[float]]:
     cell_piling_ranges = (dataset_config.timepoint_annotations or {}).get(
         TimepointAnnotation.CELL_PILING, {}
     )
-    step_hours = TIME_STEP_IN_MINUTES / 60
+    step_hours = TIME_STEP_IN_HOURS
 
     onset_hours: list[float] = []
     cell_piling_hours: list[float] = []
@@ -152,8 +162,8 @@ def draw_baseline_fixed_points(
     baseline_df: pd.DataFrame | None,
     fixed_point_column: str,
     column_name,
-    shear_colors: dict,
-    stable_only: bool,
+    shear_colors: dict | None = None,
+    stable_only: bool = True,
 ) -> None:
     """Draw each baseline fixed point as a horizontal reference line on ``ax``.
 
@@ -174,7 +184,9 @@ def draw_baseline_fixed_points(
         # Match the paper: wrap theta fixed points into the vector-field range.
         if column_name == Column.DiffAEData.POLAR_ANGLE:
             y_value = float(_wrap_theta_for_plot(pd.Series([y_value])).iloc[0])
-        color = shear_colors.get(row.get(Column.SHEAR_STRESS_BIN), "black")
+        color = "black"
+        if shear_colors is not None:
+            color = shear_colors.get(row.get(Column.SHEAR_STRESS_BIN), "black")
         ax.axhline(
             y_value,
             color=color,
@@ -409,3 +421,210 @@ def plot_num_timepoints(
         frameon=False,
     )
     return fig
+
+
+def get_middle_boundary_time(
+    dataset_config: DatasetConfig, boundary: SweptBoundary, sweep_df: pd.DataFrame
+) -> float:
+    """
+    Find the sweep boundary time point closest to the median of the annotated
+    times for the given boundary.
+
+    For example, if the boundary is the start of the steady state, this function
+    finds the median of the annotated start times. Then, it finds the sweep
+    boundary time point (units hours) closest to that median and returns it.
+
+    Parameters
+    ----------
+    dataset_config
+        The configuration for the dataset, including annotated timepoints.
+    boundary
+        The "steady state"boundary for which to find the midpoint.
+    sweep_df
+        The dataframe containing the sweep boundary time points.
+
+    Returns
+    -------
+    float
+        The sweep boundary time point closest to the median of the annotated times for the given boundary.
+
+    """
+    if boundary not in list(SweptBoundary):
+        raise ValueError(f"Unsupported boundary type: {boundary}")
+    sweep_times = sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS].to_numpy()
+    if boundary == SweptBoundary.START_STEADY_STATE:
+        start_times: list[int] = []
+        for position in dataset_config.zarr_positions:
+            start_time = get_start_of_steady_state_for_position(dataset_config, position)
+            if start_time is not None:
+                start_times.append(start_time)
+        median_annotation_time = float(np.median(start_times)) if start_times else 0.0
+    elif boundary == SweptBoundary.START_CELL_PILING:
+        end_times: list[int] = []
+        for position in dataset_config.zarr_positions:
+            piling_annotations = get_annotated_timepoints_for_position(
+                dataset_config, position, annotations=[TimepointAnnotation.CELL_PILING]
+            )
+            start_piling = piling_annotations[0] if piling_annotations else None
+            if start_piling is not None:
+                end_times.append(start_piling)
+        median_annotation_time = (
+            float(np.median(end_times)) if end_times else dataset_config.duration
+        )
+    median_time_hrs = median_annotation_time * TIME_STEP_IN_HOURS
+    closest_sweep_time = sweep_times[np.argmin(np.abs(sweep_times - median_time_hrs))]
+    return closest_sweep_time
+
+
+@figure_panel("Subset of steady state boundary sweep results.")
+def plot_sweep_subset(
+    sweep_dfs: dict[SweptBoundary, pd.DataFrame],
+    baseline_df: pd.DataFrame,
+    dataset_config: DatasetConfig,
+    output_path: Path,
+    figure_size: tuple[float, float] = (3.15, 0.75 * len(FIXED_POINT_COLUMNS)),
+) -> Path:
+    """
+    Plot the subsets of the window sweeps plus or minus three hours around the
+    midpoint of the boundary annotations for that dataset.
+
+    For example, if boundary is "start_steady_state", this method plots the
+    results of the sweep for steady state start ranging from three hours before
+    to three hours after the midpoint of the steady-state start annotations for
+    the given dataset.
+
+    Parameters
+    ----------
+    sweep_dfs
+        Dictionary of sweep result dataframes keyed by boundary type.
+    baseline_df
+        Baseline dataframe containing high-confidence stable fixed points.
+    dataset_config
+        Dataset configuration for the dataset being plotted.
+    output_path
+        Path to save the generated figure.
+    figure_size : tuple[float, float], optional
+        Size of the figure.
+
+    Returns
+    -------
+    :
+        Path to the saved figure.
+    """
+
+    fig, axes = plt.subplots(
+        len(FIXED_POINT_COLUMNS),
+        2,
+        figsize=figure_size,
+        layout="constrained",
+    )
+    axes = axes if len(FIXED_POINT_COLUMNS) > 1 else [axes]
+    marker_style = FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE]
+
+    for boundary, axes_col in [
+        (SweptBoundary.START_STEADY_STATE, axes[:, 0]),
+        (SweptBoundary.START_CELL_PILING, axes[:, 1]),
+    ]:
+        # Subset the sweep dataframe to +/- 3 hours around the sweep boundary
+        # time closest to the median of the annotations for that boundary.
+        sweep_df = sweep_dfs[boundary]
+        middle_boundary_time = get_middle_boundary_time(dataset_config, boundary, sweep_df)
+        logger.debug("Middle boundary time: %s", middle_boundary_time)
+        sweep_df = sweep_df[
+            (sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] >= middle_boundary_time - 3)
+            & (sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] <= middle_boundary_time + 3)
+        ]
+
+        for ax, (column_name, fixed_point_column) in zip(
+            axes_col, FIXED_POINT_COLUMNS.items(), strict=False
+        ):
+            # Match the paper: wrap theta fixed points into the vector-field range.
+            y_values = sweep_df[fixed_point_column]
+            if column_name == Column.DiffAEData.POLAR_ANGLE:
+                y_values = _wrap_theta_for_plot(y_values)
+            ax.scatter(
+                sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
+                y_values,
+                marker=marker_style.marker,
+                s=2 * marker_style.markersize,
+                color=marker_style.color,
+                edgecolors="black",
+                linewidths=0.4,
+            )
+            # Update x-axis ticks to be centered at middle boundary time, and
+            # ticks of 1 hour +/- 3 hours around the middle boundary time.
+            tick_range = np.arange(middle_boundary_time - 3, middle_boundary_time + 4)
+            ax.set_xticks(tick_range)
+            # only include x-axis tick labels for the last row of plots
+            if ax != axes_col[-1]:
+                ax.set_xticklabels([""] * len(tick_range))
+            # only label every other tick for readability
+            else:
+                ax.set_xticklabels(
+                    [str(tick) if i % 2 == 0 else "" for i, tick in enumerate(tick_range)]
+                )
+            ax.set_xlim(middle_boundary_time - 3.1, middle_boundary_time + 3.1)
+            # add vertical dashed line at the middle boundary time
+            ax.axvline(
+                middle_boundary_time,
+                color="dimgray",
+                linestyle="--",
+                linewidth=0.8,
+                label="Median of actual annotations",
+            )
+            # Fix the y-axis to each coordinate's limits (theta uses the paper
+            # vector-field range, r and rho use their metadata limits) so panels
+            # are comparable.
+            ylimits = get_ylimits_for_column(column_name)
+            if ylimits is not None:
+                ax.set_ylim(*ylimits)
+            # Use π-based tick labels for θ (matching the paper figures).
+            metadata = COLUMN_METADATA[column_name]
+            if column_name == Column.DiffAEData.POLAR_ANGLE and metadata.ticks is not None:
+                metadata_ticks = metadata.ticks
+                if len(metadata_ticks) > 3:
+                    metadata_ticks = metadata_ticks[::2]
+                ax.set_yticks(metadata_ticks)
+                if metadata.tick_labels is not None:
+                    metadata_tick_labels = metadata.tick_labels
+                    if len(metadata_tick_labels) > 3:
+                        metadata_tick_labels = metadata_tick_labels[::2]
+                    ax.set_yticklabels(metadata_tick_labels)
+            # Overlay the baseline fixed points (per-FOV windows) as horizontal
+            # reference lines so the swept estimates can be compared against them.
+            draw_baseline_fixed_points(
+                ax,
+                baseline_df,
+                fixed_point_column,
+                column_name,
+            )
+            ax.grid(True, alpha=0.3)
+            # Only add the y-axis label for the start of steady state boundary
+            # (left-most plot in figure panel)
+            if boundary == SweptBoundary.START_STEADY_STATE:
+                column_label = get_label_for_column(column_name) or column_name
+                labelpad = 11 if column_name == Column.DiffAEData.POLAR_ANGLE else 18
+                ax.set_ylabel(
+                    f"{column_label}$^*$", rotation=0, labelpad=labelpad, ha="left", va="center"
+                )
+
+        # x-axis label for the last row of plots
+        if boundary == SweptBoundary.START_STEADY_STATE:
+            xlabel = "Start of steady state\n(hrs, all FOVs)"
+        elif boundary == SweptBoundary.START_CELL_PILING:
+            xlabel = "End of steady state\n(hrs, all FOVs)"
+        axes_col[-1].set_xlabel(xlabel)
+
+    # Add suptitle with shear stress and replicate information
+    shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+    shear_stress_label = f"{shear_stress_bin} dyn/cm{Unicode.SQUARED}"
+    replicate_number = dataset_config.replicate_number
+
+    axes[0][0].set_title(f"{shear_stress_label} (replicate {replicate_number})", x=1.25)
+
+    file_name = f"{dataset_config.name}_window_sweep"
+    file_path = save_plot_to_path(
+        fig, output_path, file_name, file_format=".svg", tight_layout=False
+    )
+
+    return file_path
