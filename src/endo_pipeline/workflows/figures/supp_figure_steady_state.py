@@ -4,9 +4,12 @@ def main() -> None:
 
     #supp-figure #preprocessing
 
-    | Panel | Description                                                                                      | Notes                |
-    | ----- | ------------------------------------------------------------------------------------------------ | -------------------- |
-
+    | Panel | Description                                                                        | Notes                |
+    | ----- | ---------------------------------------------------------------------------------- | -------------------- |
+    | A     | Steady state sweep for representative low shear stress dataset                     |                      |
+    | B     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (bistable)   |                      |
+    | C     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (monostable) |                      |
+    | D     | Steady state sweep for representative high shear stress dataset                    |                      |
 
     ## Example usage
 
