@@ -497,34 +497,22 @@ def plot_noise_tensor_contours_at_fixed_point(
 
     column_labels = [get_label_for_column(column) for column in column_names]
     sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
-    axes_bounds = [(points[0], points[-1]) for points in grid_points_1d]
-    theta_metadata = COLUMN_METADATA[column_names[0]]
+    column_metadata = [COLUMN_METADATA[column] for column in column_names]
+    axes_bounds = [(meta.min, meta.max) for meta in column_metadata]
+    # thin to every other tick to avoid crowding the panels
+    tick_overrides = [
+        (
+            meta.ticks[::2] if meta.ticks is not None else None,
+            meta.tick_labels[::2] if meta.tick_labels is not None else None,
+        )
+        for meta in column_metadata
+    ]
 
     fig, axs = plt.subplots(1, 2, figsize=figure_size, layout="constrained")
 
-    for (
-        ax,
-        (x_index, y_index),
-        slice_axis_index,
-        slice_value,
-        show_colorbar,
-        x_ticks,
-        x_tick_labels,
-        y_ticks,
-        y_tick_labels,
-    ) in [
-        (
-            axs[0],
-            (0, 1),
-            2,
-            rho_star,
-            False,
-            theta_metadata.ticks[::2],
-            theta_metadata.tick_labels[::2],
-            None,
-            None,
-        ),
-        (axs[1], (1, 2), 0, theta_star, True, None, None, None, None),
+    for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
+        (axs[0], (0, 1), 2, rho_star, False),
+        (axs[1], (1, 2), 0, theta_star, True),
     ]:
         slice_indexes = get_slice_indexes(grid[slice_axis_index], slice_value)
         slice_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
@@ -545,10 +533,10 @@ def plot_noise_tensor_contours_at_fixed_point(
             axes_limits=(axes_bounds[x_index], axes_bounds[y_index]),
             x_label=column_labels[x_index],
             y_label=column_labels[y_index],
-            x_ticks=x_ticks,
-            x_tick_labels=x_tick_labels,
-            y_ticks=y_ticks,
-            y_tick_labels=y_tick_labels,
+            x_ticks=tick_overrides[x_index][0],
+            x_tick_labels=tick_overrides[x_index][1],
+            y_ticks=tick_overrides[y_index][0],
+            y_tick_labels=tick_overrides[y_index][1],
             axis=ax,
             show_colorbar=show_colorbar,
         )
