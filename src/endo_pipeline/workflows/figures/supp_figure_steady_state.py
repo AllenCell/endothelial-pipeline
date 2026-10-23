@@ -41,7 +41,7 @@ def main() -> None:
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
     from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
@@ -166,5 +166,5 @@ def main() -> None:
         panels,
         output_path / "supp_figure_steady_state.svg",
         width=MAX_FIGURE_WIDTH,
-        height=MAX_FIGURE_HEIGHT,
+        height=4.8,
     )
