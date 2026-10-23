@@ -11,7 +11,12 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import get_slice_indexes
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.figures import (
+    FONT_FAMILY,
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_XSMALL,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -139,32 +144,87 @@ def plot_cross_correlations_against_lag(
 def plot_noise_correlation_vs_lag(
     noise_statistics_dataframe: pd.DataFrame,
     column_names: list[str],
-    plot_title: str,
     output_path: Path,
+    plot_title: str | None = None,
     file_name: str | None = None,
-) -> None:
+    single_dataset: bool = True,
+) -> Path:
     """
-    Plot the noise correlation as a function of lag directly from the tidy
-    noise statistics dataframe (see `compute_noise_statistics_dataframe`),
-    rather than from the full two-timepoint noise correlation function.
+    Plot the noise correlation as a function of lag directly from the noise
+    statistics dataframe (see `compute_noise_statistics_dataframe`), rather than
+    from the full two-timepoint noise correlation function.
+
+    # Multi-dataset summary
+
+    If `single_dataset` is False, the function will compute and plot the mean
+    noise correlation over all datasets. It will also include the mean
+    measurement error variance over all datasets as text on the plot. The plots
+    also show the (5, 95) percentiles of the noise correlation over all
+    datasets.
 
     Parameters
     ----------
     noise_statistics_dataframe
-        Tidy dataframe of noise correlation statistics, as produced by
+        Dataframe of noise correlation statistics, as produced by
         `compute_noise_statistics_dataframe`.
     column_names
         List of feature column names to plot.
-    plot_title
-        Title for the plot.
     output_path
         Directory where the plot will be saved.
+    plot_title
+        Optional, title for the plot.
     file_name
         Optional, specific name of the file to save the plot as.
+    single_dataset
+        True if the noise statistics dataframe corresponds to a single dataset,
+        False otherwise.
+
+    Returns
+    -------
+    :
+        Path to the saved plot.
     """
+    if not single_dataset:
+        noise_statistics_dataframe = (
+            noise_statistics_dataframe.groupby(
+                [
+                    Column.NOISE_CORRELATIONS_FEATURE_1,
+                    Column.NOISE_CORRELATIONS_FEATURE_2,
+                    Column.NOISE_CORRELATIONS_LAG,
+                ]
+            )
+            .agg(
+                CORRELATION_MEAN=(Column.NOISE_CORRELATION_VALUE, "mean"),
+                CORRELATION_5=(Column.NOISE_CORRELATION_VALUE, lambda x: x.quantile(0.05)),
+                CORRELATION_95=(Column.NOISE_CORRELATION_VALUE, lambda x: x.quantile(0.95)),
+                MEASUREMENT_NOISE_COVARIANCE_MEAN=(
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
+                    "mean",
+                ),
+            )
+            .reset_index()
+        )
+    correlation_column = (
+        "CORRELATION_MEAN" if not single_dataset else Column.NOISE_CORRELATION_VALUE
+    )
+
     n_dim = len(column_names)
+    n_off_diagonal = n_dim * (n_dim - 1) // 2
+    n_cols = max(n_dim, n_off_diagonal)
+    fig, ax = plt.subplots(
+        2, n_cols, figsize=(1.75 * n_cols, 3.5), squeeze=False, sharex=True, layout="constrained"
+    )
+    diagonal_index = 0
+    off_diagonal_index = 0
     for i in range(n_dim):
         for j in range(i, n_dim):
+            # top row holds i=j (diagonal) panels, bottom row holds off-diagonal panels
+            if i == j:
+                axis = ax[0, diagonal_index]
+                diagonal_index += 1
+            else:
+                axis = ax[1, off_diagonal_index]
+                off_diagonal_index += 1
             pair_dataframe = noise_statistics_dataframe[
                 (noise_statistics_dataframe[Column.NOISE_CORRELATIONS_FEATURE_1] == column_names[i])
                 & (
@@ -173,35 +233,54 @@ def plot_noise_correlation_vs_lag(
                 )
             ].sort_values(Column.NOISE_CORRELATIONS_LAG)
 
-            fig, ax = plt.subplots(figsize=(8, 6))
-            ax.plot(
+            axis.plot(
                 pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
-                pair_dataframe[Column.NOISE_CORRELATION_VALUE],
-                "o-",
+                pair_dataframe[correlation_column],
+                color="b",
+                marker=".",
+                linestyle="-",
+                linewidth=1.0,
             )
-            ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-            ax.set_xlabel("Lag")
-            ax.set_ylabel("$R_{{ij}}$")
+            if not single_dataset:
+                axis.fill_between(
+                    pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
+                    pair_dataframe["CORRELATION_5"],
+                    pair_dataframe["CORRELATION_95"],
+                    color="b",
+                    alpha=0.35,
+                )
+            axis.axhline(0, color="k", linewidth=0.5, alpha=0.75, linestyle="--")
+            axis.set_xlabel("Lag (frames)")
+            column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
+            column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
+            axis.set_ylabel(f"$R_{{{column_label_i}{column_label_j}}}$", rotation=0)
             # add measurement error variance as text if it is not NaN
-            measurement_error_variance = pair_dataframe[Column.MEASUREMENT_NOISE_COVARIANCE].iloc[0]
+            measurement_error_variance = pair_dataframe[
+                (
+                    "MEASUREMENT_NOISE_COVARIANCE_MEAN"
+                    if not single_dataset
+                    else Column.MEASUREMENT_NOISE_COVARIANCE
+                )
+            ].iloc[0]
             if not pd.isna(measurement_error_variance):
-                ax.text(
+                axis.text(
                     0.95,
                     0.95,
                     f"Measurement error variance: {measurement_error_variance:.5f}",
-                    transform=ax.transAxes,
+                    transform=axis.transAxes,
                     ha="right",
                     va="top",
+                    size=FONTSIZE_XSMALL,
                 )
-            ax.set_ylim(-1.05, 1.05)
-            column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
-            column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
-            ax.set_title(
-                f"{plot_title}\nR_{{ij}} vs lag for (i,j) = ({column_label_i}, {column_label_j})"
-            )
-            figure_name = file_name or "noise_correlation_vs_lag"
-            figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
-            save_plot_to_path(fig, output_path, figure_name)
+            axis.set_ylim(-1.05, 1.05)
+    for ax_ in ax[0, diagonal_index:]:
+        ax_.axis("off")
+    for ax_ in ax[1, off_diagonal_index:]:
+        ax_.axis("off")
+    if plot_title is not None:
+        fig.suptitle(plot_title)
+    figure_name = file_name or "noise_correlation_vs_lag"
+    return save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
 
 
 def plot_noise_tensor_contours(
