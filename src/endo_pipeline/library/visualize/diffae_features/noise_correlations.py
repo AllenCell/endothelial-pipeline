@@ -1,11 +1,12 @@
 import logging
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.figure import Figure
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.noise_amplitude import (
@@ -326,9 +327,9 @@ def plot_noise_tensor_contours(
     axes_limits: tuple[tuple[float, float], tuple[float, float]],
     x_label: str,
     y_label: str,
-    x_ticks: list[float] | None = None,
+    x_ticks: range | list[int] | list[float] | None = None,
     x_tick_labels: list[str] | None = None,
-    y_ticks: list[float] | None = None,
+    y_ticks: range | list[int] | list[float] | None = None,
     y_tick_labels: list[str] | None = None,
     n_rows: int = NROWS_DIFFUSION_TENSOR_CONTOURS,
     n_cols: int = NCOLS_DIFFUSION_TENSOR_CONTOURS,
@@ -340,7 +341,7 @@ def plot_noise_tensor_contours(
     vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
     axis: plt.Axes | None = None,
     show_colorbar: bool = True,
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
+) -> tuple[Figure, np.ndarray[plt.Axes, Any]]:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
 
@@ -404,7 +405,10 @@ def plot_noise_tensor_contours(
         if len(entry_labels) != 1:
             raise ValueError("`axis` can only be provided when plotting a single tensor entry.")
         n_rows, n_cols = 1, 1
-        fig = axis.get_figure()
+        axis_figure = axis.get_figure()
+        if not isinstance(axis_figure, Figure):
+            raise ValueError("`axis` must belong to a top-level Figure, not a SubFigure.")
+        fig = axis_figure
         ax = np.array([[axis]])
     else:
         fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False, layout="constrained")
@@ -507,7 +511,8 @@ def plot_noise_tensor_contours_at_fixed_point(
     column_labels = [get_label_for_column(column) for column in column_names]
     sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
     column_metadata = [COLUMN_METADATA[column] for column in column_names]
-    axes_bounds = [(meta.min, meta.max) for meta in column_metadata]
+    # DYNAMICS_COLUMN_NAMES metadata always defines fixed numeric bounds, not the "min"/"max" sentinels
+    axes_bounds = [cast(tuple[float, float], (meta.min, meta.max)) for meta in column_metadata]
     axes_bounds[2] = RHO_PLOT_LIMITS_FIGURE
     tick_overrides = [
         (
@@ -516,11 +521,15 @@ def plot_noise_tensor_contours_at_fixed_point(
         )
         for meta in column_metadata
     ]
-    tick_overrides[0] = (tick_overrides[0][0][::2], tick_overrides[0][1][::2])
+    theta_ticks, theta_tick_labels = tick_overrides[0]
+    tick_overrides[0] = (
+        theta_ticks[::2] if theta_ticks is not None else None,
+        theta_tick_labels[::2] if theta_tick_labels is not None else None,
+    )
     tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
 
     fig, axs = plt.subplots(1, 2, figsize=figure_size, sharey=True, layout="constrained")
-    fig.get_layout_engine().set(w_pad=0.0, wspace=0.0)
+    fig.set_constrained_layout_pads(w_pad=0.0, wspace=0.0)
 
     # panel b plots rho against the shared y axis (r), transposed from (r, rho)
     for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
@@ -554,6 +563,17 @@ def plot_noise_tensor_contours_at_fixed_point(
             show_colorbar=show_colorbar,
         )
         # Add dashed white hline indicating the r_star value on the plot
+        # with text 'r=r^*'
+        ax.text(
+            0.95,
+            r_star - 0.25,
+            "$\\mathregular{r=r^\\ast}$",
+            color="white",
+            fontsize=FONTSIZE_SMALL,
+            ha="right",
+            va="bottom",
+            transform=ax.get_yaxis_transform(),
+        )
         ax.axhline(r_star, color="white", linestyle="--", linewidth=1.25)
 
     # hide the y label/ticks on the right panel, since the y axis (r) is shared
