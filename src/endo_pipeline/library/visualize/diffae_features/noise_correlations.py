@@ -34,7 +34,7 @@ DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
 DIFFUSION_TENSOR_CONTOUR_VMIN: float = 0.0
 """Fixed minimum colorbar value for diffusion tensor entry contour plots."""
 
-DIFFUSION_TENSOR_CONTOUR_VMAX: float = 1.0
+DIFFUSION_TENSOR_CONTOUR_VMAX: float = 0.5
 """Fixed maximum colorbar value for diffusion tensor entry contour plots."""
 
 DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
@@ -51,6 +51,11 @@ NCOLS_DIFFUSION_TENSOR_CONTOURS: int = 3
 
 FIGSIZE_DIFFUSION_TENSOR_CONTOURS: tuple[int, int] = (13, 8)
 """Figure size for the diffusion tensor entry contour figure."""
+
+RHO_PLOT_LIMITS_FIGURE: tuple[float, float] = (-0.5, 1.4)
+"""Plot limits for rho in the noise amplitude contour figures."""
+
+RHO_TICKS_FIGURE: list[float] = [-0.5, 0.0, 0.5, 1.0]
 
 
 def plot_normalized_two_timepoint_cross_correlations(
@@ -499,14 +504,16 @@ def plot_noise_tensor_contours_at_fixed_point(
     sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
     column_metadata = [COLUMN_METADATA[column] for column in column_names]
     axes_bounds = [(meta.min, meta.max) for meta in column_metadata]
-    # thin to every other tick to avoid crowding the panels
+    axes_bounds[2] = RHO_PLOT_LIMITS_FIGURE
     tick_overrides = [
         (
-            meta.ticks[::2] if meta.ticks is not None else None,
-            meta.tick_labels[::2] if meta.tick_labels is not None else None,
+            meta.ticks if meta.ticks is not None else None,
+            meta.tick_labels if meta.tick_labels is not None else None,
         )
         for meta in column_metadata
     ]
+    tick_overrides[0] = (tick_overrides[0][0][::2], tick_overrides[0][1][::2])
+    tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
 
     fig, axs = plt.subplots(1, 2, figsize=figure_size, layout="constrained")
 
