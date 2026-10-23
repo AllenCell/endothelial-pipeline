@@ -465,7 +465,9 @@ def plot_noise_tensor_contours_at_fixed_point(
     `DYNAMICS_COLUMN_NAMES`. The two panels are:
 
     - sigma_11(theta, r) at rho = rho*
-    - sigma_11(r, rho) at theta = theta*
+    - sigma_11(rho, r) at theta = theta*
+
+    The panels share the r axis (y axis in both panels).
 
     Parameters
     ----------
@@ -515,11 +517,12 @@ def plot_noise_tensor_contours_at_fixed_point(
     tick_overrides[0] = (tick_overrides[0][0][::2], tick_overrides[0][1][::2])
     tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
 
-    fig, axs = plt.subplots(1, 2, figsize=figure_size, layout="constrained")
+    fig, axs = plt.subplots(1, 2, figsize=figure_size, sharey=True, layout="constrained")
 
+    # panel b plots rho against the shared y axis (r), transposed from (r, rho)
     for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
         (axs[0], (0, 1), 2, rho_star, False),
-        (axs[1], (1, 2), 0, theta_star, True),
+        (axs[1], (2, 1), 0, theta_star, True),
     ]:
         slice_indexes = get_slice_indexes(grid[slice_axis_index], slice_value)
         slice_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
@@ -547,6 +550,10 @@ def plot_noise_tensor_contours_at_fixed_point(
             axis=ax,
             show_colorbar=show_colorbar,
         )
+
+    # hide the y label/ticks on the right panel, since the y axis (r) is shared
+    for ax in axs:
+        ax.label_outer()
 
     if plot_title is not None:
         fig.suptitle(plot_title, fontsize=FONTSIZE_MEDIUM, fontweight="bold")
