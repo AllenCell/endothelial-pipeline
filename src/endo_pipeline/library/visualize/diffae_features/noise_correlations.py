@@ -8,6 +8,11 @@ import numpy as np
 import pandas as pd
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.noise_amplitude import (
+    extrapolate_noise_amplitude_tensor,
+    get_reshaped_noise_amplitude_and_grid,
+)
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import get_slice_indexes
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
@@ -29,7 +34,7 @@ DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
 DIFFUSION_TENSOR_CONTOUR_VMIN: float = 0.0
 """Fixed minimum colorbar value for diffusion tensor entry contour plots."""
 
-DIFFUSION_TENSOR_CONTOUR_VMAX: float = 0.75
+DIFFUSION_TENSOR_CONTOUR_VMAX: float = 1.5
 """Fixed maximum colorbar value for diffusion tensor entry contour plots."""
 
 DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
@@ -265,7 +270,7 @@ def plot_noise_correlation_vs_lag(
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
             axis.set_ylabel(
-                f"{Unicode.KAPPA}$_\mathregular{{{column_label_i}, {column_label_j}}}$({Unicode.TAU})"
+                f"{Unicode.KAPPA}$_\mathregular{{{column_label_i},{column_label_j}}}$({Unicode.TAU})"
             )
             # measurement error variance is only defined for diagonal (i == j) terms
             measurement_error_variance = pair_dataframe[
@@ -327,6 +332,7 @@ def plot_noise_tensor_contours(
     cbar_num_ticks: int = DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
     vmin: float = DIFFUSION_TENSOR_CONTOUR_VMIN,
     vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
+    axis: plt.Axes | None = None,
 ) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
@@ -363,6 +369,9 @@ def plot_noise_tensor_contours(
         Fixed minimum colorbar value, shared across all panels.
     vmax
         Fixed maximum colorbar value, shared across all panels.
+    axis
+        Optional, existing Axes to draw the single tensor entry on instead of
+        creating a new figure. Only valid when `entry_labels` has one entry.
 
     Returns
     -------
@@ -371,7 +380,14 @@ def plot_noise_tensor_contours(
         tensor entry.
 
     """
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="constrained")
+    if axis is not None:
+        if len(entry_labels) != 1:
+            raise ValueError("`axis` can only be provided when plotting a single tensor entry.")
+        n_rows, n_cols = 1, 1
+        fig = axis.get_figure()
+        ax = np.array([[axis]])
+    else:
+        fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False, layout="constrained")
     ax_flat = ax.ravel()
 
     for entry_index, entry_label in enumerate(entry_labels):
@@ -399,13 +415,98 @@ def plot_noise_tensor_contours(
     for ax_ in ax_grid[-1, :]:
         ax_.set_xlabel(x_label, fontsize=FONTSIZE_MEDIUM)
     for ax_ in ax_grid[:, 0]:
-        ax_.set_ylabel(y_label, fontsize=FONTSIZE_MEDIUM)
+        ax_.set_ylabel(y_label, fontsize=FONTSIZE_MEDIUM, rotation=0)
     for ax_ in ax_flat[: len(entry_labels)]:
         ax_.set_xlim(*axes_limits[0])
         ax_.set_ylim(*axes_limits[1])
         ax_.set_aspect("auto", adjustable="box")
 
     return fig, ax
+
+
+def plot_noise_tensor_contours_at_fixed_point(
+    noise_amplitude_dataframe: pd.DataFrame,
+    column_names: list[str],
+    fixed_point: tuple[float, float, float],
+    output_path: Path,
+    file_name: str = "noise_tensor_contour_fixed_point",
+    figsize: tuple[float, float] = (5.0, 2.5),
+) -> Path:
+    """Plot contours of the sigma_11 noise tensor entry over two 2D slices of
+    state space through a fixed point, in a single figure with separate axes.
+
+    `column_names` is assumed to be ordered `(theta, r, rho)`, matching
+    `DYNAMICS_COLUMN_NAMES`. The two panels are:
+
+    - sigma_11(theta, r) at rho = rho*
+    - sigma_11(r, rho) at theta = theta*
+
+    Parameters
+    ----------
+    noise_amplitude_dataframe
+        Dataframe of the kernel-smoothed noise amplitude tensor field, as
+        produced by `create_noise_amplitude_vector_field_df`.
+    column_names
+        List of the three dynamics column names `(theta, r, rho)` used to
+        compute the noise amplitude tensor.
+    fixed_point
+        Tuple `(theta_star, r_star, rho_star)` with the coordinates of the
+        fixed point to slice through, matching the order of `column_names`.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Name of the output file.
+    figsize
+        Size of the combined figure.
+
+    Returns
+    -------
+    :
+        Path to the saved plot.
+    """
+    theta_star, _, rho_star = fixed_point
+
+    sigma, grid_points_1d = get_reshaped_noise_amplitude_and_grid(
+        noise_amplitude_dataframe, column_names
+    )
+    # fill NaN bins (too few samples) before slicing, so sparse per-bin
+    # estimates don't leave the slices blank
+    sigma = extrapolate_noise_amplitude_tensor(sigma, grid_points_1d)
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+
+    column_labels = [get_label_for_column(column) for column in column_names]
+    sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
+    axes_bounds = [(points[0], points[-1]) for points in grid_points_1d]
+
+    fig, axs = plt.subplots(1, 2, figsize=figsize, layout="constrained")
+
+    # (axes to plot in 2D, axis being sliced over, value to slice at) for the two panels
+    for ax, (x_index, y_index), slice_axis_index, slice_value in zip(
+        axs, [(0, 1), (1, 2)], [2, 0], [rho_star, theta_star], strict=True
+    ):
+        slice_indexes = get_slice_indexes(grid[slice_axis_index], slice_value)
+        slice_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
+        collapse_axis = np.where(np.array(slice_shape) == 1)[0][0]
+
+        x_grid = np.take(grid[x_index][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis)
+        y_grid = np.take(grid[y_index][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis)
+        sigma_11_slice = np.take(
+            sigma[..., 0, 0][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis
+        )[..., np.newaxis]
+
+        axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.3f}"
+
+        plot_noise_tensor_contours(
+            (x_grid, y_grid),
+            sigma_11_slice,
+            [axes_title_text],
+            axes_limits=(axes_bounds[x_index], axes_bounds[y_index]),
+            x_label=column_labels[x_index],
+            y_label=column_labels[y_index],
+            axis=ax,
+        )
+
+    return save_plot_to_path(fig, output_path, file_name, tight_layout=False, file_format=".svg")
 
 
 def plot_noise_tensor_stack(

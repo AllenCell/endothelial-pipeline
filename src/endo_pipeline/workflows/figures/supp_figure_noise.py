@@ -19,28 +19,34 @@ def main() -> None:
 
     All panels in this workflow can be run without GPU.
     """
+    import logging
 
     import matplotlib.pyplot as plt
     import pandas as pd
 
-    from endo_pipeline.io import get_output_path, load_dataframe
+    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.io import get_output_path, join_sorted_strings, load_dataframe
+    from endo_pipeline.library.analyze.dataframe_filtering import filter_dataframe_by_stability
+    from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
+        plot_noise_correlation_vs_lag,
+        plot_noise_tensor_contours_at_fixed_point,
+    )
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+    from endo_pipeline.settings.examples import EXAMPLE_DATASET
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
+    from endo_pipeline.settings.manifest_names import (
+        GRID_BASED_FIXED_POINT_MANIFEST_NAME,
+        NOISE_AMPLITUDE_MANIFEST_NAMES,
+        NOISE_STATISTICS_MANIFEST_NAMES,
+    )
 
     plt.style.use("endo_pipeline.figure")
 
     output_path = get_output_path(__file__)
-
-    import logging
-
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
-    from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
-        plot_noise_correlation_vs_lag,
-    )
-    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
-    from endo_pipeline.settings.manifest_names import NOISE_STATISTICS_MANIFEST_NAMES
 
     logger = logging.getLogger(__name__)
 
@@ -50,8 +56,9 @@ def main() -> None:
 
     # Load manifests produced by compute-noise-statistics to plot the mean
     # correlation (over all datasets) vs lag
-    noise_statistics_manifest_name = NOISE_STATISTICS_MANIFEST_NAMES["grid_based"]
-    noise_statistics_manifest = load_dataframe_manifest(noise_statistics_manifest_name)
+    noise_statistics_manifest = load_dataframe_manifest(
+        NOISE_STATISTICS_MANIFEST_NAMES["grid_based"]
+    )
 
     dataset_names = get_datasets_in_collection("shear_stress", "perturbation")
     all_dataframes = []
@@ -67,10 +74,9 @@ def main() -> None:
         )
         all_dataframes.append(noise_statistics_dataframe)
 
-    # take the mean over datasets
+    # Plot mean of noise correlations over all datasets v lag
     noise_statistics_all_datasets = pd.concat(all_dataframes)
-
-    panel_path = plot_noise_correlation_vs_lag(
+    noise_correlations_path = plot_noise_correlation_vs_lag(
         noise_statistics_dataframe=noise_statistics_all_datasets,
         column_names=column_names,
         output_path=output_path,
@@ -79,16 +85,70 @@ def main() -> None:
         file_format=".svg",
     )
 
+    # Plot contour of noise tensor entry sigma_11 over 2D slices of the state space
+    # for two representative datasets
+    # a) sigma_11(theta, r) at rho = rho^*
+    # b) sigma_11(r, rho) at theta=theta^*
+    example_datasets = [
+        EXAMPLE_DATASET["FIGURE_2_LOW_FLOW_DATASET"],
+        EXAMPLE_DATASET["FIGURE_2_HIGH_FLOW_DATASET"],
+    ]
+    noise_amplitude_paths = []
+    for dataset_name in example_datasets:
+        feature_columns_str = join_sorted_strings(column_names)
+        fixed_point_manifest = load_dataframe_manifest(
+            f"{GRID_BASED_FIXED_POINT_MANIFEST_NAME}_{feature_columns_str}"
+        )
+        fixed_point_dataframe = load_dataframe(
+            fixed_point_manifest.locations[dataset_name], delay=False
+        )
+        stable_fixed_point_dataframe = filter_dataframe_by_stability(
+            fixed_point_dataframe, stability_label=StabilityLabel.STABLE
+        )
+        fixed_point_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
+        fixed_point = tuple(stable_fixed_point_dataframe[fixed_point_column_names].iloc[0])
+
+        noise_amplitude_manifest = load_dataframe_manifest(
+            NOISE_AMPLITUDE_MANIFEST_NAMES["grid_based"]
+        )
+        noise_amplitude_dataframe = load_dataframe(
+            noise_amplitude_manifest.locations[dataset_name], delay=False
+        )
+        noise_tensor_contour_path = plot_noise_tensor_contours_at_fixed_point(
+            noise_amplitude_dataframe=noise_amplitude_dataframe,
+            column_names=column_names,
+            fixed_point=fixed_point,
+            output_path=output_path,
+            file_name="noise_tensor_contour_fixed_point",
+        )
+        noise_amplitude_paths.append(noise_tensor_contour_path)
+
     # --- Assemble all panels into final figure ---
     panels = [
         FigurePanel(
             letter="A",
-            path=panel_path,
+            path=noise_correlations_path,
             x_position=0.0,
             y_position=0.0,
             x_offset=0.1,
             y_offset=0.0,
-        )
+        ),
+        FigurePanel(
+            letter="B",
+            path=noise_amplitude_paths[0],
+            x_position=0.0,
+            y_position=3.5,
+            x_offset=0.1,
+            y_offset=0.0,
+        ),
+        FigurePanel(
+            letter="C",
+            path=noise_amplitude_paths[1],
+            x_position=0.0,
+            y_position=5.0,
+            x_offset=0.1,
+            y_offset=0.0,
+        ),
     ]
 
     build_figure_from_panels(
