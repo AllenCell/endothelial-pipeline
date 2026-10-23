@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.noise_amplitude import (
@@ -529,7 +530,9 @@ def plot_noise_tensor_contours_at_fixed_point(
     tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
 
     fig, axs = plt.subplots(1, 2, figsize=figure_size, sharey=True, layout="constrained")
-    fig.set_constrained_layout_pads(w_pad=0.0, wspace=0.0)
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(w_pad=0.0, wspace=0.0)
 
     # panel b plots rho against the shared y axis (r), transposed from (r, rho)
     for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
@@ -563,18 +566,19 @@ def plot_noise_tensor_contours_at_fixed_point(
             show_colorbar=show_colorbar,
         )
         # Add dashed white hline indicating the r_star value on the plot
-        # with text 'r=r^*'
-        ax.text(
-            0.95,
-            r_star - 0.25,
-            "$\\mathregular{r=r^\\ast}$",
-            color="white",
-            fontsize=FONTSIZE_SMALL,
-            ha="right",
-            va="bottom",
-            transform=ax.get_yaxis_transform(),
-        )
         ax.axhline(r_star, color="white", linestyle="--", linewidth=1.25)
+        # Add text to rightmost subplot
+        if ax == axs[-1]:
+            ax.text(
+                0.95,
+                r_star - 0.35,
+                "r=r$^*$",
+                color="white",
+                fontsize=FONTSIZE_SMALL,
+                ha="right",
+                va="bottom",
+                transform=ax.get_yaxis_transform(),
+            )
 
     # hide the y label/ticks on the right panel, since the y axis (r) is shared
     for ax in axs:
