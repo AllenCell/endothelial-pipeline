@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -11,10 +11,12 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import get_slice_indexes
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
 from endo_pipeline.settings.figures import (
     FONT_FAMILY,
     FONTSIZE_LARGE,
     FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
     FONTSIZE_XSMALL,
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
@@ -145,9 +147,11 @@ def plot_noise_correlation_vs_lag(
     noise_statistics_dataframe: pd.DataFrame,
     column_names: list[str],
     output_path: Path,
+    file_format: Literal[".png", ".pdf", ".svg"] = ".png",
     plot_title: str | None = None,
     file_name: str | None = None,
     single_dataset: bool = True,
+    figure_size: tuple[float, float] = (6.25, 3.25),
 ) -> Path:
     """
     Plot the noise correlation as a function of lag directly from the noise
@@ -212,7 +216,7 @@ def plot_noise_correlation_vs_lag(
     n_off_diagonal = n_dim * (n_dim - 1) // 2
     n_cols = max(n_dim, n_off_diagonal)
     fig, ax = plt.subplots(
-        2, n_cols, figsize=(1.75 * n_cols, 3.5), squeeze=False, sharex=True, layout="constrained"
+        2, n_cols, figsize=figure_size, squeeze=False, sharex=True, layout="constrained"
     )
     diagonal_index = 0
     off_diagonal_index = 0
@@ -234,7 +238,7 @@ def plot_noise_correlation_vs_lag(
             ].sort_values(Column.NOISE_CORRELATIONS_LAG)
 
             axis.plot(
-                pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
+                pair_dataframe[Column.NOISE_CORRELATIONS_LAG] * TIME_STEP_IN_HOURS,
                 pair_dataframe[correlation_column],
                 color="b",
                 marker=".",
@@ -243,17 +247,18 @@ def plot_noise_correlation_vs_lag(
             )
             if not single_dataset:
                 axis.fill_between(
-                    pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
+                    pair_dataframe[Column.NOISE_CORRELATIONS_LAG] * TIME_STEP_IN_HOURS,
                     pair_dataframe["CORRELATION_5"],
                     pair_dataframe["CORRELATION_95"],
                     color="b",
                     alpha=0.35,
                 )
             axis.axhline(0, color="k", linewidth=0.5, alpha=0.75, linestyle="--")
-            axis.set_xlabel("Lag (frames)")
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
-            axis.set_ylabel(f"$R_{{{column_label_i}{column_label_j}}}$", rotation=0)
+            axis.set_ylabel(
+                f"{Unicode.KAPPA}$_\mathregular{{{column_label_i}, {column_label_j}}}$({Unicode.TAU})"
+            )
             # add measurement error variance as text if it is not NaN
             measurement_error_variance = pair_dataframe[
                 (
@@ -266,7 +271,7 @@ def plot_noise_correlation_vs_lag(
                 axis.text(
                     0.95,
                     0.95,
-                    f"Measurement error variance: {measurement_error_variance:.5f}",
+                    f"{Unicode.SIGMA}$_\\varepsilon$: {measurement_error_variance:.4f}",
                     transform=axis.transAxes,
                     ha="right",
                     va="top",
@@ -277,10 +282,15 @@ def plot_noise_correlation_vs_lag(
         ax_.axis("off")
     for ax_ in ax[1, off_diagonal_index:]:
         ax_.axis("off")
+    # Add x axis label to the bottom row of panels
+    for ax_ in ax[1, :]:
+        ax_.set_xlabel(f"Lag {Unicode.TAU} (hours)", fontsize=FONTSIZE_SMALL)
     if plot_title is not None:
         fig.suptitle(plot_title)
     figure_name = file_name or "noise_correlation_vs_lag"
-    return save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
+    return save_plot_to_path(
+        fig, output_path, figure_name, tight_layout=False, file_format=file_format
+    )
 
 
 def plot_noise_tensor_contours(
