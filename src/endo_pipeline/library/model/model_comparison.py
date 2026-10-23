@@ -465,9 +465,24 @@ class ModelComparisonMetricsCalculator:
 
         # Save the refined segmentations for validation
         output_path = get_output_path(__file__, "segmentation_validation")
-        plot_image_thumbnail(img1_seg, example_name, output_path=output_path, figsize=(2, 2))
-        plot_image_thumbnail(img2_seg, example_name, output_path=output_path, figsize=(2, 2))
-        plot_image_thumbnail(img_nuc_seg, example_name, output_path=output_path, figsize=(2, 2))
+        plot_image_thumbnail(
+            img1_seg.squeeze(),
+            f"{example_name}_img1_seg",
+            output_path=output_path,
+            figsize=(2, 2),
+        )
+        plot_image_thumbnail(
+            img2_seg.squeeze(),
+            f"{example_name}_img2_seg",
+            output_path=output_path,
+            figsize=(2, 2),
+        )
+        plot_image_thumbnail(
+            img_nuc_seg.squeeze(),
+            f"{example_name}_nuc_seg",
+            output_path=output_path,
+            figsize=(2, 2),
+        )
 
         return ModelComparisonMetrics(
             correlation=cls.compute_correlation(img1, img2),
