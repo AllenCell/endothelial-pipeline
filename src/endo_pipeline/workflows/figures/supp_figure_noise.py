@@ -149,7 +149,7 @@ def main() -> None:
             x_position=0.0,
             y_position=3.5,
             x_offset=0.05,
-            y_offset=0.25,
+            y_offset=0.3,
         ),
         FigurePanel(
             letter="C",
@@ -157,7 +157,7 @@ def main() -> None:
             x_position=3.2,
             y_position=3.5,
             x_offset=0.05,
-            y_offset=0.25,
+            y_offset=0.3,
         ),
         FigurePanel(
             letter="D",
@@ -165,7 +165,7 @@ def main() -> None:
             x_position=0.0,
             y_position=5.75,
             x_offset=0.05,
-            y_offset=0.25,
+            y_offset=0.3,
         ),
         FigurePanel(
             letter="E",
@@ -173,7 +173,7 @@ def main() -> None:
             x_position=3.2,
             y_position=5.75,
             x_offset=0.05,
-            y_offset=0.25,
+            y_offset=0.3,
         ),
     ]
 
