@@ -26,7 +26,7 @@ def main() -> None:
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
     from endo_pipeline.manifests import load_dataframe_manifest
-    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
 
     plt.style.use("endo_pipeline.figure")
 
@@ -35,7 +35,7 @@ def main() -> None:
     import logging
 
     from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path, slugify
+    from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.diffae_features.noise_correlations import (
         plot_noise_correlation_vs_lag,
     )
@@ -73,10 +73,10 @@ def main() -> None:
     panel_path = plot_noise_correlation_vs_lag(
         noise_statistics_dataframe=noise_statistics_all_datasets,
         column_names=column_names,
-        plot_title=f"Noise correlation vs lag: {dataset_name}",
         output_path=output_path,
-        file_name=slugify(f"noise_correlation_vs_lag_{dataset_name}"),
+        file_name="noise_correlation_vs_lag_all_dataset_mean",
         single_dataset=False,
+        file_format=".svg",
     )
 
     # --- Assemble all panels into final figure ---
@@ -95,7 +95,7 @@ def main() -> None:
         panels,
         output_path / "supp_figure_noise.svg",
         width=MAX_FIGURE_WIDTH,
-        height=3.0,
+        height=MAX_FIGURE_HEIGHT,
     )
 
 
