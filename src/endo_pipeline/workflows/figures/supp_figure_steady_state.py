@@ -25,11 +25,16 @@ def main() -> None:
     from pathlib import Path
 
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.window_sweep import SweptBoundary
-    from endo_pipeline.library.visualize.figures import FigurePanel, build_figure_from_panels
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_empty_panel,
+        build_figure_from_panels,
+    )
     from endo_pipeline.library.visualize.window_sweep_plots import plot_sweep_subset
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
@@ -82,6 +87,7 @@ def main() -> None:
             bootstrap_df[Column.FIXED_POINT_STABILITY] == StabilityLabel.STABLE
         ]
         # Load and filter sweep data for each boundary condition
+        sweep_dfs: dict[SweptBoundary, pd.DataFrame] = {}
         for boundary, manifest in [
             (SweptBoundary.START_STEADY_STATE, start_sweep_manifest),
             (SweptBoundary.START_CELL_PILING, end_sweep_manifest),
@@ -102,14 +108,24 @@ def main() -> None:
             sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] = (
                 sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_MINUTES] / 60
             )
+            sweep_dfs[boundary] = sweep_df
+        if not sweep_dfs:
+            # Temporary fix until workflow run is done on high shear dataset:
+            # build empty panel
+            panel_path = build_empty_panel(
+                output_path,
+                f"Steady state sweep for {dataset_name}",
+                3.15,
+                2.25,
+            )
+        else:
             panel_path = plot_sweep_subset(
-                sweep_df,
+                sweep_dfs,
                 baseline_df=bootstrap_df,
                 dataset_config=dataset_config,
-                boundary=boundary,
                 output_path=output_path,
             )
-            figure_paths.append(panel_path)
+        figure_paths.append(panel_path)
 
     panels = [
         FigurePanel(
@@ -121,61 +137,29 @@ def main() -> None:
             y_offset=0,
         ),
         FigurePanel(
-            letter="",
-            path=figure_paths[1],
-            x_position=1.55,
-            y_position=0,
-            x_offset=0,
-            y_offset=0,
-        ),
-        FigurePanel(
             letter="B",
-            path=figure_paths[2],
-            x_position=3.0,
-            y_position=0,
-            x_offset=0,
-            y_offset=0,
-        ),
-        FigurePanel(
-            letter="",
-            path=figure_paths[3],
-            x_position=4.8,
+            path=figure_paths[1],
+            x_position=3.2,
             y_position=0,
             x_offset=0,
             y_offset=0,
         ),
         FigurePanel(
             letter="C",
-            path=figure_paths[4],
+            path=figure_paths[2],
             x_position=0,
-            y_position=2.75,
+            y_position=2.5,
             x_offset=0,
             y_offset=0,
         ),
         FigurePanel(
-            letter="",
-            path=figure_paths[5],
-            x_position=1.55,
-            y_position=2.75,
-            x_offset=0,
+            letter="D",
+            path=figure_paths[3],
+            x_position=3.2,
+            y_position=2.6,
+            x_offset=0.1,
             y_offset=0,
         ),
-        # FigurePanel(
-        #     letter="D",
-        #     path=figure_paths[6],
-        #     x_position=3.0,
-        #     y_position=2.75,
-        #     x_offset=0,
-        #     y_offset=0,
-        # ),
-        # FigurePanel(
-        #     letter="",
-        #     path=figure_paths[7],
-        #     x_position=4.8,
-        #     y_position=2.75,
-        #     x_offset=0,
-        #     y_offset=0,
-        # )
     ]
 
     build_figure_from_panels(
