@@ -20,6 +20,7 @@ from endo_pipeline.io import save_plot_to_path
 from endo_pipeline.library.analyze.window_sweep import SweptBoundary
 from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.figure_4 import wrap_theta_for_vector_field_vis
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
@@ -475,11 +476,13 @@ def get_middle_boundary_time(
     return closest_sweep_time
 
 
+@figure_panel("Subset of steady state boundary sweep results.")
 def plot_sweep_subset(
     sweep_dfs: dict[SweptBoundary, pd.DataFrame],
     baseline_df: pd.DataFrame,
     dataset_config: DatasetConfig,
     output_path: Path,
+    figure_size: tuple[float, float] = (3.15, 0.75 * len(FIXED_POINT_COLUMNS)),
 ) -> Path:
     """
     Plot the subsets of the window sweeps plus or minus three hours around the
@@ -489,12 +492,30 @@ def plot_sweep_subset(
     results of the sweep for steady state start ranging from three hours before
     to three hours after the midpoint of the steady-state start annotations for
     the given dataset.
+
+    Parameters
+    ----------
+    sweep_dfs
+        Dictionary of sweep result dataframes keyed by boundary type.
+    baseline_df
+        Baseline dataframe containing high-confidence stable fixed points.
+    dataset_config
+        Dataset configuration for the dataset being plotted.
+    output_path
+        Path to save the generated figure.
+    figure_size : tuple[float, float], optional
+        Size of the figure.
+
+    Returns
+    -------
+    :
+        Path to the saved figure.
     """
 
     fig, axes = plt.subplots(
         len(FIXED_POINT_COLUMNS),
         2,
-        figsize=(3.15, 0.75 * len(FIXED_POINT_COLUMNS)),
+        figsize=figure_size,
         layout="constrained",
     )
     axes = axes if len(FIXED_POINT_COLUMNS) > 1 else [axes]

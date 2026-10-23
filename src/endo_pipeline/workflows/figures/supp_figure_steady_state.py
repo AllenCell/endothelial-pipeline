@@ -1,4 +1,7 @@
-def main() -> None:
+from endo_pipeline.cli import UniqueStrList
+
+
+def main(include_panels: UniqueStrList | None = None) -> None:
     """
     **Supplemental Figure**. Sensitivity of results to steady state annotation window
 
@@ -22,6 +25,11 @@ def main() -> None:
     ## Figure panels
 
     All panels in this workflow can be run without GPU.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
     """
 
     import logging
@@ -37,6 +45,7 @@ def main() -> None:
         FigurePanel,
         build_empty_panel,
         build_figure_from_panels,
+        parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.window_sweep_plots import plot_sweep_subset
     from endo_pipeline.manifests import load_dataframe_manifest
@@ -57,6 +66,9 @@ def main() -> None:
 
     output_path = get_output_path(__file__)
 
+    panel_list = ["A", "B", "C", "D"]
+    placeholders = parse_placeholder_panels(include_panels, panel_list)
+
     datasets = get_datasets_in_collection("supp_figure_examples")
 
     bootstrap_manifest = load_dataframe_manifest(BOOTSTRAPPING_MANIFEST_NAMES["grid_based"])
@@ -69,7 +81,7 @@ def main() -> None:
 
     figure_paths: list[Path] = []
 
-    for dataset_name in datasets:
+    for dataset_name, panel_label in zip(datasets, panel_list, strict=True):
         dataset_config = load_dataset_config(dataset_name)
 
         # Load "baseline" bootstrapping manifest, filter to high-confidence fixed points,
@@ -127,6 +139,7 @@ def main() -> None:
                 baseline_df=bootstrap_df,
                 dataset_config=dataset_config,
                 output_path=output_path,
+                **placeholders[panel_label],
             )
         figure_paths.append(panel_path)
 
