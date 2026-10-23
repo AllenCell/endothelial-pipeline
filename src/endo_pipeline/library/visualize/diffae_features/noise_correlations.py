@@ -492,8 +492,10 @@ def plot_noise_tensor_contours_at_fixed_point(
     :
         Path to the saved plot.
     """
-    theta_star, _, rho_star = fixed_point
-
+    theta_star, r_star, rho_star = fixed_point
+    # fix weird artifact where one fixed point is saved as -0.0
+    if theta_star == -0.0:
+        theta_star = 0.0
     sigma, grid_points_1d = get_reshaped_noise_amplitude_and_grid(
         noise_amplitude_dataframe, column_names
     )
@@ -535,7 +537,7 @@ def plot_noise_tensor_contours_at_fixed_point(
             sigma[..., 0, 0][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis
         )[..., np.newaxis]
 
-        axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.3f}"
+        axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.2f}"
 
         fig, _ = plot_noise_tensor_contours(
             (x_grid, y_grid),
@@ -551,6 +553,8 @@ def plot_noise_tensor_contours_at_fixed_point(
             axis=ax,
             show_colorbar=show_colorbar,
         )
+        # Add dashed white hline indicating the r_star value on the plot
+        ax.axhline(r_star, color="white", linestyle="--", linewidth=1.25)
 
     # hide the y label/ticks on the right panel, since the y axis (r) is shared
     for ax in axs:
