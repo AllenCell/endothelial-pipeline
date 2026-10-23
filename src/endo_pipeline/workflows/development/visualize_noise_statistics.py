@@ -100,12 +100,13 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             noise_statistics_flow = noise_statistics_dataframe[
                 noise_statistics_dataframe[Column.SHEAR_STRESS] == flow_condition.shear_stress
             ]
-            plot_noise_correlation_vs_lag(
+            _ = plot_noise_correlation_vs_lag(
                 noise_statistics_dataframe=noise_statistics_flow,
                 column_names=column_names,
                 plot_title=f"Noise correlation vs lag: {dataset_name_flow}",
                 output_path=output_path,
                 file_name=slugify(f"noise_correlation_vs_lag_{dataset_name_flow}"),
+                single_dataset=True,
             )
 
 
