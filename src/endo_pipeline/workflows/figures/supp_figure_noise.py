@@ -86,7 +86,7 @@ def main() -> None:
             path=panel_path,
             x_position=0.0,
             y_position=0.0,
-            x_offset=0.0,
+            x_offset=0.1,
             y_offset=0.0,
         )
     ]
