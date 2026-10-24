@@ -761,6 +761,24 @@ def plot_segmentation_validation(
     img2_seg: np.ndarray,
     img_nuc_seg: np.ndarray,
 ) -> None:
+    """
+    Plot segmentation validation images.
+
+    Parameters
+    ----------
+    example_name
+        Name of the example.
+    img1
+        First image.
+    img2
+        Second image.
+    img1_seg
+        Segmentation of the first image.
+    img2_seg
+        Segmentation of the second image.
+    img_nuc_seg
+        Nuclear segmentation.
+    """
     output_path = get_output_path(__file__, "segmentation_validation")
     cmap = colorcet.cm.glasbey_bw
     plot_image_thumbnail(
