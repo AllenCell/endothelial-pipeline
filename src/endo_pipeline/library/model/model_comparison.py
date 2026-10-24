@@ -3,14 +3,18 @@
 import logging
 from typing import Literal, NamedTuple
 
+import colorcet
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 from omegaconf import DictConfig
 from scipy.stats import circmean, pearsonr
+from skimage.color import label2rgb
+from skimage.exposure import rescale_intensity
 from skimage.measure import regionprops
 from skimage.metrics import hausdorff_distance
 from skimage.metrics import structural_similarity as ssim
+from skimage.segmentation import find_boundaries
 from skimage.transform import pyramid_expand
 
 from endo_pipeline.configs import load_dataset_config
@@ -464,37 +468,7 @@ class ModelComparisonMetricsCalculator:
         img2_seg = _get_refined_segmentation_from_downscaled_image(img2, img_nuc_seg)
 
         # Save the refined segmentations for validation
-        output_path = get_output_path(__file__, "segmentation_validation")
-        plot_image_thumbnail(
-            img1.squeeze(),
-            f"{example_name}_img1",
-            output_path=output_path,
-            figsize=(2, 2),
-        )
-        plot_image_thumbnail(
-            img2.squeeze(),
-            f"{example_name}_img2",
-            output_path=output_path,
-            figsize=(2, 2),
-        )
-        plot_image_thumbnail(
-            img1_seg.squeeze(),
-            f"{example_name}_img1_seg",
-            output_path=output_path,
-            figsize=(2, 2),
-        )
-        plot_image_thumbnail(
-            img2_seg.squeeze(),
-            f"{example_name}_img2_seg",
-            output_path=output_path,
-            figsize=(2, 2),
-        )
-        plot_image_thumbnail(
-            img_nuc_seg.squeeze(),
-            f"{example_name}_nuc_seg",
-            output_path=output_path,
-            figsize=(2, 2),
-        )
+        plot_segmentation_validation(example_name, img1, img2, img1_seg, img2_seg, img_nuc_seg)
 
         return ModelComparisonMetrics(
             correlation=cls.compute_correlation(img1, img2),
@@ -507,8 +481,10 @@ class ModelComparisonMetricsCalculator:
             number_of_segmentations_difference=cls.compute_number_of_segmentations_difference(
                 img1_seg, img2_seg
             ),
-            ssim_seg=cls.compute_ssim(img1_seg, img2_seg),
-            hausdorff_seg=cls.compute_hausdorff(img1_seg, img2_seg),
+            ssim_seg=cls.compute_ssim(find_boundaries(img1_seg), find_boundaries(img2_seg)),
+            hausdorff_seg=cls.compute_hausdorff(
+                find_boundaries(img1_seg), find_boundaries(img2_seg)
+            ),
         )
 
 
@@ -775,3 +751,67 @@ def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict
         ).to_dict("index")
 
     return aggregate_by_group
+
+
+def plot_segmentation_validation(
+    example_name: str,
+    img1: np.ndarray,
+    img2: np.ndarray,
+    img1_seg: np.ndarray,
+    img2_seg: np.ndarray,
+    img_nuc_seg: np.ndarray,
+) -> None:
+    output_path = get_output_path(__file__, "segmentation_validation")
+    cmap = colorcet.cm.glasbey_bw
+    plot_image_thumbnail(
+        img1.squeeze(),
+        f"{example_name}_img1",
+        output_path=output_path,
+        figsize=(2, 2),
+    )
+    plot_image_thumbnail(
+        img2.squeeze(),
+        f"{example_name}_img2",
+        output_path=output_path,
+        figsize=(2, 2),
+    )
+    plot_image_thumbnail(
+        img1_seg.squeeze(),
+        f"{example_name}_img1_seg",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+    plot_image_thumbnail(
+        img2_seg.squeeze(),
+        f"{example_name}_img2_seg",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+    overlay = label2rgb(
+        label=img_nuc_seg.squeeze(),
+        image=rescale_intensity(img1.squeeze(), out_range="uint8"),
+        bg_label=0,
+        alpha=0.5,
+    )
+    plot_image_thumbnail(
+        overlay,
+        f"{example_name}_nuc_seg_on_img1",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+    overlay = label2rgb(
+        label=img_nuc_seg.squeeze(),
+        image=rescale_intensity(img2.squeeze(), out_range="uint8"),
+        bg_label=0,
+        alpha=0.5,
+    )
+    plot_image_thumbnail(
+        overlay,
+        f"{example_name}_nuc_seg_on_img2",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
