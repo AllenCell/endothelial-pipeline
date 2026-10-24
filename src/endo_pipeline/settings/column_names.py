@@ -691,6 +691,12 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA = "baseline_mean_relative_area"
     """Mean relative area between ground truth and next timepoint."""
 
+    MODEL_COMPARISON_BASELINE_SSIM_SEG = "baseline_ssim_seg"
+    """Structural Similarity Index (SSIM) between segmentations of ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG = "baseline_hausdorff_seg"
+    """Hausdorff distance between segmentations of ground truth and next timepoint."""
+
     MODEL_COMPARISON_CORRELATION = "denoised_correlations"
     """Pearson correlation between input and denoised image."""
 
@@ -712,6 +718,12 @@ class ColumnName:
     MODEL_COMPARISON_MEAN_RELATIVE_AREA = "denoised_mean_relative_area"
     """Mean relative area between input and denoised image."""
 
+    MODEL_COMPARISON_SSIM_SEG = "denoised_ssim_seg"
+    """Structural Similarity Index (SSIM) between segmentations of input and denoised image."""
+
+    MODEL_COMPARISON_HAUSDORFF_SEG = "denoised_hausdorff_seg"
+    """Hausdorff distance between segmentations of input and denoised image."""
+
     MODEL_COMPARISON_SELF_CORRELATION = "self_correlations"
     """Pearson correlation between input and itself."""
 
@@ -732,6 +744,74 @@ class ColumnName:
 
     MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA = "self_mean_relative_area"
     """Mean relative area between input and itself."""
+
+    MODEL_COMPARISON_SELF_SSIM_SEG = "self_ssim_seg"
+    """Structural Similarity Index (SSIM) between segmentations of input and itself."""
+
+    MODEL_COMPARISON_SELF_HAUSDORFF_SEG = "self_hausdorff_seg"
+    """Hausdorff distance between segmentations of input and itself."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlation"
+    """Pearson correlation between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM = "scrambled_image_ssim"
+    """Structural Similarity Index (SSIM) between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS = "scrambled_image_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF = "scrambled_image_hausdorff"
+    """Hausdorff distance between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE = (
+        "scrambled_image_mean_orientation_difference"
+    )
+    """Mean orientation difference between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_ASPECT_RATIO = (
+        "scrambled_image_mean_relative_aspect_ratio"
+    )
+    """Mean relative aspect ratio between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_AREA = "scrambled_image_mean_relative_area"
+    """Mean relative area between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG = "scrambled_image_ssim_seg"
+    """Structural Similarity Index (SSIM) between segmentations of input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG = "scrambled_image_hausdorff_seg"
+    """Hausdorff distance between segmentations of input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlation"
+    """Pearson correlation between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM = "scrambled_latent_ssim"
+    """Structural Similarity Index (SSIM) between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS = "scrambled_latent_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF = "scrambled_latent_hausdorff"
+    """Hausdorff distance between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE = (
+        "scrambled_latent_mean_orientation_difference"
+    )
+    """Mean orientation difference between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_ASPECT_RATIO = (
+        "scrambled_latent_mean_relative_aspect_ratio"
+    )
+    """Mean relative aspect ratio between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_AREA = "scrambled_latent_mean_relative_area"
+    """Mean relative area between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG = "scrambled_latent_ssim_seg"
+    """Structural Similarity Index (SSIM) between segmentations of input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG = "scrambled_latent_hausdorff_seg"
+    """Hausdorff distance between segmentations of input and scrambled latent representation."""
 
     class ModelNoiseSensitivity(StrEnum):
         """Column names used in model noise sensitivity analysis."""

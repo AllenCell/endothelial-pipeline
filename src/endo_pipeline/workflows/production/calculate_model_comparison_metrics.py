@@ -194,6 +194,17 @@ def main(
                     model, latent, noise, num_gpus=NUM_GPUS
                 )
 
+                scrambled_latent_control = generate_from_coords_and_noised_image(
+                    model, rng.permuted(latent), noise, num_gpus=NUM_GPUS
+                )
+
+                scrambled_image_latent = get_latent_vector_from_crop(
+                    model, rng.permuted(conditioning_ex), num_gpus=NUM_GPUS
+                )
+                scrambled_image_control = generate_from_coords_and_noised_image(
+                    model, scrambled_image_latent, noise, num_gpus=NUM_GPUS
+                )
+
                 # Consume RNG state for reproducibility with model performance assessment outputs
                 _ = rng.permuted(latent)
                 _ = rng.permuted(conditioning_ex.ravel())
@@ -219,14 +230,28 @@ def main(
                     img_nuc_seg=img_nuc_seg,
                     example_name=str(example),
                 )
+                scrambled_latent_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=scrambled_latent_control,
+                    img_nuc_seg=img_nuc_seg,
+                    example_name=str(example),
+                )
+                scrambled_image_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=scrambled_image_control,
+                    img_nuc_seg=img_nuc_seg,
+                    example_name=str(example),
+                )
 
                 results.append(
                     {
+                        # Model comparison general info
                         Column.DiffAEData.MODEL_MANIFEST: model_manifest_name,
                         Column.DiffAEData.MODEL_RUN: run_name,
                         Column.EXAMPLE_KEY: str(example),
                         Column.RANDOM_SEED: random_seed,
                         Column.MODEL_COMPARISON_EXAMPLE_GROUP: group,
+                        # Model comparison of input image with itself
                         Column.MODEL_COMPARISON_SELF_CORRELATION: self_results.correlation,
                         Column.MODEL_COMPARISON_SELF_SSIM: self_results.ssim,
                         Column.MODEL_COMPARISON_SELF_LPIPS: self_results.lpips,
@@ -234,6 +259,9 @@ def main(
                         Column.MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE: self_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO: self_results.mean_relative_aspect_ratio,
                         Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA: self_results.mean_relative_area,
+                        Column.MODEL_COMPARISON_SELF_SSIM_SEG: self_results.ssim_seg,
+                        Column.MODEL_COMPARISON_SELF_HAUSDORFF_SEG: self_results.hausdorff_seg,
+                        # Model comparison of input image with baseline
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,
                         Column.MODEL_COMPARISON_BASELINE_SSIM: baseline_results.ssim,
                         Column.MODEL_COMPARISON_BASELINE_HAUSDORFF: baseline_results.hausdorff,
@@ -241,6 +269,9 @@ def main(
                         Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO: baseline_results.mean_relative_aspect_ratio,
                         Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA: baseline_results.mean_relative_area,
                         Column.MODEL_COMPARISON_BASELINE_LPIPS: baseline_results.lpips,
+                        Column.MODEL_COMPARISON_BASELINE_SSIM_SEG: baseline_results.ssim_seg,
+                        Column.MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG: baseline_results.hausdorff_seg,
+                        # Model comparison of input image with denoised image
                         Column.MODEL_COMPARISON_CORRELATION: denoise_results.correlation,
                         Column.MODEL_COMPARISON_SSIM: denoise_results.ssim,
                         Column.MODEL_COMPARISON_LPIPS: denoise_results.lpips,
@@ -248,6 +279,28 @@ def main(
                         Column.MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE: denoise_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO: denoise_results.mean_relative_aspect_ratio,
                         Column.MODEL_COMPARISON_MEAN_RELATIVE_AREA: denoise_results.mean_relative_area,
+                        Column.MODEL_COMPARISON_SSIM_SEG: denoise_results.ssim_seg,
+                        Column.MODEL_COMPARISON_HAUSDORFF_SEG: denoise_results.hausdorff_seg,
+                        # Model comparison of input image with scrambled image
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION: scrambled_image_results.correlation,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM: scrambled_image_results.ssim,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS: scrambled_image_results.lpips,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF: scrambled_image_results.hausdorff,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE: scrambled_image_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_ASPECT_RATIO: scrambled_image_results.mean_relative_aspect_ratio,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_AREA: scrambled_image_results.mean_relative_area,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG: scrambled_image_results.ssim_seg,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG: scrambled_image_results.hausdorff_seg,
+                        # Model comparison of input image with scrambled latent vector
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION: scrambled_latent_results.correlation,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM: scrambled_latent_results.ssim,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS: scrambled_latent_results.lpips,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF: scrambled_latent_results.hausdorff,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE: scrambled_latent_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_ASPECT_RATIO: scrambled_latent_results.mean_relative_aspect_ratio,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_AREA: scrambled_latent_results.mean_relative_area,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG: scrambled_latent_results.ssim_seg,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG: scrambled_latent_results.hausdorff_seg,
                     }
                 )
 
