@@ -113,9 +113,6 @@ class ModelComparisonMetrics(NamedTuple):
     lpips: float
     """Learned Perceptual Image Patch Similarity (LPIPS) score (lower is better, 0 = identical)."""
 
-    hausdorff: float
-    """Hausdorff distance between the two images (lower is better, 0 = identical)."""
-
     mean_orientation_difference: float = np.nan
     """Mean orientation (deg) difference between the two images (lower is better, 0 = identical)."""
 
@@ -129,10 +126,10 @@ class ModelComparisonMetrics(NamedTuple):
     """Difference in the number of segmentations (img2 - img1), or NaN if segmentation failed."""
 
     ssim_seg: float = np.nan
-    """Structural Similarity Index Measure (SSIM) score between two segmentation images(range [0, 1], 1 = identical)."""
+    """Structural Similarity Index Measure (SSIM) score between two segmentation boundary images(range [0, 1], 1 = identical)."""
 
     hausdorff_seg: float = np.nan
-    """Hausdorff distance between two segmentation images (lower is better, 0 = identical)."""
+    """Hausdorff distance between two segmentation boundary images (lower is better, 0 = identical)."""
 
 
 class ModelComparisonMetricsCalculator:
@@ -417,6 +414,10 @@ class ModelComparisonMetricsCalculator:
         """
         Compute the Hausdorff distance between two images.
 
+        Nonzero pixels are treated as points, so inputs should be binary masks (e.g.
+        segmentation boundaries). For intensity images nearly every pixel is nonzero, so the
+        distance is close to zero regardless of image content.
+
         Parameters
         ----------
         img1
@@ -445,7 +446,7 @@ class ModelComparisonMetricsCalculator:
     @classmethod
     def compute_image_metrics(cls, img1: NDArray, img2: NDArray) -> ModelComparisonMetrics:
         """
-        Compute correlation, SSIM, LPIPS, and Hausdorff distance between two images.
+        Compute correlation, SSIM, and LPIPS between two images.
 
         Segmentation-based metrics are not computed and are left as NaN.
 
@@ -466,7 +467,6 @@ class ModelComparisonMetricsCalculator:
             correlation=cls.compute_correlation(img1, img2),
             ssim=cls.compute_ssim(img1, img2),
             lpips=cls.compute_lpips(img1, img2),
-            hausdorff=cls.compute_hausdorff(img1, img2),
         )
 
     @classmethod
@@ -478,7 +478,11 @@ class ModelComparisonMetricsCalculator:
         example_name: str,
     ) -> ModelComparisonMetrics:
         """
-        Compute correlation, SSIM, and LPIPS between two images.
+        Compute image and segmentation-based metrics between two images.
+
+        Image metrics (correlation, SSIM, and LPIPS) are computed directly on the images.
+        Segmentation-based metrics are computed on refined cell segmentations of each image.
+        Validation plots of the images and segmentations are saved along the way.
 
         Parameters
         ----------
@@ -487,19 +491,18 @@ class ModelComparisonMetricsCalculator:
         img2
             Second image to compare.
         img_nuc_seg
-            Nuclei segmentation image.
+            Nuclei segmentation image (used to refine the cell segmentations).
+        example_name
+            Name used for the saved validation plots and log messages.
 
         Returns
         -------
         :
-            Computed correlation, SSIM, and LPIPS metrics. Segmentation-based metrics are NaN if
-            segmentation fails for either image.
+            Computed metrics. Segmentation-based metrics are NaN if segmentation fails for
+            either image.
         """
 
-        image_correlation = cls.compute_correlation(img1, img2)
-        image_ssim = cls.compute_ssim(img1, img2)
-        image_lpips = cls.compute_lpips(img1, img2)
-        image_hausdorff = cls.compute_hausdorff(img1, img2)
+        metrics = cls.compute_image_metrics(img1, img2)
 
         # Save the input images for validation, even if segmentation fails below
         plot_image_validation(example_name, img1, img2, img_nuc_seg)
@@ -516,31 +519,22 @@ class ModelComparisonMetricsCalculator:
                 example_name,
                 error,
             )
-            return ModelComparisonMetrics(
-                correlation=image_correlation,
-                ssim=image_ssim,
-                lpips=image_lpips,
-                hausdorff=image_hausdorff,
-            )
+            return metrics
 
         # Save the refined segmentations for validation
         plot_segmentation_validation(example_name, img1_seg, img2_seg)
 
-        return ModelComparisonMetrics(
-            correlation=image_correlation,
-            ssim=image_ssim,
-            lpips=image_lpips,
-            hausdorff=image_hausdorff,
+        img1_boundaries = find_boundaries(img1_seg)
+        img2_boundaries = find_boundaries(img2_seg)
+        return metrics._replace(
             mean_orientation_difference=cls.compute_orientation(img1_seg, img2_seg),
             mean_relative_aspect_ratio=cls.compute_relative_aspect_ratio(img1_seg, img2_seg),
             mean_relative_area=cls.compute_relative_area(img1_seg, img2_seg),
             number_of_segmentations_difference=cls.compute_number_of_segmentations_difference(
                 img1_seg, img2_seg
             ),
-            ssim_seg=cls.compute_ssim(find_boundaries(img1_seg), find_boundaries(img2_seg)),
-            hausdorff_seg=cls.compute_hausdorff(
-                find_boundaries(img1_seg), find_boundaries(img2_seg)
-            ),
+            ssim_seg=cls.compute_ssim(img1_boundaries, img2_boundaries),
+            hausdorff_seg=cls.compute_hausdorff(img1_boundaries, img2_boundaries),
         )
 
 

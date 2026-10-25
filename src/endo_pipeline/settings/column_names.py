@@ -679,9 +679,6 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_LPIPS = "baseline_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint."""
 
-    MODEL_COMPARISON_BASELINE_HAUSDORFF = "baseline_hausdorff"
-    """Hausdorff distance between ground truth and next timepoint."""
-
     MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE = "baseline_mean_orientation_difference"
     """Mean orientation difference between ground truth and next timepoint."""
 
@@ -690,6 +687,11 @@ class ColumnName:
 
     MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA = "baseline_mean_relative_area"
     """Mean relative area between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
+        "baseline_number_of_segmentations_difference"
+    )
+    """Difference in number of segmentations between ground truth and next timepoint (next - ground truth)."""
 
     MODEL_COMPARISON_BASELINE_SSIM_SEG = "baseline_ssim_seg"
     """Structural Similarity Index (SSIM) between segmentations of ground truth and next timepoint."""
@@ -706,9 +708,6 @@ class ColumnName:
     MODEL_COMPARISON_LPIPS = "denoised_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
 
-    MODEL_COMPARISON_HAUSDORFF = "denoised_hausdorff"
-    """Hausdorff distance between input and denoised image."""
-
     MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE = "denoised_mean_orientation_difference"
     """Mean orientation difference between input and denoised image."""
 
@@ -717,6 +716,11 @@ class ColumnName:
 
     MODEL_COMPARISON_MEAN_RELATIVE_AREA = "denoised_mean_relative_area"
     """Mean relative area between input and denoised image."""
+
+    MODEL_COMPARISON_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
+        "denoised_number_of_segmentations_difference"
+    )
+    """Difference in number of segmentations between input and denoised image (denoised - input)."""
 
     MODEL_COMPARISON_SSIM_SEG = "denoised_ssim_seg"
     """Structural Similarity Index (SSIM) between segmentations of input and denoised image."""
@@ -733,9 +737,6 @@ class ColumnName:
     MODEL_COMPARISON_SELF_LPIPS = "self_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and itself."""
 
-    MODEL_COMPARISON_SELF_HAUSDORFF = "self_hausdorff"
-    """Hausdorff distance between input and itself."""
-
     MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE = "self_mean_orientation_difference"
     """Mean orientation difference between input and itself."""
 
@@ -744,6 +745,11 @@ class ColumnName:
 
     MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA = "self_mean_relative_area"
     """Mean relative area between input and itself."""
+
+    MODEL_COMPARISON_SELF_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
+        "self_number_of_segmentations_difference"
+    )
+    """Difference in number of segmentations between input and itself."""
 
     MODEL_COMPARISON_SELF_SSIM_SEG = "self_ssim_seg"
     """Structural Similarity Index (SSIM) between segmentations of input and itself."""
@@ -760,9 +766,6 @@ class ColumnName:
     MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS = "scrambled_image_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled image."""
 
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF = "scrambled_image_hausdorff"
-    """Hausdorff distance between input and scrambled image."""
-
     MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE = (
         "scrambled_image_mean_orientation_difference"
     )
@@ -775,6 +778,11 @@ class ColumnName:
 
     MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_AREA = "scrambled_image_mean_relative_area"
     """Mean relative area between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
+        "scrambled_image_number_of_segmentations_difference"
+    )
+    """Difference in number of segmentations between input and scrambled image (scrambled - input)."""
 
     MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG = "scrambled_image_ssim_seg"
     """Structural Similarity Index (SSIM) between segmentations of input and scrambled image."""
@@ -791,9 +799,6 @@ class ColumnName:
     MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS = "scrambled_latent_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled latent representation."""
 
-    MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF = "scrambled_latent_hausdorff"
-    """Hausdorff distance between input and scrambled latent representation."""
-
     MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE = (
         "scrambled_latent_mean_orientation_difference"
     )
@@ -806,6 +811,11 @@ class ColumnName:
 
     MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_AREA = "scrambled_latent_mean_relative_area"
     """Mean relative area between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
+        "scrambled_latent_number_of_segmentations_difference"
+    )
+    """Difference in number of segmentations between input and scrambled latent representation (scrambled - input)."""
 
     MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG = "scrambled_latent_ssim_seg"
     """Structural Similarity Index (SSIM) between segmentations of input and scrambled latent representation."""
