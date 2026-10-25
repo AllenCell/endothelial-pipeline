@@ -212,35 +212,36 @@ def main(
                 # Calculate comparison metrics between the input image vs. itself,
                 # input image at the current timepoint vs. the next timepoint, and
                 # input image vs. denoised image for a given seed
+                plot_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
                 self_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=diffusion_ex,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=str(example),
+                    example_name=f"{plot_name}_self",
                 )
                 baseline_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=next_diffusion_ex,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=str(example),
+                    example_name=f"{plot_name}_baseline",
                 )
                 denoise_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=denoised_ex,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=str(example),
+                    example_name=f"{plot_name}_denoise",
                 )
                 scrambled_latent_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_latent_control,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=str(example),
+                    example_name=f"{plot_name}_scrambled_latent",
                 )
                 scrambled_image_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_image_control,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=str(example),
+                    example_name=f"{plot_name}_scrambled_image",
                 )
 
                 results.append(

@@ -121,8 +121,8 @@ class ModelComparisonMetrics(NamedTuple):
     mean_relative_area: float
     """Mean area of image 2 relative to mean area of image 1 (lower is better, 1 = identical)."""
 
-    number_of_segmentations_difference: int
-    """Difference in the number of segmentations (img2 - img1)."""
+    number_of_segmentations_difference: float
+    """Difference in the number of segmentations (img2 - img1), or NaN if segmentation failed."""
 
     ssim_seg: float
     """Structural Similarity Index Measure (SSIM) score between two segmentation images(range [0, 1], 1 = identical)."""
@@ -461,20 +461,51 @@ class ModelComparisonMetricsCalculator:
         Returns
         -------
         :
-            Computed correlation, SSIM, and LPIPS metrics.
+            Computed correlation, SSIM, and LPIPS metrics. Segmentation-based metrics are NaN if
+            segmentation fails for either image.
         """
 
-        img1_seg = _get_refined_segmentation_from_downscaled_image(img1, img_nuc_seg)
-        img2_seg = _get_refined_segmentation_from_downscaled_image(img2, img_nuc_seg)
+        image_correlation = cls.compute_correlation(img1, img2)
+        image_ssim = cls.compute_ssim(img1, img2)
+        image_lpips = cls.compute_lpips(img1, img2)
+        image_hausdorff = cls.compute_hausdorff(img1, img2)
+
+        # Save the input images for validation, even if segmentation fails below
+        plot_image_validation(example_name, img1, img2, img_nuc_seg)
+
+        # Segmentation can fail on images without cell boundary structure (e.g. the scrambled
+        # controls) when all regions are filtered out or merged into one, leaving no boundaries
+        try:
+            img1_seg = _get_refined_segmentation_from_downscaled_image(img1, img_nuc_seg)
+            img2_seg = _get_refined_segmentation_from_downscaled_image(img2, img_nuc_seg)
+        except ValueError as error:
+            logger.warning(
+                "Segmentation failed for example [ %s ] with error [ %s ]. "
+                "Setting segmentation metrics to NaN.",
+                example_name,
+                error,
+            )
+            return ModelComparisonMetrics(
+                correlation=image_correlation,
+                ssim=image_ssim,
+                lpips=image_lpips,
+                hausdorff=image_hausdorff,
+                mean_orientation_difference=np.nan,
+                mean_relative_aspect_ratio=np.nan,
+                mean_relative_area=np.nan,
+                number_of_segmentations_difference=np.nan,
+                ssim_seg=np.nan,
+                hausdorff_seg=np.nan,
+            )
 
         # Save the refined segmentations for validation
-        plot_segmentation_validation(example_name, img1, img2, img1_seg, img2_seg, img_nuc_seg)
+        plot_segmentation_validation(example_name, img1_seg, img2_seg)
 
         return ModelComparisonMetrics(
-            correlation=cls.compute_correlation(img1, img2),
-            ssim=cls.compute_ssim(img1, img2),
-            lpips=cls.compute_lpips(img1, img2),
-            hausdorff=cls.compute_hausdorff(img1, img2),
+            correlation=image_correlation,
+            ssim=image_ssim,
+            lpips=image_lpips,
+            hausdorff=image_hausdorff,
             mean_orientation_difference=cls.compute_orientation(img1_seg, img2_seg),
             mean_relative_aspect_ratio=cls.compute_relative_aspect_ratio(img1_seg, img2_seg),
             mean_relative_area=cls.compute_relative_area(img1_seg, img2_seg),
@@ -753,16 +784,14 @@ def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict
     return aggregate_by_group
 
 
-def plot_segmentation_validation(
+def plot_image_validation(
     example_name: str,
     img1: np.ndarray,
     img2: np.ndarray,
-    img1_seg: np.ndarray,
-    img2_seg: np.ndarray,
     img_nuc_seg: np.ndarray,
 ) -> None:
     """
-    Plot segmentation validation images.
+    Plot validation images that do not depend on the cell segmentations.
 
     Parameters
     ----------
@@ -772,10 +801,6 @@ def plot_segmentation_validation(
         First image.
     img2
         Second image.
-    img1_seg
-        Segmentation of the first image.
-    img2_seg
-        Segmentation of the second image.
     img_nuc_seg
         Nuclear segmentation.
     """
@@ -792,20 +817,6 @@ def plot_segmentation_validation(
         f"{example_name}_img2",
         output_path=output_path,
         figsize=(2, 2),
-    )
-    plot_image_thumbnail(
-        img1_seg.squeeze(),
-        f"{example_name}_img1_seg",
-        output_path=output_path,
-        figsize=(2, 2),
-        image_colormap=cmap,
-    )
-    plot_image_thumbnail(
-        img2_seg.squeeze(),
-        f"{example_name}_img2_seg",
-        output_path=output_path,
-        figsize=(2, 2),
-        image_colormap=cmap,
     )
     overlay = label2rgb(
         label=img_nuc_seg.squeeze(),
@@ -829,6 +840,41 @@ def plot_segmentation_validation(
     plot_image_thumbnail(
         overlay,
         f"{example_name}_nuc_seg_on_img2",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+
+
+def plot_segmentation_validation(
+    example_name: str,
+    img1_seg: np.ndarray,
+    img2_seg: np.ndarray,
+) -> None:
+    """
+    Plot validation images of the cell segmentations.
+
+    Parameters
+    ----------
+    example_name
+        Name of the example.
+    img1_seg
+        Segmentation of the first image.
+    img2_seg
+        Segmentation of the second image.
+    """
+    output_path = get_output_path(__file__, "segmentation_validation")
+    cmap = colorcet.cm.glasbey_bw
+    plot_image_thumbnail(
+        img1_seg.squeeze(),
+        f"{example_name}_img1_seg",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+    plot_image_thumbnail(
+        img2_seg.squeeze(),
+        f"{example_name}_img2_seg",
         output_path=output_path,
         figsize=(2, 2),
         image_colormap=cmap,
