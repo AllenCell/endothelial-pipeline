@@ -98,7 +98,11 @@ def _get_refined_segmentation_from_downscaled_image(
 
 
 class ModelComparisonMetrics(NamedTuple):
-    """Container for image similarity metrics used for model comparison."""
+    """
+    Container for image similarity metrics used for model comparison.
+
+    Segmentation-based metrics default to NaN when they are not computed.
+    """
 
     correlation: float
     """Pearson correlation coefficient between the two images (range [-1, 1])."""
@@ -112,22 +116,22 @@ class ModelComparisonMetrics(NamedTuple):
     hausdorff: float
     """Hausdorff distance between the two images (lower is better, 0 = identical)."""
 
-    mean_orientation_difference: float
+    mean_orientation_difference: float = np.nan
     """Mean orientation (deg) difference between the two images (lower is better, 0 = identical)."""
 
-    mean_relative_aspect_ratio: float
+    mean_relative_aspect_ratio: float = np.nan
     """Mean elongation of image 2 relative to mean elongation of image 1 (lower is better, 1 = identical)."""
 
-    mean_relative_area: float
+    mean_relative_area: float = np.nan
     """Mean area of image 2 relative to mean area of image 1 (lower is better, 1 = identical)."""
 
-    number_of_segmentations_difference: float
+    number_of_segmentations_difference: float = np.nan
     """Difference in the number of segmentations (img2 - img1), or NaN if segmentation failed."""
 
-    ssim_seg: float
+    ssim_seg: float = np.nan
     """Structural Similarity Index Measure (SSIM) score between two segmentation images(range [0, 1], 1 = identical)."""
 
-    hausdorff_seg: float
+    hausdorff_seg: float = np.nan
     """Hausdorff distance between two segmentation images (lower is better, 0 = identical)."""
 
 
@@ -439,6 +443,33 @@ class ModelComparisonMetricsCalculator:
         return float(hausdorff)
 
     @classmethod
+    def compute_image_metrics(cls, img1: NDArray, img2: NDArray) -> ModelComparisonMetrics:
+        """
+        Compute correlation, SSIM, LPIPS, and Hausdorff distance between two images.
+
+        Segmentation-based metrics are not computed and are left as NaN.
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+
+        Returns
+        -------
+        :
+            Computed image metrics, with NaN for segmentation-based metrics.
+        """
+
+        return ModelComparisonMetrics(
+            correlation=cls.compute_correlation(img1, img2),
+            ssim=cls.compute_ssim(img1, img2),
+            lpips=cls.compute_lpips(img1, img2),
+            hausdorff=cls.compute_hausdorff(img1, img2),
+        )
+
+    @classmethod
     def compute_all_metrics(
         cls,
         img1: NDArray,
@@ -490,12 +521,6 @@ class ModelComparisonMetricsCalculator:
                 ssim=image_ssim,
                 lpips=image_lpips,
                 hausdorff=image_hausdorff,
-                mean_orientation_difference=np.nan,
-                mean_relative_aspect_ratio=np.nan,
-                mean_relative_area=np.nan,
-                number_of_segmentations_difference=np.nan,
-                ssim_seg=np.nan,
-                hausdorff_seg=np.nan,
             )
 
         # Save the refined segmentations for validation

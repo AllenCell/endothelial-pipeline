@@ -223,7 +223,7 @@ def main(
 
         if include_metrics_in_plots:
             comparison_metrics = [
-                calculator.compute_all_metrics(diffusion_ex, denoised_ex)
+                calculator.compute_image_metrics(diffusion_ex, denoised_ex)
                 for denoised_ex in denoised_exs
             ]
             all_comparison_metrics.append(comparison_metrics[-1])
