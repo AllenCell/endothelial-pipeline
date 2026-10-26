@@ -575,7 +575,7 @@ def plot_noise_tensor_contours_at_fixed_point(
             ax.text(
                 0.95,
                 r_star - 0.35,
-                "r=r$^*$",
+                "r = r$^*$",
                 color="white",
                 fontsize=FONTSIZE_SMALL,
                 ha="right",
