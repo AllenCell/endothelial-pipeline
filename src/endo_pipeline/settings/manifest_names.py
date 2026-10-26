@@ -53,3 +53,8 @@ AUTOCORRELATION_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "autocorrelation_cell_centered",
 }
 """Mapping of patch type to autocorrelation dataframe manifest name."""
+
+GRID_BASED_ST_DEV_PROJ_INTENSITY_COMPARISONS_MANIFEST_NAME: str = (
+    "st_dev_proj_intensity_comparisons_grid_based"
+)
+"""Dataframe manifest name for grid-based standard deviation projection intensity comparisons."""

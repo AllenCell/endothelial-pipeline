@@ -49,9 +49,9 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     import matplotlib.pyplot as plt
     import pandas as pd
 
-    from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
-    from endo_pipeline.io import get_output_path
+    from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
+    from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.analyze.model_noise_sensitivity import (
         get_bf_frame_intensities_multiproc_wrapper,
         summarize_bf_frame_intensities,
@@ -61,7 +61,15 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
         process_task_queue,
     )
     from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
+    from endo_pipeline.manifests import (
+        DataframeLocation,
+        create_dataframe_manifest,
+        save_dataframe_manifest,
+    )
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.manifest_names import (
+        GRID_BASED_ST_DEV_PROJ_INTENSITY_COMPARISONS_MANIFEST_NAME,
+    )
 
     plt.style.use("endo_pipeline.figure")
 
@@ -95,11 +103,38 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     )
     intensities = pd.DataFrame(intensity_dfs)
 
-    # Save summary statistics of BF intensities for each dataset
-    summary = summarize_bf_frame_intensities(intensities)
-    summary.to_csv(output_path / "bf_intensity_summary.csv", index=False)
+    # Save the original dataframe to a .parquet file
+    demo_suffix = "_demo" if DEMO_MODE else ""
 
-    # Plot BF intensity summary for each dataset
+    for dataset_name, df in intensities.groupby(Column.DATASET):
+        dataset_name = str(dataset_name)
+        # Create save path and save the dataframe for a single dataset to a parquet file
+        filename = f"{dataset_name}_log_normd_stdev_stats_per_patch_data{demo_suffix}.parquet"
+        save_path = output_path / filename
+        df.to_parquet(save_path, index=False)
+
+        # Create location object with output path
+        manifest = create_dataframe_manifest(
+            f"{GRID_BASED_ST_DEV_PROJ_INTENSITY_COMPARISONS_MANIFEST_NAME}{demo_suffix}", __file__
+        )
+        location = DataframeLocation()
+        location.path = save_path
+
+        # Upload to FMS (internal only) and replace local path with file id
+        if UPLOAD_TO_FMS:
+            dataset_config = load_dataset_config(dataset_name)
+            annotations = build_fms_annotations(dataset_config)
+            fmsid = upload_file_to_fms(save_path, annotations=annotations, file_type="parquet")
+            location.fmsid = fmsid
+            location.path = None
+            logger.info("Uploaded log-normd std dev intensities to FMS with id '%s'", fmsid)
+
+        # Add dataframe location to dataframe manifest and save
+        manifest.locations[dataset_name] = location
+        save_dataframe_manifest(manifest)
+
+    # Summarize and plot the log-normd std dev projection intensities for each dataset
+    summary = summarize_bf_frame_intensities(intensities)
     plot_cross_dataset_summaries(
         summary,
         output_path=output_path,
