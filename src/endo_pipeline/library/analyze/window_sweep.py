@@ -182,7 +182,7 @@ def _get_window_flow_dataframe(
 ) -> tuple[FlowCondition, pd.DataFrame]:
     """Build the per-flow-condition window dataframe for one swept-edge position.
 
-    Reads the shared per-worker state set by :func:`init_window_worker`. The
+    Reads the shared per-worker state set by ``init_window_worker``. The
     window is ``[lower, upper)`` per position: the swept edge is placed at the
     absolute movie timepoint ``edge_timepoint`` (shared across all positions)
     while the other edge is held at each position's annotation.
@@ -217,7 +217,7 @@ def _get_window_flow_dataframe(
 def compute_single_fit(job: tuple[int, int, int | None]) -> FitResult:
     """Compute one baseline or bootstrap flow-field fit for one window.
 
-    Reads the shared per-worker state set by :func:`init_window_worker`. This
+    Reads the shared per-worker state set by ``init_window_worker``. This
     is the unit of work submitted to the process pool in
     ``sweep_window_fixed_points``: each job is either the (non-resampled)
     baseline fit for a window (``bootstrap_rep=None``) or one bootstrap
@@ -316,7 +316,7 @@ def compute_detection_rate(
         The fixed points obtained from the baseline fit.
     bootstrap_fixed_points
         Fixed-point dataframes from each bootstrap iteration for this window
-        (as returned by :func:`compute_single_fit`), one per iteration.
+        (as returned by ``compute_single_fit``), one per iteration.
     column_names
         The column names corresponding to the feature variables.
     bootstrap_match_radius
