@@ -78,7 +78,7 @@ def main(datasets: Datasets | None = None):
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import STRUCTURE_AWARE_COMPARISON_EXAMPLES
+    from endo_pipeline.settings.examples import STRUCTURE_AWARE_COMPARISON_EXAMPLES, ExampleImage
     from endo_pipeline.settings.workflow_defaults import (
         CDH5_CONDITIONED_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_MANIFEST_NAME,
@@ -136,7 +136,25 @@ def main(datasets: Datasets | None = None):
         copy_df = original_df.copy()
         copy_df[Column.TIMEPOINT] += 1
         for i in original_df.index:
-            example_pairs.append((original_df.loc[i].to_dict(), copy_df.loc[i].to_dict()))
+            original_crop = original_df.loc[i].to_dict()
+            next_crop = copy_df.loc[i].to_dict()
+            example_original = ExampleImage(
+                dataset_name=original_crop[Column.DATASET],
+                position=original_crop[Column.POSITION],
+                timepoint=original_crop[Column.TIMEPOINT],
+                description=original_crop[Column.CROP_INDEX],
+                crop_y_start=original_crop[Column.DiffAEData.START_Y],
+                crop_x_start=original_crop[Column.DiffAEData.START_X],
+            )
+            example_next = ExampleImage(
+                dataset_name=next_crop[Column.DATASET],
+                position=next_crop[Column.POSITION],
+                timepoint=next_crop[Column.TIMEPOINT],
+                description=next_crop[Column.CROP_INDEX],
+                crop_y_start=next_crop[Column.DiffAEData.START_Y],
+                crop_x_start=next_crop[Column.DiffAEData.START_X],
+            )
+            example_pairs.append((example_original, example_next))
 
     # Expand the centre seed into a symmetric range for select number of seeds.
     num_seeds = 10
@@ -182,7 +200,7 @@ def main(datasets: Datasets | None = None):
 
         # Load all dataset configs used in example sets for saving to FMS
         if UPLOAD_TO_FMS:
-            unique_dataset_names = sorted({example.dataset_name for _, example, _ in example_pairs})
+            unique_dataset_names = sorted({example.dataset_name for example, _ in example_pairs})
             dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
             additional_notes = (
                 f"DiffAE model comparison metrics across {num_seeds} seeds "
