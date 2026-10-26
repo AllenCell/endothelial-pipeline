@@ -221,7 +221,7 @@ def main(datasets: Datasets | None = None):
 
             for example, next_example in tqdm(
                 example_pairs,
-                desc=f"Model {m} / {len(models_to_evaluate)}: seed {s} / {len(seeds_to_evaluate)}",
+                desc=f"Model {m+1}/{len(models_to_evaluate)}: seed {s+1}/{len(seeds_to_evaluate)}",
             ):
                 # Load transformed conditioning and diffusion examples
                 conditioning_ex = load_transformed_conditioning_example_image(example, config)
