@@ -35,24 +35,36 @@ from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
-# Fixed-point coordinate columns, one per swept dynamics dimension.
-FIXED_POINT_COLUMNS = {
+FIXED_POINT_COLUMNS: dict[Column.DiffAEData, str] = {
     column_name: ColumnTemplate.FIXED_POINT % column_name for column_name in DYNAMICS_COLUMN_NAMES
 }
+"""Mapping from dynamics column names to their corresponding fixed-point coordinate columns."""
 
-STEADY_STATE_LINE_COLOR = "tab:green"
-CELL_PILING_LINE_COLOR = "tab:red"
-BASELINE_LINE_STYLE = "--"
-BASELINE_LINE_WIDTH = 1.3
-BASELINE_LINE_LABEL = "baseline (annotated window)"
+BASELINE_LINE_STYLE: str = "--"
+"""Line style for the baseline annotation in the plot."""
 
-BOUNDARY_ANCHOR = {
+BASELINE_LINE_WIDTH: float = 1.3
+"""Line width for the baseline annotation in the plot."""
+
+BASELINE_LINE_LABEL: str = "baseline (annotated window)"
+"""Label for the baseline annotation line in the plot."""
+
+NUM_HOURS_WINDOW: int = 7
+"""Number of hours around the middle boundary time to include in the plot."""
+
+BOUNDARY_LINE_COLOR: dict[SweptBoundary, str] = {
+    SweptBoundary.START_STEADY_STATE: "tab:green",
+    SweptBoundary.START_CELL_PILING: "tab:red",
+}
+"""Line color for each swept boundary."""
+
+BOUNDARY_ANCHOR: dict[SweptBoundary, tuple[str, callable]] = {
     SweptBoundary.START_STEADY_STATE: ("onset", min),
     SweptBoundary.START_CELL_PILING: ("cell_piling", max),
 }
 """Anchor type and aggregation function for each swept boundary."""
 
-RELATIVE_XLABEL = {
+RELATIVE_XLABEL: dict[SweptBoundary, str] = {
     SweptBoundary.START_STEADY_STATE: "Time from first steady-state start (hours)",
     SweptBoundary.START_CELL_PILING: "Time from last cell-piling start (hours)",
 }
@@ -125,8 +137,8 @@ def draw_annotation_lines(ax: plt.Axes, dataset_name: str) -> None:
     """Shade the min-max span of steady-state onset and cell-piling start across FOVs."""
     onset_hours, cell_piling_hours = get_annotation_hours(dataset_name)
     for values, color in (
-        (onset_hours, STEADY_STATE_LINE_COLOR),
-        (cell_piling_hours, CELL_PILING_LINE_COLOR),
+        (onset_hours, BOUNDARY_LINE_COLOR[SweptBoundary.START_STEADY_STATE]),
+        (cell_piling_hours, BOUNDARY_LINE_COLOR[SweptBoundary.START_CELL_PILING]),
     ):
         if not values:
             continue
@@ -204,7 +216,7 @@ def annotation_legend_handles(dataset_name: str) -> list[Patch]:
     if onset_hours:
         handles.append(
             Patch(
-                facecolor=STEADY_STATE_LINE_COLOR,
+                facecolor=BOUNDARY_LINE_COLOR[SweptBoundary.START_STEADY_STATE],
                 alpha=0.12,
                 label="start of steady state (range)",
             )
@@ -212,7 +224,7 @@ def annotation_legend_handles(dataset_name: str) -> list[Patch]:
     if cell_piling_hours:
         handles.append(
             Patch(
-                facecolor=CELL_PILING_LINE_COLOR,
+                facecolor=BOUNDARY_LINE_COLOR[SweptBoundary.START_CELL_PILING],
                 alpha=0.12,
                 label="start of cell piling (range)",
             )
@@ -423,6 +435,38 @@ def plot_num_timepoints(
     return fig
 
 
+def get_boundary_annotations(dataset_config: DatasetConfig, boundary: SweptBoundary) -> list[float]:
+    """
+    Get the annotated times for a specific boundary across all positions in the dataset.
+
+    Parameters
+    ----------
+    dataset_config
+        The configuration for the dataset, including annotated timepoints.
+    boundary
+        The "steady state" or "cell piling" boundary for which to get annotations.
+
+    Returns
+    -------
+    :
+        The annotated times for the given boundary across all positions.
+    """
+    annotations: list[float] = []
+    for position in dataset_config.zarr_positions:
+        if boundary == SweptBoundary.START_STEADY_STATE:
+            start_time = get_start_of_steady_state_for_position(dataset_config, position)
+            if start_time is not None:
+                annotations.append(start_time)
+        elif boundary == SweptBoundary.START_CELL_PILING:
+            piling_annotations = get_annotated_timepoints_for_position(
+                dataset_config, position, annotations=[TimepointAnnotation.CELL_PILING]
+            )
+            start_piling = piling_annotations[0] if piling_annotations else None
+            if start_piling is not None:
+                annotations.append(start_piling)
+    return annotations
+
+
 def get_middle_boundary_time(
     dataset_config: DatasetConfig, boundary: SweptBoundary, sweep_df: pd.DataFrame
 ) -> float:
@@ -452,25 +496,13 @@ def get_middle_boundary_time(
     if boundary not in list(SweptBoundary):
         raise ValueError(f"Unsupported boundary type: {boundary}")
     sweep_times = sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS].to_numpy()
-    if boundary == SweptBoundary.START_STEADY_STATE:
-        start_times: list[int] = []
-        for position in dataset_config.zarr_positions:
-            start_time = get_start_of_steady_state_for_position(dataset_config, position)
-            if start_time is not None:
-                start_times.append(start_time)
-        median_annotation_time = float(np.median(start_times)) if start_times else 0.0
-    elif boundary == SweptBoundary.START_CELL_PILING:
-        end_times: list[int] = []
-        for position in dataset_config.zarr_positions:
-            piling_annotations = get_annotated_timepoints_for_position(
-                dataset_config, position, annotations=[TimepointAnnotation.CELL_PILING]
-            )
-            start_piling = piling_annotations[0] if piling_annotations else None
-            if start_piling is not None:
-                end_times.append(start_piling)
-        median_annotation_time = (
-            float(np.median(end_times)) if end_times else dataset_config.duration
-        )
+    default_median = (
+        0.0 if boundary == SweptBoundary.START_STEADY_STATE else dataset_config.duration
+    )
+    per_position_annotations = get_boundary_annotations(dataset_config, boundary)
+    median_annotation_time = (
+        float(np.median(per_position_annotations)) if per_position_annotations else default_median
+    )
     median_time_hrs = median_annotation_time * TIME_STEP_IN_HOURS
     closest_sweep_time = sweep_times[np.argmin(np.abs(sweep_times - median_time_hrs))]
     return closest_sweep_time
@@ -482,6 +514,7 @@ def plot_sweep_subset(
     baseline_df: pd.DataFrame,
     dataset_config: DatasetConfig,
     output_path: Path,
+    num_hours_window: int = NUM_HOURS_WINDOW,
     figure_size: tuple[float, float] = (3.15, 0.75 * len(FIXED_POINT_COLUMNS)),
 ) -> Path:
     """
@@ -503,6 +536,8 @@ def plot_sweep_subset(
         Dataset configuration for the dataset being plotted.
     output_path
         Path to save the generated figure.
+    num_hours_window
+        Number of hours around the middle boundary time to include in the plot.
     figure_size : tuple[float, float], optional
         Size of the figure.
 
@@ -525,14 +560,21 @@ def plot_sweep_subset(
         (SweptBoundary.START_STEADY_STATE, axes[:, 0]),
         (SweptBoundary.START_CELL_PILING, axes[:, 1]),
     ]:
-        # Subset the sweep dataframe to +/- 3 hours around the sweep boundary
+        # Subset the sweep dataframe to +/- 'num_hours_window' hours around the sweep boundary
         # time closest to the median of the annotations for that boundary.
         sweep_df = sweep_dfs[boundary]
         middle_boundary_time = get_middle_boundary_time(dataset_config, boundary, sweep_df)
+        per_position_annotations = get_boundary_annotations(dataset_config, boundary)
         logger.debug("Middle boundary time: %s", middle_boundary_time)
         sweep_df = sweep_df[
-            (sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] >= middle_boundary_time - 3)
-            & (sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS] <= middle_boundary_time + 3)
+            (
+                sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS]
+                >= middle_boundary_time - num_hours_window
+            )
+            & (
+                sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS]
+                <= middle_boundary_time + num_hours_window
+            )
         ]
 
         for ax, (column_name, fixed_point_column) in zip(
@@ -546,37 +588,57 @@ def plot_sweep_subset(
                 sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_HOURS],
                 y_values,
                 marker=marker_style.marker,
-                s=2 * marker_style.markersize,
+                s=1.5 * marker_style.markersize,
                 color=marker_style.color,
                 edgecolors="black",
                 linewidths=0.4,
             )
-            # Update x-axis ticks to be centered at middle boundary time, and
-            # ticks of 1 hour +/- 3 hours around the middle boundary time.
-            tick_range = np.arange(middle_boundary_time - 3, middle_boundary_time + 4)
-            ax.set_xticks(tick_range)
+            # Minor ticks: every 1 hour within the window.
+            # Major ticks: label start, middle, and end of the window.
+            tick_range = np.arange(
+                middle_boundary_time - num_hours_window,
+                middle_boundary_time + num_hours_window + 1,
+                1,
+            )
+            major_ticks = [
+                middle_boundary_time - num_hours_window,
+                middle_boundary_time,
+                middle_boundary_time + num_hours_window,
+            ]
+            ax.set_xticks(major_ticks, minor=False)
+            ax.set_xticks(tick_range, minor=True)
             # only include x-axis tick labels for the last row of plots
             if ax != axes_col[-1]:
-                ax.set_xticklabels([""] * len(tick_range))
-            # only label every other tick for readability
-            else:
-                ax.set_xticklabels(
-                    [str(tick) if i % 2 == 0 else "" for i, tick in enumerate(tick_range)]
-                )
-            ax.set_xlim(middle_boundary_time - 3.1, middle_boundary_time + 3.1)
-            # add vertical dashed line at the middle boundary time
+                ax.set_xticklabels([""] * len(major_ticks))
+            ax.set_xlim(
+                middle_boundary_time - num_hours_window - 0.1,
+                middle_boundary_time + num_hours_window + 0.1,
+            )
+            # add vertical line at the middle boundary time, also add dashed
+            # lines for per-position annotations
             ax.axvline(
                 middle_boundary_time,
-                color="dimgray",
-                linestyle="--",
+                color=BOUNDARY_LINE_COLOR[boundary],
+                linestyle="-",
                 linewidth=0.8,
+                alpha=0.8,
                 label="Median of actual annotations",
             )
+            for annotation_time in per_position_annotations:
+                ax.axvline(
+                    annotation_time * TIME_STEP_IN_HOURS,
+                    color=BOUNDARY_LINE_COLOR[boundary],
+                    linestyle="--",
+                    linewidth=0.6,
+                    alpha=0.5,
+                )
             # Fix the y-axis to each coordinate's limits (theta uses the paper
             # vector-field range, r and rho use their metadata limits) so panels
             # are comparable.
             ylimits = get_ylimits_for_column(column_name)
             if ylimits is not None:
+                if column_name != Column.DiffAEData.POLAR_ANGLE:
+                    ylimits = (ylimits[0], ylimits[1] + 0.25)
                 ax.set_ylim(*ylimits)
             # Use π-based tick labels for θ (matching the paper figures).
             metadata = COLUMN_METADATA[column_name]
