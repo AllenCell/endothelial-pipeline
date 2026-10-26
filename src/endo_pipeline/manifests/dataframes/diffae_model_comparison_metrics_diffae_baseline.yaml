@@ -18,34 +18,34 @@ columns:
   denoised_lpips: Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image
 locations:
   latent_8:
-    fmsid: 0d17fa7cbe5c4f318a4428d17684477d
+    fmsid: a58fdced021844dfbaac8dd3d7016fa7
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_8.parquet
   latent_16:
-    fmsid: b3562a96a83c478a8807345c2853c781
+    fmsid: 08f02ae557a14b3c90c19b1aef9b4d99
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_16.parquet
   latent_32:
-    fmsid: 0a78652fed34468ca3aafba97b740c7f
+    fmsid: a82cfc001dac4864912e6e9b31659967
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_32.parquet
   latent_64:
-    fmsid: d987cef80fc040c9a1c0f546317339ab
+    fmsid: 707e8752553b4fe583bcfa1da9237739
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_64.parquet
   latent_128:
-    fmsid: 57e149b1c364406da36be41dda9412eb
+    fmsid: ef82853d73ee47f69f1ac0a6893ac614
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_128.parquet
   latent_256:
-    fmsid: 56e03a4d253b419f9c2b2a8830a4b75e
+    fmsid: 89589540cd244dcabd53ac7e658d68e2
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_256.parquet
   latent_512:
-    fmsid: ff359504121f4baf9aa9f3d39e2d2bdb
+    fmsid: 18fc8b0c798e40a2b04a8539cc2ddf9d
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_512.parquet
   latent_1024:
-    fmsid: 72f8f36976e6411690a4651afe19537a
+    fmsid: 0739283c6b33463ebd62de6704b14118
     path: null
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_1024.parquet
