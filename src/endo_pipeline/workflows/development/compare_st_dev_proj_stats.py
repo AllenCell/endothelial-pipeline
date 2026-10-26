@@ -84,6 +84,7 @@ def main(datasets: Datasets | None = None) -> None:
         summary,
         output_path=output_path,
         column_names=[Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN],
+        axis_mode="replicate",
         point_color="black",
         ylabel_rotation=90,
         ylabel_horizontal_alignment="center",
