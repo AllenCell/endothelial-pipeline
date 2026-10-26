@@ -1,6 +1,7 @@
 """Plotting helpers for the analysis-window sweep of the fixed points."""
 
 import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -58,7 +59,7 @@ BOUNDARY_LINE_COLOR: dict[SweptBoundary, str] = {
 }
 """Line color for each swept boundary."""
 
-BOUNDARY_ANCHOR: dict[SweptBoundary, tuple[str, callable]] = {
+BOUNDARY_ANCHOR: dict[SweptBoundary, tuple[str, Callable]] = {
     SweptBoundary.START_STEADY_STATE: ("onset", min),
     SweptBoundary.START_CELL_PILING: ("cell_piling", max),
 }
