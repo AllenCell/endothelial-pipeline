@@ -91,6 +91,17 @@ def main(datasets: Datasets | None = None) -> None:
         ylabel_vertical_alignment="bottom",
         yaxis_for_fixed_points=False,
     )
+    plot_cross_dataset_summaries(
+        summary,
+        output_path=output_path,
+        column_names=[Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_STD],
+        axis_mode="replicate",
+        point_color="black",
+        ylabel_rotation=90,
+        ylabel_horizontal_alignment="center",
+        ylabel_vertical_alignment="bottom",
+        yaxis_for_fixed_points=False,
+    )
 
 
 if __name__ == "__main__":
