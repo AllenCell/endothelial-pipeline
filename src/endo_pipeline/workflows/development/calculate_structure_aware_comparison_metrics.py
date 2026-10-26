@@ -42,11 +42,13 @@ def main(datasets: Datasets | None = None):
     """
 
     import logging
+    import os
     from typing import cast
 
     import pandas as pd
     from numpy.random import default_rng
     from omegaconf import DictConfig
+    from tqdm import tqdm
 
     from endo_pipeline.cli import DEMO_MODE, NUM_GPUS, UPLOAD_TO_FMS
     from endo_pipeline.configs import load_dataset_config
@@ -85,6 +87,11 @@ def main(datasets: Datasets | None = None):
         GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
         RANDOM_SEED,
     )
+
+    # Disable tqdm progress bars by default because generate_from_coords_and_noised_image internally
+    # uses tqdm and this both clutters the output and makes it hard to tell how far the workflow has
+    # progressed.
+    os.environ["TQDM_DISABLE"] = "1"
 
     logger = logging.getLogger(__name__)
 
@@ -136,7 +143,7 @@ def main(datasets: Datasets | None = None):
     half_range = num_seeds // 2
     seeds_to_evaluate = list(range(RANDOM_SEED - half_range, RANDOM_SEED - half_range + num_seeds))
 
-    for model_manifest_name in models_to_evaluate:
+    for m, model_manifest_name in enumerate(models_to_evaluate):
         # Get list of run names to calculate metrics for. If run names are not
         # provided, use all runs found in the manifest
         model_manifest = load_model_manifest(model_manifest_name)
@@ -196,11 +203,15 @@ def main(datasets: Datasets | None = None):
         config: DictConfig = cast(DictConfig, model_.cfg)
         model = instantiate_model_target_class(model_)  # type: ignore[reportArgumentType]
 
-        for random_seed in seeds_to_evaluate:
+        for s, random_seed in enumerate(seeds_to_evaluate):
             # Set RNG seed
             rng = default_rng(seed=random_seed)
 
-            for example, next_example in example_pairs:
+            for example, next_example in tqdm(
+                example_pairs,
+                desc=f"Model {m} / {len(models_to_evaluate)}: seed {s} / {len(seeds_to_evaluate)}",
+                disable=False,
+            ):
                 # Load transformed conditioning and diffusion examples
                 conditioning_ex = load_transformed_conditioning_example_image(example, config)
                 diffusion_ex = load_transformed_diffusion_example_image(example, config)
