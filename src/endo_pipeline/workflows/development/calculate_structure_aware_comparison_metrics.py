@@ -106,18 +106,16 @@ def main(datasets: Datasets | None = None):
 
     output_path = get_output_path(__file__)
 
-    # Use the same datasets used in the binwidth/bandwidth sweep if no specific datasets are
-    # provided
+    # Use the default structure-aware comparison datasets if no specific datasets are provided
     datasets = datasets or STRUCTURE_AWARE_COMPARISON_EXAMPLES
 
     models_to_evaluate = [DEFAULT_MODEL_MANIFEST_NAME, CDH5_CONDITIONED_MODEL_MANIFEST_NAME]
     run_name = DEFAULT_MODEL_RUN_NAME
 
-    # Load the grid/patch-based feature dataframes for the selected datasets and pick a subset of
-    # example crops to create structure-aware comparison metrics for
+    # Load the grid/patch-based feature dataframes for the selected datasets and randomly sample a
+    # subset of crops to use as examples
     df_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
 
-    # Load the dataframe and take a subset of the image crops to use as examples
     all_examples = []
     for dataset_name in datasets:
         duration = load_dataset_config(dataset_name).duration
@@ -130,17 +128,15 @@ def main(datasets: Datasets | None = None):
             Column.DiffAEData.START_Y,
             Column.DiffAEData.START_X,
         ]
-        df = df[columns_to_compute].compute().sample(n=100, replace=False, random_state=RANDOM_SEED)
-        if not df[Column.TIMEPOINT].max() < duration:
-            # If the timepoint of the randomly selected patch is not less that the dataset duration
-            # then an error will occur when the workflow tries to load the image at timepoint + 1
-            raise ValueError(
-                f"Randomly selected timepoint is not less than duration for {dataset_name}"
-            )
+        df = df[columns_to_compute].compute()
+        # Exclude crops at the last timepoint, since each example is paired with the same crop at
+        # timepoint + 1. Reset the index so labels are unique after concatenating dask partitions.
+        df = df[df[Column.TIMEPOINT] < duration - 1]
+        df = df.sample(n=100, replace=False, random_state=RANDOM_SEED).reset_index(drop=True)
         all_examples.append(df)
 
     # Build list of examples paired with their next timepoint counterpart
-    example_pairs = []
+    example_pairs: list[tuple[ExampleImage, ExampleImage]] = []
     for original_df in all_examples:
         copy_df = original_df.copy()
         copy_df[Column.TIMEPOINT] += 1
@@ -170,23 +166,17 @@ def main(datasets: Datasets | None = None):
     half_range = num_seeds // 2
     seeds_to_evaluate = list(range(RANDOM_SEED - half_range, RANDOM_SEED - half_range + num_seeds))
 
+    # In demo mode, limit to two seeds and two examples
+    if DEMO_MODE:
+        logger.warning("DEMO MODE - Limiting to two seeds and two examples")
+        seeds_to_evaluate = seeds_to_evaluate[:2]
+        example_pairs = example_pairs[:2]
+
     for m, model_manifest_name in enumerate(models_to_evaluate):
-        # Get list of run names to calculate metrics for. If run names are not
-        # provided, use all runs found in the manifest
+        # Load model manifest and check that the run is available
         model_manifest = load_model_manifest(model_manifest_name)
-        available_run_names = list(model_manifest.locations.keys())
-
-        # Check to make sure all run names are available in manifest and exit the
-        # workflow early if not
-        if run_name not in available_run_names:
-            logger.error("Run %s not found in manifest '%s'", run_name, model_manifest_name)
-            return
-
-        # In demo mode, limit to two model runs, two seeds, and two examples
-        if DEMO_MODE:
-            logger.warning("DEMO MODE - Limiting to two runs, two seeds, and two examples")
-            seeds_to_evaluate = seeds_to_evaluate[:2]
-            example_pairs = example_pairs[:2]
+        if run_name not in model_manifest.locations:
+            raise ValueError(f"Run '{run_name}' not found in manifest '{model_manifest_name}'")
 
         # Build dataframe manifest for saving output dataframes
         demo_suffix = "_demo" if DEMO_MODE else ""
@@ -236,7 +226,7 @@ def main(datasets: Datasets | None = None):
 
             for example, next_example in tqdm(
                 example_pairs,
-                desc=f"Model {m+1}/{len(models_to_evaluate)}: seed {s+1}/{len(seeds_to_evaluate)}",
+                desc=f"Model {m + 1}/{len(models_to_evaluate)}: seed {s + 1}/{len(seeds_to_evaluate)}",
             ):
                 # Load transformed conditioning and diffusion examples
                 conditioning_ex = load_transformed_conditioning_example_image(example, config)
@@ -247,7 +237,8 @@ def main(datasets: Datasets | None = None):
                 # are used to compute segmentation-based features).
                 img_nuc_seg = load_nuclei_segmentation_image(example, config)
 
-                # Apply noise to conditioning image and then denoise
+                # Encode conditioning image to a latent vector and denoise from random noise,
+                # then generate scrambled latent and scrambled image controls from the same noise
                 noise = rng.standard_normal(size=conditioning_ex.shape)
                 latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
                 denoised_ex = generate_from_coords_and_noised_image(
@@ -269,9 +260,9 @@ def main(datasets: Datasets | None = None):
                 _ = rng.permuted(latent)
                 _ = rng.permuted(conditioning_ex.ravel())
 
-                # Calculate comparison metrics between the input image vs. itself,
-                # input image at the current timepoint vs. the next timepoint, and
-                # input image vs. denoised image for a given seed
+                # Calculate comparison metrics between the input image vs. itself, the input image
+                # at the next timepoint, the denoised image, and the scrambled latent and scrambled
+                # image controls for a given seed
                 plot_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
                 self_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
