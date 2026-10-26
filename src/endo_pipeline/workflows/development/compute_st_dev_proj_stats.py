@@ -3,12 +3,13 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None, max_workers: int | None = None) -> None:
     """
-    Compare brightfield intensities across datasets.
+    Compute log-normalized standard deviation projection statistics of brightfield images.
 
-    Uses the mean brightfield (BF) intensity over XY for each z-slice and
-    timepoint, as computed for the timepoint outlier annotations, to compare BF
-    illumination across datasets. Intensities are averaged over z-slices to get
-    a single intensity per frame.
+    Computes the mean and standard deviation of the log-normalized brightfield
+    (BF) standard deviation projection along the Z-axis for each frame. Results
+    are saved per dataset to parquet files, optionally uploaded to FMS, and
+    recorded in a dataframe manifest. Use the `compare-st-dev-proj-stats`
+    workflow to summarize and plot the results.
 
     #diffae #quality-control #test-ready
 
@@ -17,13 +18,13 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe compare-brightfield-intensities -d
+    uv run endopipe compute-st-dev-proj-stats -d
     ```
 
     To run the workflow for select datasets:
 
     ```bash
-    uv run endopipe compare-brightfield-intensities --datasets DATASET_NAME_1 DATASET_NAME_2
+    uv run endopipe compute-st-dev-proj-stats --datasets DATASET_NAME_1 DATASET_NAME_2
     ```
 
     ## Dataset collection
@@ -34,19 +35,18 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will run the
-    comparison on the first two datasets.
+    computation on the first two datasets.
 
     Parameters
     ----------
     datasets
-        List of datasets or dataset collections to compare.
+        List of datasets or dataset collections to process.
     max_workers
         Maximum number of worker processes to use for processing. If None, defaults to 1.
     """
 
     import logging
 
-    import matplotlib.pyplot as plt
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE, UPLOAD_TO_FMS
@@ -54,13 +54,11 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     from endo_pipeline.io import build_fms_annotations, get_output_path, upload_file_to_fms
     from endo_pipeline.library.analyze.model_noise_sensitivity import (
         get_bf_frame_intensities_multiproc_wrapper,
-        summarize_bf_frame_intensities,
     )
     from endo_pipeline.library.process.general_image_preprocessing import (
         build_analysis_queue,
         process_task_queue,
     )
-    from endo_pipeline.library.visualize.summary_plot import plot_cross_dataset_summaries
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
@@ -70,8 +68,6 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
     from endo_pipeline.settings.manifest_names import (
         GRID_BASED_ST_DEV_PROJ_INTENSITY_COMPARISONS_MANIFEST_NAME,
     )
-
-    plt.style.use("endo_pipeline.figure")
 
     logger = logging.getLogger(__name__)
 
@@ -132,19 +128,6 @@ def main(datasets: Datasets | None = None, max_workers: int | None = None) -> No
         # Add dataframe location to dataframe manifest and save
         manifest.locations[dataset_name] = location
         save_dataframe_manifest(manifest)
-
-    # Summarize and plot the log-normd std dev projection intensities for each dataset
-    summary = summarize_bf_frame_intensities(intensities)
-    plot_cross_dataset_summaries(
-        summary,
-        output_path=output_path,
-        column_names=[Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN],
-        point_color="black",
-        ylabel_rotation=90,
-        ylabel_horizontal_alignment="center",
-        ylabel_vertical_alignment="bottom",
-        yaxis_for_fixed_points=False,
-    )
 
 
 if __name__ == "__main__":
