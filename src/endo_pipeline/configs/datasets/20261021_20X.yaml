@@ -35,8 +35,8 @@ flow_conditions:
   stop: 552
   shear_stress: 11.93
 include_scenes: null
-notes: ''
-replicate_number: null
+notes: Imaging ended around 46h due to cell piling.
+replicate_number: 1
 stability_category: null
 timepoint_annotations: null
 position_annotations: null
