@@ -84,6 +84,10 @@ def main(datasets: Datasets | None = None):
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
     )
+    from endo_pipeline.library.model.model_performance import (
+        denoise_with_scrambled_conditioning_input,
+        denoise_with_scrambled_latent_vector,
+    )
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
@@ -130,36 +134,24 @@ def main(datasets: Datasets | None = None):
         ]
         df = df[columns_to_compute].compute()
         # Exclude crops at the last timepoint, since each example is paired with the same crop at
-        # timepoint + 1. Reset the index so labels are unique after concatenating dask partitions.
+        # timepoint + 1
         df = df[df[Column.TIMEPOINT] < duration - 1]
-        df = df.sample(n=100, replace=False, random_state=RANDOM_SEED).reset_index(drop=True)
+        df = df.sample(n=100, replace=False, random_state=RANDOM_SEED)
         all_examples.append(df)
 
     # Build list of examples paired with their next timepoint counterpart
     example_pairs: list[tuple[ExampleImage, ExampleImage]] = []
-    for original_df in all_examples:
-        copy_df = original_df.copy()
-        copy_df[Column.TIMEPOINT] += 1
-        for i in original_df.index:
-            original_crop = original_df.loc[i].to_dict()
-            next_crop = copy_df.loc[i].to_dict()
-            example_original = ExampleImage(
-                dataset_name=original_crop[Column.DATASET],
-                position=original_crop[Column.POSITION],
-                timepoint=original_crop[Column.TIMEPOINT],
-                description=original_crop[Column.CROP_INDEX],
-                crop_y_start=original_crop[Column.DiffAEData.START_Y],
-                crop_x_start=original_crop[Column.DiffAEData.START_X],
+    for df in all_examples:
+        for row in df.to_dict("records"):
+            example = ExampleImage(
+                dataset_name=row[Column.DATASET],
+                description=f"crop_{row[Column.CROP_INDEX]}",
+                position=row[Column.POSITION],
+                timepoint=row[Column.TIMEPOINT],
+                crop_x_start=row[Column.DiffAEData.START_X],
+                crop_y_start=row[Column.DiffAEData.START_Y],
             )
-            example_next = ExampleImage(
-                dataset_name=next_crop[Column.DATASET],
-                position=next_crop[Column.POSITION],
-                timepoint=next_crop[Column.TIMEPOINT],
-                description=next_crop[Column.CROP_INDEX],
-                crop_y_start=next_crop[Column.DiffAEData.START_Y],
-                crop_x_start=next_crop[Column.DiffAEData.START_X],
-            )
-            example_pairs.append((example_original, example_next))
+            example_pairs.append((example, example._replace(timepoint=example.timepoint + 1)))
 
     # Expand the centre seed into a symmetric range for select number of seeds.
     num_seeds = 10
@@ -245,20 +237,12 @@ def main(datasets: Datasets | None = None):
                     model, latent, noise, num_gpus=NUM_GPUS, show_progress=False
                 )
 
-                scrambled_latent_control = generate_from_coords_and_noised_image(
-                    model, rng.permuted(latent), noise, num_gpus=NUM_GPUS, show_progress=False
-                )
-
-                scrambled_image_latent = get_latent_vector_from_crop(
-                    model, rng.permuted(conditioning_ex), num_gpus=NUM_GPUS
-                )
-                scrambled_image_control = generate_from_coords_and_noised_image(
-                    model, scrambled_image_latent, noise, num_gpus=NUM_GPUS, show_progress=False
-                )
-
-                # Consume RNG state for reproducibility with model performance assessment outputs
-                _ = rng.permuted(latent)
-                _ = rng.permuted(conditioning_ex.ravel())
+                scrambled_latent_control = denoise_with_scrambled_latent_vector(
+                    rng, model, [noise], latent, NUM_GPUS, show_progress=False
+                )[0]
+                scrambled_image_control = denoise_with_scrambled_conditioning_input(
+                    rng, model, [noise], conditioning_ex, NUM_GPUS, show_progress=False
+                )[0]
 
                 # Calculate comparison metrics between the input image vs. itself, the input image
                 # at the next timepoint, the denoised image, and the scrambled latent and scrambled
