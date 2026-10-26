@@ -3,42 +3,57 @@ from endo_pipeline.cli import Datasets
 
 def main(datasets: Datasets | None = None):
     """
-    Calculate comparison metrics for model runs in given DiffAE model manifest.
+    Calculate structure-aware comparison metrics for DiffAE model runs.
 
     #diffae #model-comparison #test-ready #gpu
 
-    This workflow evaluates model runs in a given DiffAE model manifest by
-    calculating per-example correlation, SSIM, and LPIPS metrics on select
-    examples for each selected example group.
+    This workflow evaluates the default DiffAE model run from two model
+    manifests (the default model and the CDH5-conditioned model). For each
+    dataset, 100 image crops are randomly sampled from the grid-based feature
+    dataframe, and each crop is paired with the same crop at the next timepoint.
+
+    For each crop and each of 10 random seeds, the crop is encoded to a latent
+    vector, noised, and denoised. The original image is then compared to:
+
+    - itself (self control)
+    - the next timepoint (baseline)
+    - the denoised image
+    - an image denoised from a scrambled latent vector (scrambled latent control)
+    - an image denoised from a latent vector of scrambled pixels (scrambled image control)
+
+    Each comparison reports correlation, SSIM, and LPIPS, as well as
+    segmentation-based metrics (mean orientation difference, mean relative
+    aspect ratio, mean relative area, difference in number of segmentations,
+    segmentation SSIM, and segmentation Hausdorff distance). Results are saved
+    as one parquet file per model manifest, with one row for each
+    (random seed, example image) combination, and catalogued in a dataframe
+    manifest.
 
     ## Example usage
 
     To run the workflow in demo mode:
 
     ```bash
-    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME -d
+    uv run endopipe calculate-structure-aware-comparison-metrics -d
     ```
 
-    To run the workflow for specific model runs:
+    To run the workflow for specific datasets or dataset collections:
 
     ```bash
-    uv run endopipe calculate-model-comparison-metrics MODEL_MANIFEST_NAME \
-        --run-names RUN_NAME RUN_NAME
+    uv run endopipe calculate-structure-aware-comparison-metrics \
+        --datasets DATASET_NAME DATASET_NAME
     ```
 
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate
-    metrics for two runs, for two examples and two seeds each.
+    metrics for two example crops and two seeds for each model manifest.
 
     Parameters
     ----------
-    model_manifest_name
-        Name of the DiffAE model manifest to evaluate.
-    run_names
-        List of run names to evaluate. Defaults to all runs in the manifest.
-    example_groups
-        Example groups to use when calculating comparison metrics.
+    datasets
+        Datasets to sample example crops from. Defaults to the datasets in
+        `STRUCTURE_AWARE_COMPARISON_EXAMPLES`.
     """
 
     import logging
