@@ -1,18 +1,7 @@
-from typing import Annotated, Literal
-
-from cyclopts import Parameter
-
-from endo_pipeline.settings.workflow_defaults import DEFAULT_MODEL_MANIFEST_NAME
+from endo_pipeline.cli import Datasets
 
 
-def main(
-    model_manifest_name: str = DEFAULT_MODEL_MANIFEST_NAME,
-    run_names: list[str] | None = None,
-    example_groups: Annotated[
-        list[Literal["training", "validation", "replicate"]] | None,
-        Parameter(consume_multiple=True, negative_iterable=[]),
-    ] = None,
-):
+def main(datasets: Datasets | None = None):
     """
     Calculate comparison metrics for model runs in given DiffAE model manifest.
 
@@ -64,6 +53,7 @@ def main(
     from endo_pipeline.io import (
         build_fms_annotations,
         get_output_path,
+        load_dataframe,
         load_model,
         upload_file_to_fms,
     )
@@ -81,13 +71,18 @@ def main(
     from endo_pipeline.manifests import (
         DataframeLocation,
         create_dataframe_manifest,
+        load_dataframe_manifest,
         load_model_manifest,
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import MODEL_COMPARISON_EXAMPLES
+    from endo_pipeline.settings.examples import STRUCTURE_AWARE_COMPARISON_EXAMPLES
     from endo_pipeline.settings.workflow_defaults import (
-        DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
+        CDH5_CONDITIONED_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_RUN_NAME,
+        DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX,
+        GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
         RANDOM_SEED,
     )
 
@@ -95,73 +90,101 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    # Filter map of all model comparison examples down to the request example
-    # groups. Flatten this map into a list of (group, example, example_next)
-    # where example_next is a copy of the original example at the next timepoint
-    # for use with baseline model comparisons.
-    all_examples = {
-        group: examples
-        for group, examples in MODEL_COMPARISON_EXAMPLES.items()
-        if example_groups is None or group in example_groups
-    }
-    example_pairs = [
-        (group, example, example._replace(timepoint=example.timepoint + 1))
-        for group, examples in all_examples.items()
-        for example in examples
-    ]
+    # Use the same datasets used in the binwidth/bandwidth sweep if no specific datasets are
+    # provided
+    datasets = datasets or STRUCTURE_AWARE_COMPARISON_EXAMPLES
+
+    models_to_evaluate = [DEFAULT_MODEL_MANIFEST_NAME, CDH5_CONDITIONED_MODEL_MANIFEST_NAME]
+    run_name = DEFAULT_MODEL_RUN_NAME
+
+    # Load the grid/patch-based feature dataframes for the selected datasets and pick a subset of
+    # example crops to create structure-aware comparison metrics for
+    df_manifest = load_dataframe_manifest(GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME)
+
+    # Load the dataframe and take a subset of the image crops to use as examples
+    all_examples = []
+    for dataset_name in datasets:
+        duration = load_dataset_config(dataset_name).duration
+        df = load_dataframe(df_manifest.locations[dataset_name], delay=True)
+        columns_to_compute = [
+            Column.DATASET,
+            Column.POSITION,
+            Column.TIMEPOINT,
+            Column.CROP_INDEX,
+            Column.DiffAEData.START_Y,
+            Column.DiffAEData.START_X,
+        ]
+        df = df[columns_to_compute].compute().sample(n=100, replace=False, random_state=RANDOM_SEED)
+        if not df[Column.TIMEPOINT].max() < duration:
+            # If the timepoint of the randomly selected patch is not less that the dataset duration
+            # then an error will occur when the workflow tries to load the image at timepoint + 1
+            raise ValueError(
+                f"Randomly selected timepoint is not less than duration for {dataset_name}"
+            )
+        all_examples.append(df)
+
+    # Build list of examples paired with their next timepoint counterpart
+    example_pairs = []
+    for original_df in all_examples:
+        copy_df = original_df.copy()
+        copy_df[Column.TIMEPOINT] += 1
+        for i in original_df.index:
+            example_pairs.append((original_df.loc[i].to_dict(), copy_df.loc[i].to_dict()))
 
     # Expand the centre seed into a symmetric range for select number of seeds.
     num_seeds = 10
     half_range = num_seeds // 2
     seeds_to_evaluate = list(range(RANDOM_SEED - half_range, RANDOM_SEED - half_range + num_seeds))
 
-    # Get list of run names to calculate metrics for. If run names are not
-    # provided, use all runs found in the manifest
-    model_manifest = load_model_manifest(model_manifest_name)
-    available_run_names = list(model_manifest.locations.keys())
-    run_names = run_names or available_run_names
+    for model_manifest_name in models_to_evaluate:
+        # Get list of run names to calculate metrics for. If run names are not
+        # provided, use all runs found in the manifest
+        model_manifest = load_model_manifest(model_manifest_name)
+        available_run_names = list(model_manifest.locations.keys())
 
-    # Check to make sure all run names are available in manifest and exit the
-    # workflow early if not
-    missing_runs = set(run_names) - set(available_run_names)
-    if missing_runs:
-        logger.error("Runs %s not found in manifest '%s'", missing_runs, model_manifest_name)
-        return
+        # Check to make sure all run names are available in manifest and exit the
+        # workflow early if not
+        if run_name not in available_run_names:
+            logger.error("Run %s not found in manifest '%s'", run_name, model_manifest_name)
+            return
 
-    # In demo mode, limit to two model runs, two seeds, and two examples
-    if DEMO_MODE:
-        logger.warning("DEMO MODE - Limiting to two runs, two seeds, and two examples")
-        run_names = run_names[: min(len(run_names), 2)]
-        seeds_to_evaluate = seeds_to_evaluate[:2]
-        example_pairs = example_pairs[:2]
+        # In demo mode, limit to two model runs, two seeds, and two examples
+        if DEMO_MODE:
+            logger.warning("DEMO MODE - Limiting to two runs, two seeds, and two examples")
+            seeds_to_evaluate = seeds_to_evaluate[:2]
+            example_pairs = example_pairs[:2]
 
-    # Build dataframe manifest for saving output dataframes
-    demo_suffix = "_demo" if DEMO_MODE else ""
-    name_suffix = f"_{model_manifest_name}{demo_suffix}"
-    dataframe_manifest_name = f"{DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
-    dataframe_manifest = create_dataframe_manifest(dataframe_manifest_name, workflow_name=__file__)
-
-    # Update manifest with workflow parameters
-    dataframe_manifest.parameters = {
-        "model_manifest_name": model_manifest_name,
-        "random_seeds": [int(s) for s in seeds_to_evaluate],
-        "examples_groups": list(all_examples.keys()),
-    }
-    save_dataframe_manifest(dataframe_manifest)
-
-    # Load all dataset configs used in example sets for saving to FMS
-    if UPLOAD_TO_FMS:
-        unique_dataset_names = sorted({example.dataset_name for _, example, _ in example_pairs})
-        dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
-        additional_notes = (
-            f"DiffAE model comparison metrics across {num_seeds} seeds "
-            "formatted with one row for each (run name, random seed, example image) combination."
+        # Build dataframe manifest for saving output dataframes
+        demo_suffix = "_demo" if DEMO_MODE else ""
+        name_suffix = f"_{model_manifest_name}{demo_suffix}"
+        dataframe_manifest_name = (
+            f"{DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX}{name_suffix}"
+        )
+        dataframe_manifest = create_dataframe_manifest(
+            dataframe_manifest_name, workflow_name=__file__
         )
 
-    # Initialize model comparison metrics calculator
-    calculator = ModelComparisonMetricsCalculator()
+        # Update manifest with workflow parameters
+        dataframe_manifest.parameters = {
+            "model_manifest_name": model_manifest_name,
+            "model_run_name": run_name,
+            "random_seeds": [int(s) for s in seeds_to_evaluate],
+            "datasets": datasets,
+        }
+        save_dataframe_manifest(dataframe_manifest)
 
-    for run_name in run_names:
+        # Load all dataset configs used in example sets for saving to FMS
+        if UPLOAD_TO_FMS:
+            unique_dataset_names = sorted({example.dataset_name for _, example, _ in example_pairs})
+            dataset_configs = [load_dataset_config(n) for n in unique_dataset_names]
+            additional_notes = (
+                f"DiffAE model comparison metrics across {num_seeds} seeds "
+                "formatted with one row for each (run name, random seed, example image) combination."
+            )
+
+        # Initialize model comparison metrics calculator
+        calculator = ModelComparisonMetricsCalculator()
+
         logger.info("Evaluating model manifest '%s' run '%s'", model_manifest_name, run_name)
 
         results: list[dict] = []
@@ -177,7 +200,7 @@ def main(
             # Set RNG seed
             rng = default_rng(seed=random_seed)
 
-            for group, example, next_example in example_pairs:
+            for example, next_example in example_pairs:
                 # Load transformed conditioning and diffusion examples
                 conditioning_ex = load_transformed_conditioning_example_image(example, config)
                 diffusion_ex = load_transformed_diffusion_example_image(example, config)
@@ -251,7 +274,6 @@ def main(
                         Column.DiffAEData.MODEL_RUN: run_name,
                         Column.EXAMPLE_KEY: str(example),
                         Column.RANDOM_SEED: random_seed,
-                        Column.MODEL_COMPARISON_EXAMPLE_GROUP: group,
                         # Model comparison of input image with itself
                         Column.MODEL_COMPARISON_SELF_CORRELATION: self_results.correlation,
                         Column.MODEL_COMPARISON_SELF_SSIM: self_results.ssim,

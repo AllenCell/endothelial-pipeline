@@ -10,6 +10,9 @@ from endo_pipeline.settings.literal_types import PatchTypeLiteral
 DEFAULT_MODEL_MANIFEST_NAME: str = "diffae_baseline"
 """Default model manifest for loading models and model features."""
 
+CDH5_CONDITIONED_MODEL_MANIFEST_NAME: str = "diffae_cdh5_conditioned"
+"""Default model manifest for CDH5-conditioned DiffAE models."""
+
 DEFAULT_MODEL_RUN_NAME: str = "latent_512"
 """Default model run name within the default model manifest."""
 
@@ -266,3 +269,6 @@ points at the per-(manifest, run) metrics parquet. The companion plot
 workflow loads all of these manifests and renders the supplementary
 bar chart without re-running inference.
 """
+
+DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX: str = "structure_aware_comparison_metrics"
+"""Prefix for dataframe manifests cataloguing structure-aware comparison metrics across datasets."""
