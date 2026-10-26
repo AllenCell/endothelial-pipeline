@@ -4,94 +4,94 @@ parameters: {}
 columns: {}
 locations:
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250319_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 3d7dde1427f74e838f6ca8f7c9f7b565
+    path: null
     s3uri: null
   20250326_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250326_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 6b8e57d228ac4b6c907222b79d338982
+    path: null
     s3uri: null
   20250402_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250402_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 112a068e85c541a6bd5dea8f5b238e9d
+    path: null
     s3uri: null
   20250409_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250409_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: f2c2f241f72c4de6aa526459065090fc
+    path: null
     s3uri: null
   20250428_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250428_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: d23a2d9f1dd14a2a914358f60f7d129a
+    path: null
     s3uri: null
   20250604_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250604_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 30241e0801d542349d677090a7bc5b0e
+    path: null
     s3uri: null
   20250611_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250611_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 2640fd322b3541a7a9dd4dbd6a189463
+    path: null
     s3uri: null
   20250618_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250618_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 993dfe5fff5c4087903a26efc5be4eb0
+    path: null
     s3uri: null
   20250716_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250716_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 2bae44671da9479ba91c90f09bbd3be1
+    path: null
     s3uri: null
   20250813_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20250813_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: c7b7797a295b49e8b2f2008d08523a13
+    path: null
     s3uri: null
   20251001_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20251001_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 1d3f8a9e003d4f738f1596076172dbf4
+    path: null
     s3uri: null
   20260114_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260114_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 90aa4fdc1c794965ad23d50d1f647536
+    path: null
     s3uri: null
   20260121_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260121_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: e3142dae3a2a42b9b079e4eed65ec35d
+    path: null
     s3uri: null
   20260126_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260126_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 61cf0f528e284301855c9c27e22332ea
+    path: null
     s3uri: null
   20260128_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260128_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 8ba0bf6e9d3248cca714dc1d3cb83de2
+    path: null
     s3uri: null
   20260202_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260202_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: e4c9175d375f4046afddfbd8d90d6ee0
+    path: null
     s3uri: null
   20260204_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260204_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 951a683f10b34742801cecafff799563
+    path: null
     s3uri: null
   20260209_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260209_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: b9ab70d7a319426e833bb7288572995f
+    path: null
     s3uri: null
   20260211_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260211_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 79bd23938cc84299aba262b5d4af1588
+    path: null
     s3uri: null
   20260216_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260216_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 9c648a2d7399400fb8848ed329c2ec35
+    path: null
     s3uri: null
   20260225_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260225_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 7f371e01bffc49bfb0710747497e2b71
+    path: null
     s3uri: null
   20260302_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260302_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: ee9b1f1732374cc799aa46e6ce068aba
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-10-26/compute_st_dev_proj_stats/20260304_20X_log_normd_stdev_stats_per_patch_data.parquet
+    fmsid: 7fea8dc2107a41faa32669bc427ca053
+    path: null
     s3uri: null
