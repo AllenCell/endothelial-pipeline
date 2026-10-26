@@ -42,7 +42,6 @@ def main(datasets: Datasets | None = None):
     """
 
     import logging
-    import os
     from typing import cast
 
     import pandas as pd
@@ -87,11 +86,6 @@ def main(datasets: Datasets | None = None):
         GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME,
         RANDOM_SEED,
     )
-
-    # Disable tqdm progress bars by default because generate_from_coords_and_noised_image internally
-    # uses tqdm and this both clutters the output and makes it hard to tell how far the workflow has
-    # progressed.
-    os.environ["TQDM_DISABLE"] = "1"
 
     logger = logging.getLogger(__name__)
 
@@ -228,7 +222,6 @@ def main(datasets: Datasets | None = None):
             for example, next_example in tqdm(
                 example_pairs,
                 desc=f"Model {m} / {len(models_to_evaluate)}: seed {s} / {len(seeds_to_evaluate)}",
-                disable=False,
             ):
                 # Load transformed conditioning and diffusion examples
                 conditioning_ex = load_transformed_conditioning_example_image(example, config)
@@ -243,18 +236,18 @@ def main(datasets: Datasets | None = None):
                 noise = rng.standard_normal(size=conditioning_ex.shape)
                 latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
                 denoised_ex = generate_from_coords_and_noised_image(
-                    model, latent, noise, num_gpus=NUM_GPUS
+                    model, latent, noise, num_gpus=NUM_GPUS, show_progress=False
                 )
 
                 scrambled_latent_control = generate_from_coords_and_noised_image(
-                    model, rng.permuted(latent), noise, num_gpus=NUM_GPUS
+                    model, rng.permuted(latent), noise, num_gpus=NUM_GPUS, show_progress=False
                 )
 
                 scrambled_image_latent = get_latent_vector_from_crop(
                     model, rng.permuted(conditioning_ex), num_gpus=NUM_GPUS
                 )
                 scrambled_image_control = generate_from_coords_and_noised_image(
-                    model, scrambled_image_latent, noise, num_gpus=NUM_GPUS
+                    model, scrambled_image_latent, noise, num_gpus=NUM_GPUS, show_progress=False
                 )
 
                 # Consume RNG state for reproducibility with model performance assessment outputs

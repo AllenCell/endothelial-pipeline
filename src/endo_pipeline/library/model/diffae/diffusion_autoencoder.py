@@ -376,6 +376,7 @@ class DiffusionAutoEncoder(_BaseDiffAE):
         conditioning_vector: torch.Tensor,
         noised_image: torch.Tensor,
         batch_size: int = 3,
+        show_progress: bool = True,
     ) -> np.ndarray:
         """Generate image by denoising a noised image conditioned on a latent vector.
 
@@ -401,6 +402,8 @@ class DiffusionAutoEncoder(_BaseDiffAE):
             A tensor holding the noised image to use for image generation.
         batch_size
             The batch size for processing.
+        show_progress
+            Whether to display a progress bar over batches.
 
         Returns
         -------
@@ -432,7 +435,9 @@ class DiffusionAutoEncoder(_BaseDiffAE):
                     self._generate_image(
                         noise_stacked[start:stop], conditioning_vector[start:stop].unsqueeze(1)
                     ).squeeze(1)
-                    for start, stop in tqdm.tqdm(batch_indices, desc="Generating batch")
+                    for start, stop in tqdm.tqdm(
+                        batch_indices, desc="Generating batch", disable=not show_progress
+                    )
                 ],
                 0,
             )

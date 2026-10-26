@@ -79,6 +79,7 @@ def generate_from_coords_and_noised_image(
     coords: np.ndarray,
     noised_image: np.ndarray,
     num_gpus: int | None = None,
+    show_progress: bool = True,
 ) -> np.ndarray:
     """Generate an image from an initial noisy image conditioned on a latent vector.
 
@@ -127,6 +128,8 @@ def generate_from_coords_and_noised_image(
         An image used as the starting point for denoising by the model.
     num_gpus
         Optional, number of available GPUs.
+    show_progress
+        Whether to display a progress bar over generation batches.
 
     Returns
     -------
@@ -157,6 +160,7 @@ def generate_from_coords_and_noised_image(
     gen_img = model_.generate_from_latent_and_noised_image(
         conditioning_vector=coords_,
         noised_image=noised_image_,
+        show_progress=show_progress,
     )
     return gen_img
 
