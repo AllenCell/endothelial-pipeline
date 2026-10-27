@@ -1,0 +1,13 @@
+name: structure_aware_comparison_metrics_diffae_baseline
+workflow: calculate_structure_aware_comparison_metrics
+parameters:
+  model_manifest_name: diffae_baseline
+  model_run_name: latent_512
+  random_seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  datasets: [20250611_20X, 20250618_20X, 20250319_20X, 20260304_20X]
+columns: {}
+locations:
+  latent_512:
+    fmsid: a673ba871998443bb66306ca94b78fe2
+    path: null
+    s3uri: null

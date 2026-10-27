@@ -1,0 +1,13 @@
+name: structure_aware_comparison_metrics_diffae_cdh5_conditioned
+workflow: calculate_structure_aware_comparison_metrics
+parameters:
+  model_manifest_name: diffae_cdh5_conditioned
+  model_run_name: latent_512
+  random_seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  datasets: [20250611_20X, 20250618_20X, 20250319_20X, 20260304_20X]
+columns: {}
+locations:
+  latent_512:
+    fmsid: a3e52a3e0d054388bd46d3e70c0bf905
+    path: null
+    s3uri: null
