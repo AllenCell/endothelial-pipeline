@@ -665,3 +665,7 @@ locations:
     fmsid: 22860ca518ab4358b8d9f641e6e179be
     path: null
     s3uri: null
+  20261021_20X:
+    fmsid: null
+    path: /allen/aics/users/erin.angelini/models/diffae_baseline/latent_512/outputs/predict_20261021_20X_diffae_baseline_latent_512_grid_based_features.parquet
+    s3uri: null
