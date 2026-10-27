@@ -476,13 +476,14 @@ class ModelComparisonMetricsCalculator:
         img2: NDArray,
         img_nuc_seg: NDArray,
         example_name: str,
+        save_validation_plots: bool = False,
     ) -> ModelComparisonMetrics:
         """
         Compute image and segmentation-based metrics between two images.
 
         Image metrics (correlation, SSIM, and LPIPS) are computed directly on the images.
         Segmentation-based metrics are computed on refined cell segmentations of each image.
-        Validation plots of the images and segmentations are saved along the way.
+        Validation plots of the images and segmentations are optionally saved along the way.
 
         Parameters
         ----------
@@ -494,6 +495,8 @@ class ModelComparisonMetricsCalculator:
             Nuclei segmentation image (used to refine the cell segmentations).
         example_name
             Name used for the saved validation plots and log messages.
+        save_validation_plots
+            True to save validation plots of the images and segmentations, False otherwise.
 
         Returns
         -------
@@ -505,7 +508,8 @@ class ModelComparisonMetricsCalculator:
         metrics = cls.compute_image_metrics(img1, img2)
 
         # Save the input images for validation, even if segmentation fails below
-        plot_image_validation(example_name, img1, img2, img_nuc_seg)
+        if save_validation_plots:
+            plot_image_validation(example_name, img1, img2, img_nuc_seg)
 
         # Segmentation can fail on images without cell boundary structure (e.g. the scrambled
         # controls) when all regions are filtered out or merged into one, leaving no boundaries
@@ -522,7 +526,8 @@ class ModelComparisonMetricsCalculator:
             return metrics
 
         # Save the refined segmentations for validation
-        plot_segmentation_validation(example_name, img1_seg, img2_seg)
+        if save_validation_plots:
+            plot_segmentation_validation(example_name, img1_seg, img2_seg)
 
         img1_boundaries = find_boundaries(img1_seg)
         img2_boundaries = find_boundaries(img2_seg)

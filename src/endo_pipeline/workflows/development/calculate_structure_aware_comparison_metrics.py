@@ -1,7 +1,7 @@
 from endo_pipeline.cli import Datasets
 
 
-def main(datasets: Datasets | None = None):
+def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
     """
     Calculate structure-aware comparison metrics for DiffAE model runs.
 
@@ -44,6 +44,12 @@ def main(datasets: Datasets | None = None):
         --datasets DATASET_NAME DATASET_NAME
     ```
 
+    To run the workflow and save validation plots:
+
+    ```bash
+    uv run endopipe calculate-structure-aware-comparison-metrics --save-validation-plots
+    ```
+
     ## Workflow demo
 
     Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate
@@ -54,6 +60,9 @@ def main(datasets: Datasets | None = None):
     datasets
         Datasets to sample example crops from. Defaults to the datasets in
         `STRUCTURE_AWARE_COMPARISON_EXAMPLES`.
+    save_validation_plots
+        True to save validation plots of the images and segmentations for each
+        comparison, False otherwise.
     """
 
     import logging
@@ -212,27 +221,49 @@ def main(datasets: Datasets | None = None):
         config: DictConfig = cast(DictConfig, model_.cfg)
         model = instantiate_model_target_class(model_)  # type: ignore[reportArgumentType]
 
-        for s, random_seed in enumerate(seeds_to_evaluate):
-            # Set RNG seed
-            rng = default_rng(seed=random_seed)
+        # Create one RNG per seed, shared across examples, so the draws for each example are the
+        # same as when iterating over examples for each seed
+        rngs = {random_seed: default_rng(seed=random_seed) for random_seed in seeds_to_evaluate}
 
-            for example, next_example in tqdm(
-                example_pairs,
-                desc=f"Model {m + 1}/{len(models_to_evaluate)}: seed {s + 1}/{len(seeds_to_evaluate)}",
-            ):
-                # Load transformed conditioning and diffusion examples
-                conditioning_ex = load_transformed_conditioning_example_image(example, config)
-                diffusion_ex = load_transformed_diffusion_example_image(example, config)
-                next_diffusion_ex = load_transformed_diffusion_example_image(next_example, config)
+        for example, next_example in tqdm(
+            example_pairs, desc=f"Model {m + 1}/{len(models_to_evaluate)}"
+        ):
+            # Load transformed conditioning and diffusion examples
+            conditioning_ex = load_transformed_conditioning_example_image(example, config)
+            diffusion_ex = load_transformed_diffusion_example_image(example, config)
+            next_diffusion_ex = load_transformed_diffusion_example_image(next_example, config)
 
-                # Load nuclei segmentation image for the example (used to refine segmentations which
-                # are used to compute segmentation-based features).
-                img_nuc_seg = load_nuclei_segmentation_image(example, config)
+            # Load nuclei segmentation image for the example (used to refine segmentations which
+            # are used to compute segmentation-based features).
+            img_nuc_seg = load_nuclei_segmentation_image(example, config)
 
-                # Encode conditioning image to a latent vector and denoise from random noise,
-                # then generate scrambled latent and scrambled image controls from the same noise
+            # Encode conditioning image to a latent vector
+            latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
+
+            # Calculate seed-independent comparison metrics between the input image vs. itself
+            # and the input image at the next timepoint
+            plot_name = f"{example}_{model_manifest_name}_{run_name}"
+            self_results = calculator.compute_all_metrics(
+                img1=diffusion_ex,
+                img2=diffusion_ex,
+                img_nuc_seg=img_nuc_seg,
+                example_name=f"{plot_name}_self",
+                save_validation_plots=save_validation_plots,
+            )
+            baseline_results = calculator.compute_all_metrics(
+                img1=diffusion_ex,
+                img2=next_diffusion_ex,
+                img_nuc_seg=img_nuc_seg,
+                example_name=f"{plot_name}_baseline",
+                save_validation_plots=save_validation_plots,
+            )
+
+            for random_seed in seeds_to_evaluate:
+                rng = rngs[random_seed]
+
+                # Denoise from random noise, then generate scrambled latent and scrambled image
+                # controls from the same noise
                 noise = rng.standard_normal(size=conditioning_ex.shape)
-                latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
                 denoised_ex = generate_from_coords_and_noised_image(
                     model, latent, noise, num_gpus=NUM_GPUS, show_progress=False
                 )
@@ -244,39 +275,29 @@ def main(datasets: Datasets | None = None):
                     rng, model, [noise], conditioning_ex, NUM_GPUS, show_progress=False
                 )[0]
 
-                # Calculate comparison metrics between the input image vs. itself, the input image
-                # at the next timepoint, the denoised image, and the scrambled latent and scrambled
-                # image controls for a given seed
-                plot_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
-                self_results = calculator.compute_all_metrics(
-                    img1=diffusion_ex,
-                    img2=diffusion_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_self",
-                )
-                baseline_results = calculator.compute_all_metrics(
-                    img1=diffusion_ex,
-                    img2=next_diffusion_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_baseline",
-                )
+                # Calculate comparison metrics between the input image vs. the denoised image, and
+                # the scrambled latent and scrambled image controls for a given seed
+                seed_plot_name = f"{plot_name}_seed{random_seed}"
                 denoise_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=denoised_ex,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_denoise",
+                    example_name=f"{seed_plot_name}_denoise",
+                    save_validation_plots=save_validation_plots,
                 )
                 scrambled_latent_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_latent_control,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_scrambled_latent",
+                    example_name=f"{seed_plot_name}_scrambled_latent",
+                    save_validation_plots=save_validation_plots,
                 )
                 scrambled_image_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_image_control,
                     img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_scrambled_image",
+                    example_name=f"{seed_plot_name}_scrambled_image",
+                    save_validation_plots=save_validation_plots,
                 )
 
                 results.append(
