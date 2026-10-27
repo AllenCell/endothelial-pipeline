@@ -131,3 +131,6 @@ locations:
   20260506_20X:
     path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20260506_c5151322d364460d8d11c7d9f6decc56/20260506_c5151322d364460d8d11c7d9f6decc56_P{{position}}.ome.zarr
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/image_zarr/20260506_c5151322d364460d8d11c7d9f6decc56_P{{position}}.ome.zarr
+  20261021_20X:
+    path: //allen/aics/endothelial/morphological_features/image_data/converted_zarrs/20261021_3dac770d122a4b9f82df3e7b2745814e/20261021_3dac770d122a4b9f82df3e7b2745814e_P{{position}}.ome.zarr
+    s3uri: null
