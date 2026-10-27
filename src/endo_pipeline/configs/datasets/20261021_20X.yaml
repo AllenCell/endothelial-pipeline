@@ -38,7 +38,28 @@ include_scenes: null
 notes: Imaging ended around 46h due to cell piling.
 replicate_number: 1
 stability_category: null
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [392]
+    1: [249, 250]
+    2: [249, 392]
+    3: [392]
+    4: [392]
+    5: []
+  auto_bf_temp_artifact:
+    0: [4]
+    1: [249]
+    2: [249]
+    3: []
+    4: []
+    5: [16, 249]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
 center_z_plane:
   0: 12
