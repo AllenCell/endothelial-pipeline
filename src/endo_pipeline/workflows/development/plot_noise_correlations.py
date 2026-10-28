@@ -5,10 +5,10 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     """
     Compute two-timepoint cross correlation of feature displacements at steady state.
 
+    #correlation-analysis #grid-based #cell-centered #test-ready
+
     This analysis serves as a validation of whether or not the noise term of the
     underlying dynamics is indeed uncorrelated across timepoints (white noise).
-
-    #correlation-analysis #grid-based #cell-centered #test-ready
 
     ## Example usage
 
