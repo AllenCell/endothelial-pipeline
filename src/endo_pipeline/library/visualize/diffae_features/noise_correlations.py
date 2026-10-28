@@ -140,23 +140,24 @@ def plot_noise_correlation_vs_lag(
     for i in range(n_dim):
         for j in range(i, n_dim):
             pair_dataframe = noise_statistics_dataframe[
-                (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_1] == column_names[i])
-                & (noise_statistics_dataframe[Column.NoiseStatistics.FEATURE_2] == column_names[j])
-            ].sort_values(Column.NoiseStatistics.LAG)
+                (noise_statistics_dataframe[Column.NOISE_CORRELATIONS_FEATURE_1] == column_names[i])
+                & (
+                    noise_statistics_dataframe[Column.NOISE_CORRELATIONS_FEATURE_2]
+                    == column_names[j]
+                )
+            ].sort_values(Column.NOISE_CORRELATIONS_LAG)
 
             fig, ax = plt.subplots(figsize=(8, 6))
             ax.plot(
-                pair_dataframe[Column.NoiseStatistics.LAG],
-                pair_dataframe[Column.NoiseStatistics.CORRELATION],
+                pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
+                pair_dataframe[Column.NOISE_CORRELATION_VALUE],
                 "o-",
             )
             ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
             ax.set_xlabel("Lag")
             ax.set_ylabel("$R_{{ij}}$")
             # add measurement error variance as text if it is not NaN
-            measurement_error_variance = pair_dataframe[
-                Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE
-            ].iloc[0]
+            measurement_error_variance = pair_dataframe[Column.MEASUREMENT_NOISE_COVARIANCE].iloc[0]
             if not pd.isna(measurement_error_variance):
                 ax.text(
                     0.95,

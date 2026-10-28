@@ -670,13 +670,13 @@ def compute_noise_statistics_dataframe(
         noise_statistics_dataframe_list.append(
             pd.DataFrame(
                 {
-                    Column.NoiseStatistics.FEATURE_1: column_names[feature_index_1],
-                    Column.NoiseStatistics.FEATURE_2: column_names[feature_index_2],
-                    Column.NoiseStatistics.LAG: np.arange(num_lags),
-                    Column.NoiseStatistics.CORRELATION: correlations[
+                    Column.NOISE_CORRELATIONS_FEATURE_1: column_names[feature_index_1],
+                    Column.NOISE_CORRELATIONS_FEATURE_2: column_names[feature_index_2],
+                    Column.NOISE_CORRELATIONS_LAG: np.arange(num_lags),
+                    Column.NOISE_CORRELATION_VALUE: correlations[
                         :, feature_index_1, feature_index_2
                     ],
-                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE: measurement_noise_covariance[
+                    Column.MEASUREMENT_NOISE_COVARIANCE: measurement_noise_covariance[
                         feature_index_1, feature_index_2
                     ],
                 }
