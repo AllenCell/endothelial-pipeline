@@ -387,7 +387,7 @@ def compute_centered_residuals(
     column_names: list[str],
     timepoints_array: np.ndarray,
     vector_field: Callable,
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Build the array of drift-removed residuals eta(t) for every patch.
 
@@ -413,6 +413,9 @@ def compute_centered_residuals(
     :
         Array of shape (num_patches, num_timepoints, num_features) containing
         the residuals, with NaN at timepoints where a patch has no difference.
+    :
+        Array of "positions" x(t) at which each residual was observed, with the
+        same shape as the residuals array.
     """
     n_dim = len(column_names)
     n_timepoints = timepoints_array.shape[0]
@@ -420,6 +423,7 @@ def compute_centered_residuals(
     diff_column_names = [f"{col}{Column.DiffAEData.DIFFERENCE_SUFFIX}" for col in column_names]
 
     residuals = np.full((n_patches, n_timepoints, n_dim), np.nan)
+    positions = np.full((n_patches, n_timepoints, n_dim), np.nan)
     for patch_index, (filtered_traj, filtered_d_traj) in enumerate(
         zip(traj_list, d_traj_list, strict=True)
     ):
@@ -439,8 +443,9 @@ def compute_centered_residuals(
 
         # compute and store the residuals for this patch
         residuals[patch_index] = dx_t - vector_field(x_t) * TIME_STEP_IN_HOURS
+        positions[patch_index] = x_t
 
-    return residuals
+    return residuals, positions
 
 
 def compute_two_timepoint_noise_correlations(
@@ -485,7 +490,7 @@ def compute_two_timepoint_noise_correlations(
         column_names=column_names,
         timepoints_array=timepoints_array,
         vector_field=vector_field,
-    )
+    )[0]
 
     for patch_residuals in residuals:
         # mask to valid timepoints
@@ -557,7 +562,7 @@ def compute_lagged_covariances(
         column_names=column_names,
         timepoints_array=timepoints_array,
         vector_field=vector_field,
-    )
+    )[0]
 
     is_valid = ~np.isnan(residuals).any(axis=2)
     centered = residuals - np.nanmean(residuals, axis=(0, 1))

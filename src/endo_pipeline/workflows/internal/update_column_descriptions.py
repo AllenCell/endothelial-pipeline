@@ -108,6 +108,14 @@ def main(manifest_names: UniqueStrList | None = None, reload_columns: bool = Fal
         ColumnTemplate.FIRST_PASSAGE_TIME_PERCENT_TRAJECTORIES: ["grid_based", "cell_centered"],
         ColumnTemplate.BIN_SIZE: ["rho", "polar_theta:theta", "polar_r:r"],
         ColumnTemplate.BIN_LIMITS: ["rho", "polar_theta:theta", "polar_r:r"],
+        ColumnTemplate.NOISE_AMPLITUDE: [
+            ("rho", "rho"),
+            ("polar_theta", "rho"),
+            ("polar_r", "rho"),
+            ("polar_theta", "polar_theta"),
+            ("polar_theta", "polar_r"),
+            ("polar_r", "polar_r"),
+        ],
     }
 
     column_descriptions = {}
