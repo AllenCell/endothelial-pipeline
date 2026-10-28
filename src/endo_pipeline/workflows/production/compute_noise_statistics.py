@@ -5,6 +5,8 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     """
     Compute noise statistics from feature displacements at steady state.
 
+    #correlation-analysis #grid-based #cell-centered #test-ready
+
     This workflow computes the following from the centered residuals of feature
     displacements at steady state:
         - Cross-correlations of the noise term across time points as a function
@@ -12,17 +14,19 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         - Measurement noise covariance for each feature (obtained from the lag-1
           covariance)
 
-    #correlation-analysis #grid-based #cell-centered #test-ready
-
     ## Example usage
 
     To run the workflow in demo mode:
 
-    ```bash uv run endopipe compute-noise-statistics -d ```
+    ```
+    bash uv run endopipe compute-noise-statistics -d
+    ```
 
     To run the workflow for a single dataset:
 
-    ```bash uv run endopipe compute-noise-statistics --datasets DATASET_NAME ```
+    ```
+    bash uv run endopipe compute-noise-statistics --datasets DATASET_NAME
+    ```
 
     ## Dataset collection
 
