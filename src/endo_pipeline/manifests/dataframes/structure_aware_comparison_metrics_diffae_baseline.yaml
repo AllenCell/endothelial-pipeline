@@ -8,6 +8,6 @@ parameters:
 columns: {}
 locations:
   latent_512:
-    fmsid: a673ba871998443bb66306ca94b78fe2
+    fmsid: 1b20e8ad5a9b4e0195179e792e89abd7
     path: null
     s3uri: null
