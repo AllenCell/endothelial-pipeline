@@ -1,17 +1,31 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.figure import Figure
+from matplotlib.layout_engine import ConstrainedLayoutEngine
 
 from endo_pipeline.io import save_plot_to_path
+from endo_pipeline.library.analyze.noise_amplitude import (
+    extrapolate_noise_amplitude_tensor,
+    get_reshaped_noise_amplitude_and_grid,
+)
+from endo_pipeline.library.visualize.columns import get_label_for_column
 from endo_pipeline.library.visualize.diffae_features.flow_field_3d import get_slice_indexes
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.figures import FONT_FAMILY, FONTSIZE_LARGE, FONTSIZE_MEDIUM
+from endo_pipeline.settings.dynamics_workflows import TIME_STEP_IN_HOURS
+from endo_pipeline.settings.figures import (
+    FONT_FAMILY,
+    FONTSIZE_LARGE,
+    FONTSIZE_MEDIUM,
+    FONTSIZE_SMALL,
+    FONTSIZE_XSMALL,
+)
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
@@ -22,7 +36,7 @@ DIFFUSION_TENSOR_CONTOUR_COLORMAP: str = "viridis"
 DIFFUSION_TENSOR_CONTOUR_VMIN: float = 0.0
 """Fixed minimum colorbar value for diffusion tensor entry contour plots."""
 
-DIFFUSION_TENSOR_CONTOUR_VMAX: float = 0.75
+DIFFUSION_TENSOR_CONTOUR_VMAX: float = 0.5
 """Fixed maximum colorbar value for diffusion tensor entry contour plots."""
 
 DIFFUSION_TENSOR_CONTOUR_LEVELS: int = 25
@@ -39,6 +53,11 @@ NCOLS_DIFFUSION_TENSOR_CONTOURS: int = 3
 
 FIGSIZE_DIFFUSION_TENSOR_CONTOURS: tuple[int, int] = (13, 8)
 """Figure size for the diffusion tensor entry contour figure."""
+
+RHO_PLOT_LIMITS_FIGURE: tuple[float, float] = (-0.5, 1.4)
+"""Plot limits for rho in the noise amplitude contour figures."""
+
+RHO_TICKS_FIGURE: list[float] = [-0.5, 0.0, 0.5, 1.0]
 
 
 def plot_normalized_two_timepoint_cross_correlations(
@@ -139,32 +158,97 @@ def plot_cross_correlations_against_lag(
 def plot_noise_correlation_vs_lag(
     noise_statistics_dataframe: pd.DataFrame,
     column_names: list[str],
-    plot_title: str,
     output_path: Path,
+    file_format: Literal[".png", ".pdf", ".svg"] = ".png",
+    plot_title: str | None = None,
     file_name: str | None = None,
-) -> None:
+    single_dataset: bool = True,
+    figure_size: tuple[float, float] = (6.25, 3.25),
+) -> Path:
     """
-    Plot the noise correlation as a function of lag directly from the tidy
-    noise statistics dataframe (see `compute_noise_statistics_dataframe`),
-    rather than from the full two-timepoint noise correlation function.
+    Plot the noise correlation as a function of lag directly from the noise
+    statistics dataframe (see `compute_noise_statistics_dataframe`), rather than
+    from the full two-timepoint noise correlation function.
+
+    # Multi-dataset summary
+
+    If `single_dataset` is False, the function will compute and plot the mean
+    noise correlation over all datasets. It will also include the mean
+    measurement error variance, with its (5, 95) percentiles over all
+    datasets, as text on the plot. The plots also show the (5, 95) percentiles
+    of the noise correlation over all datasets.
 
     Parameters
     ----------
     noise_statistics_dataframe
-        Tidy dataframe of noise correlation statistics, as produced by
+        Dataframe of noise correlation statistics, as produced by
         `compute_noise_statistics_dataframe`.
     column_names
         List of feature column names to plot.
-    plot_title
-        Title for the plot.
     output_path
         Directory where the plot will be saved.
+    plot_title
+        Optional, title for the plot.
     file_name
         Optional, specific name of the file to save the plot as.
+    single_dataset
+        True if the noise statistics dataframe corresponds to a single dataset,
+        False otherwise.
+
+    Returns
+    -------
+    :
+        Path to the saved plot.
     """
+    if not single_dataset:
+        noise_statistics_dataframe = (
+            noise_statistics_dataframe.groupby(
+                [
+                    Column.NOISE_CORRELATIONS_FEATURE_1,
+                    Column.NOISE_CORRELATIONS_FEATURE_2,
+                    Column.NOISE_CORRELATIONS_LAG,
+                ]
+            )
+            .agg(
+                CORRELATION_MEAN=(Column.NOISE_CORRELATION_VALUE, "mean"),
+                CORRELATION_5=(Column.NOISE_CORRELATION_VALUE, lambda x: x.quantile(0.05)),
+                CORRELATION_95=(Column.NOISE_CORRELATION_VALUE, lambda x: x.quantile(0.95)),
+                MEASUREMENT_NOISE_COVARIANCE_MEAN=(
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
+                    "mean",
+                ),
+                MEASUREMENT_NOISE_COVARIANCE_5=(
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
+                    lambda x: x.quantile(0.05),
+                ),
+                MEASUREMENT_NOISE_COVARIANCE_95=(
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
+                    lambda x: x.quantile(0.95),
+                ),
+            )
+            .reset_index()
+        )
+    correlation_column = (
+        "CORRELATION_MEAN" if not single_dataset else Column.NOISE_CORRELATION_VALUE
+    )
+
     n_dim = len(column_names)
+    n_off_diagonal = n_dim * (n_dim - 1) // 2
+    n_cols = max(n_dim, n_off_diagonal)
+    fig, ax = plt.subplots(
+        2, n_cols, figsize=figure_size, squeeze=False, sharex=True, layout="constrained"
+    )
+    diagonal_index = 0
+    off_diagonal_index = 0
     for i in range(n_dim):
         for j in range(i, n_dim):
+            # top row holds i=j (diagonal) panels, bottom row holds off-diagonal panels
+            if i == j:
+                axis = ax[0, diagonal_index]
+                diagonal_index += 1
+            else:
+                axis = ax[1, off_diagonal_index]
+                off_diagonal_index += 1
             pair_dataframe = noise_statistics_dataframe[
                 (noise_statistics_dataframe[Column.NOISE_CORRELATIONS_FEATURE_1] == column_names[i])
                 & (
@@ -173,35 +257,71 @@ def plot_noise_correlation_vs_lag(
                 )
             ].sort_values(Column.NOISE_CORRELATIONS_LAG)
 
-            fig, ax = plt.subplots(figsize=(8, 6))
-            ax.plot(
-                pair_dataframe[Column.NOISE_CORRELATIONS_LAG],
-                pair_dataframe[Column.NOISE_CORRELATION_VALUE],
-                "o-",
+            axis.plot(
+                pair_dataframe[Column.NOISE_CORRELATIONS_LAG] * TIME_STEP_IN_HOURS,
+                pair_dataframe[correlation_column],
+                color="b",
+                marker=".",
+                linestyle="-",
+                linewidth=1.0,
             )
-            ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-            ax.set_xlabel("Lag")
-            ax.set_ylabel("$R_{{ij}}$")
-            # add measurement error variance as text if it is not NaN
-            measurement_error_variance = pair_dataframe[Column.MEASUREMENT_NOISE_COVARIANCE].iloc[0]
-            if not pd.isna(measurement_error_variance):
-                ax.text(
-                    0.95,
-                    0.95,
-                    f"Measurement error variance: {measurement_error_variance:.5f}",
-                    transform=ax.transAxes,
-                    ha="right",
-                    va="top",
+            if not single_dataset:
+                axis.fill_between(
+                    pair_dataframe[Column.NOISE_CORRELATIONS_LAG] * TIME_STEP_IN_HOURS,
+                    pair_dataframe["CORRELATION_5"],
+                    pair_dataframe["CORRELATION_95"],
+                    color="b",
+                    alpha=0.35,
                 )
-            ax.set_ylim(-1.05, 1.05)
+            axis.axhline(0, color="k", linewidth=0.5, alpha=0.75, linestyle="--")
             column_label_i = COLUMN_METADATA[column_names[i]].label or column_names[i]
             column_label_j = COLUMN_METADATA[column_names[j]].label or column_names[j]
-            ax.set_title(
-                f"{plot_title}\nR_{{ij}} vs lag for (i,j) = ({column_label_i}, {column_label_j})"
+            axis.set_ylabel(
+                f"{Unicode.KAPPA}$_\mathregular{{{column_label_i},{column_label_j}}}$({Unicode.TAU})"
             )
-            figure_name = file_name or "noise_correlation_vs_lag"
-            figure_name = f"{figure_name}_{column_names[i]}_{column_names[j]}"
-            save_plot_to_path(fig, output_path, figure_name)
+            # measurement error variance is only defined for diagonal (i == j) terms
+            measurement_error_variance = pair_dataframe[
+                (
+                    "MEASUREMENT_NOISE_COVARIANCE_MEAN"
+                    if not single_dataset
+                    else Column.MEASUREMENT_NOISE_COVARIANCE
+                )
+            ].iloc[0]
+            if i == j and not pd.isna(measurement_error_variance):
+                sigma_varepsilon_text = (
+                    f"{Unicode.SIGMA}$_\\varepsilon$: {measurement_error_variance:.2e}"
+                )
+                if not single_dataset:
+                    measurement_error_variance_5 = pair_dataframe[
+                        "MEASUREMENT_NOISE_COVARIANCE_5"
+                    ].iloc[0]
+                    measurement_error_variance_95 = pair_dataframe[
+                        "MEASUREMENT_NOISE_COVARIANCE_95"
+                    ].iloc[0]
+                    sigma_varepsilon_text += f" ({measurement_error_variance_5:.2e}, {measurement_error_variance_95:.2e})"
+                axis.text(
+                    0.95,
+                    0.95,
+                    sigma_varepsilon_text,
+                    transform=axis.transAxes,
+                    ha="right",
+                    va="top",
+                    size=FONTSIZE_XSMALL,
+                )
+            axis.set_ylim(-1.05, 1.05)
+    for ax_ in ax[0, diagonal_index:]:
+        ax_.axis("off")
+    for ax_ in ax[1, off_diagonal_index:]:
+        ax_.axis("off")
+    # Add x axis label to the bottom row of panels
+    for ax_ in ax[1, :]:
+        ax_.set_xlabel(f"Lag {Unicode.TAU} (hours)", fontsize=FONTSIZE_SMALL)
+    if plot_title is not None:
+        fig.suptitle(plot_title)
+    figure_name = file_name or "noise_correlation_vs_lag"
+    return save_plot_to_path(
+        fig, output_path, figure_name, tight_layout=False, file_format=file_format
+    )
 
 
 def plot_noise_tensor_contours(
@@ -211,6 +331,10 @@ def plot_noise_tensor_contours(
     axes_limits: tuple[tuple[float, float], tuple[float, float]],
     x_label: str,
     y_label: str,
+    x_ticks: range | list[int] | list[float] | None = None,
+    x_tick_labels: list[str] | None = None,
+    y_ticks: range | list[int] | list[float] | None = None,
+    y_tick_labels: list[str] | None = None,
     n_rows: int = NROWS_DIFFUSION_TENSOR_CONTOURS,
     n_cols: int = NCOLS_DIFFUSION_TENSOR_CONTOURS,
     figsize: tuple[float, float] = FIGSIZE_DIFFUSION_TENSOR_CONTOURS,
@@ -219,7 +343,9 @@ def plot_noise_tensor_contours(
     cbar_num_ticks: int = DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
     vmin: float = DIFFUSION_TENSOR_CONTOUR_VMIN,
     vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
+    axis: plt.Axes | None = None,
+    show_colorbar: bool = True,
+) -> tuple[Figure, np.ndarray[plt.Axes, Any]]:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
 
@@ -239,6 +365,16 @@ def plot_noise_tensor_contours(
         Label for the x-axis, set on the bottom row of panels only.
     y_label
         Label for the y-axis, set on the left column of panels only.
+    x_ticks
+        Optional, override the default x-axis tick positions, applied to
+        every panel.
+    x_tick_labels
+        Optional, override the default x-axis tick labels for `x_ticks`.
+    y_ticks
+        Optional, override the default y-axis tick positions, applied to
+        every panel.
+    y_tick_labels
+        Optional, override the default y-axis tick labels for `y_ticks`.
     n_rows
         Number of rows of entry panels.
     n_cols
@@ -255,6 +391,12 @@ def plot_noise_tensor_contours(
         Fixed minimum colorbar value, shared across all panels.
     vmax
         Fixed maximum colorbar value, shared across all panels.
+    axis
+        Optional, existing Axes to draw the single tensor entry on instead of
+        creating a new figure. Only valid when `entry_labels` has one entry.
+    show_colorbar
+        False to skip drawing a colorbar for every panel in this call, e.g.
+        when a shared colorbar is drawn separately for only one panel.
 
     Returns
     -------
@@ -263,7 +405,17 @@ def plot_noise_tensor_contours(
         tensor entry.
 
     """
-    fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="constrained")
+    if axis is not None:
+        if len(entry_labels) != 1:
+            raise ValueError("`axis` can only be provided when plotting a single tensor entry.")
+        n_rows, n_cols = 1, 1
+        axis_figure = axis.get_figure()
+        if not isinstance(axis_figure, Figure):
+            raise ValueError("`axis` must belong to a top-level Figure, not a SubFigure.")
+        fig = axis_figure
+        ax = np.array([[axis]])
+    else:
+        fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False, layout="constrained")
     ax_flat = ax.ravel()
 
     for entry_index, entry_label in enumerate(entry_labels):
@@ -279,9 +431,10 @@ def plot_noise_tensor_contours(
         contour = ax_flat[entry_index].contourf(
             meshgrid[0], meshgrid[1], values, levels=contour_levels, cmap=colormap, extend="both"
         )
-        colorbar_ticks = np.linspace(vmin, vmax, cbar_num_ticks)
-        fig.colorbar(contour, ax=ax_flat[entry_index], ticks=colorbar_ticks, format="%.2f")
-        ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_MEDIUM)
+        if show_colorbar:
+            colorbar_ticks = np.linspace(vmin, vmax, cbar_num_ticks)
+            fig.colorbar(contour, ax=ax_flat[entry_index], ticks=colorbar_ticks, format="%.2f")
+        ax_flat[entry_index].set_title(entry_label, fontsize=FONTSIZE_SMALL)
 
     # hide any unused panels (e.g. fewer entries than n_rows * n_cols)
     for ax_ in ax_flat[len(entry_labels) :]:
@@ -289,15 +442,155 @@ def plot_noise_tensor_contours(
 
     ax_grid = ax.reshape(n_rows, n_cols)
     for ax_ in ax_grid[-1, :]:
-        ax_.set_xlabel(x_label, fontsize=FONTSIZE_MEDIUM)
+        ax_.set_xlabel(x_label, fontsize=FONTSIZE_SMALL)
     for ax_ in ax_grid[:, 0]:
-        ax_.set_ylabel(y_label, fontsize=FONTSIZE_MEDIUM)
+        ax_.set_ylabel(y_label, fontsize=FONTSIZE_SMALL, rotation=0)
     for ax_ in ax_flat[: len(entry_labels)]:
         ax_.set_xlim(*axes_limits[0])
         ax_.set_ylim(*axes_limits[1])
-        ax_.set_aspect("auto", adjustable="box")
+        ax_.set_box_aspect(1)
+        if x_ticks is not None:
+            ax_.set_xticks(x_ticks, labels=x_tick_labels)
+        if y_ticks is not None:
+            ax_.set_yticks(y_ticks, labels=y_tick_labels)
 
     return fig, ax
+
+
+def plot_noise_tensor_contours_at_fixed_point(
+    noise_amplitude_dataframe: pd.DataFrame,
+    column_names: list[str],
+    fixed_point: tuple[float, float, float],
+    output_path: Path,
+    file_name: str = "noise_tensor_contour_fixed_point",
+    plot_title: str | None = None,
+    figure_size: tuple[float, float] = (5.0, 2.5),
+) -> Path:
+    """Plot contours of the sigma_11 noise tensor entry over two 2D slices of
+    state space through a fixed point, in a single figure with separate axes.
+
+    `column_names` is assumed to be ordered `(theta, r, rho)`, matching
+    `DYNAMICS_COLUMN_NAMES`. The two panels are:
+
+    - sigma_11(theta, r) at rho = rho*
+    - sigma_11(rho, r) at theta = theta*
+
+    The panels share the r axis (y axis in both panels).
+
+    Parameters
+    ----------
+    noise_amplitude_dataframe
+        Dataframe of the kernel-smoothed noise amplitude tensor field, as
+        produced by `create_noise_amplitude_vector_field_df`.
+    column_names
+        List of the three dynamics column names `(theta, r, rho)` used to
+        compute the noise amplitude tensor.
+    fixed_point
+        Tuple `(theta_star, r_star, rho_star)` with the coordinates of the
+        fixed point to slice through, matching the order of `column_names`.
+    output_path
+        Directory where the plot will be saved.
+    file_name
+        Name of the output file.
+    figsize
+        Size of the combined figure.
+
+    Returns
+    -------
+    :
+        Path to the saved plot.
+    """
+    theta_star, r_star, rho_star = fixed_point
+    # fix weird artifact where one fixed point is saved as -0.0
+    if theta_star == -0.0:
+        theta_star = 0.0
+    sigma, grid_points_1d = get_reshaped_noise_amplitude_and_grid(
+        noise_amplitude_dataframe, column_names
+    )
+    # fill NaN bins (too few samples) before slicing, so sparse per-bin
+    # estimates don't leave the slices blank
+    sigma = extrapolate_noise_amplitude_tensor(sigma, grid_points_1d)
+    grid = np.meshgrid(*grid_points_1d, indexing="ij")
+
+    column_labels = [get_label_for_column(column) for column in column_names]
+    sigma_11_label = f"{Unicode.SIGMA}$_\mathregular{{{column_labels[0]},{column_labels[0]}}}$({','.join(column_labels)})"
+    column_metadata = [COLUMN_METADATA[column] for column in column_names]
+    # DYNAMICS_COLUMN_NAMES metadata always defines fixed numeric bounds, not the "min"/"max" sentinels
+    axes_bounds = [cast(tuple[float, float], (meta.min, meta.max)) for meta in column_metadata]
+    axes_bounds[2] = RHO_PLOT_LIMITS_FIGURE
+    tick_overrides = [
+        (
+            meta.ticks if meta.ticks is not None else None,
+            meta.tick_labels if meta.tick_labels is not None else None,
+        )
+        for meta in column_metadata
+    ]
+    theta_ticks, theta_tick_labels = tick_overrides[0]
+    tick_overrides[0] = (
+        theta_ticks[::2] if theta_ticks is not None else None,
+        theta_tick_labels[::2] if theta_tick_labels is not None else None,
+    )
+    tick_overrides[2] = (RHO_TICKS_FIGURE, [str(tick) for tick in RHO_TICKS_FIGURE])
+
+    fig, axs = plt.subplots(1, 2, figsize=figure_size, sharey=True, layout="constrained")
+    layout_engine = fig.get_layout_engine()
+    if isinstance(layout_engine, ConstrainedLayoutEngine):
+        layout_engine.set(w_pad=0.0, wspace=0.0)
+
+    # panel b plots rho against the shared y axis (r), transposed from (r, rho)
+    for ax, (x_index, y_index), slice_axis_index, slice_value, show_colorbar in [
+        (axs[0], (0, 1), 2, rho_star, False),
+        (axs[1], (2, 1), 0, theta_star, True),
+    ]:
+        slice_indexes = get_slice_indexes(grid[slice_axis_index], slice_value)
+        slice_shape = [len(np.unique(slice_indexes[d])) for d in range(len(slice_indexes))]
+        collapse_axis = np.where(np.array(slice_shape) == 1)[0][0]
+
+        x_grid = np.take(grid[x_index][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis)
+        y_grid = np.take(grid[y_index][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis)
+        sigma_11_slice = np.take(
+            sigma[..., 0, 0][slice_indexes].reshape(slice_shape), 0, axis=collapse_axis
+        )[..., np.newaxis]
+
+        axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.2f}"
+
+        fig, _ = plot_noise_tensor_contours(
+            (x_grid, y_grid),
+            sigma_11_slice,
+            [axes_title_text],
+            axes_limits=(axes_bounds[x_index], axes_bounds[y_index]),
+            x_label=column_labels[x_index],
+            y_label=column_labels[y_index],
+            x_ticks=tick_overrides[x_index][0],
+            x_tick_labels=tick_overrides[x_index][1],
+            y_ticks=tick_overrides[y_index][0],
+            y_tick_labels=tick_overrides[y_index][1],
+            axis=ax,
+            show_colorbar=show_colorbar,
+        )
+        # Add dashed white hline indicating the r_star value on the plot
+        ax.axhline(r_star, color="white", linestyle="--", linewidth=1.25)
+        # Add text to rightmost subplot
+        if ax == axs[-1]:
+            ax.text(
+                0.95,
+                r_star - 0.35,
+                "r = r$^*$",
+                color="white",
+                fontsize=FONTSIZE_SMALL,
+                ha="right",
+                va="bottom",
+                transform=ax.get_yaxis_transform(),
+            )
+
+    # hide the y label/ticks on the right panel, since the y axis (r) is shared
+    for ax in axs:
+        ax.label_outer()
+
+    if plot_title is not None:
+        fig.suptitle(plot_title, fontsize=FONTSIZE_MEDIUM, fontweight="bold", y=1.125)
+
+    return save_plot_to_path(fig, output_path, file_name, tight_layout=False, file_format=".svg")
 
 
 def plot_noise_tensor_stack(
