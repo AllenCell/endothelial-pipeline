@@ -218,11 +218,11 @@ def plot_noise_correlation_vs_lag(
                     "mean",
                 ),
                 MEASUREMENT_NOISE_COVARIANCE_5=(
-                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE,
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
                     lambda x: x.quantile(0.05),
                 ),
                 MEASUREMENT_NOISE_COVARIANCE_95=(
-                    Column.NoiseStatistics.MEASUREMENT_NOISE_COVARIANCE,
+                    Column.MEASUREMENT_NOISE_COVARIANCE,
                     lambda x: x.quantile(0.95),
                 ),
             )
