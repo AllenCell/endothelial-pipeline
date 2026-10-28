@@ -350,14 +350,12 @@ def get_trajectories_and_differences_for_noise_correlations(
     num_patches_processed = 0
     traj_list = []
     d_traj_list = []
-    for patch_idx, df_patch_ in df_flow.groupby(Column.CROP_INDEX):
+
+    df_sorted = df_flow.sort_values(by=[Column.CROP_INDEX, Column.TIMEPOINT])
+    for patch_idx, df_patch in df_sorted.groupby(Column.CROP_INDEX):
         if max_num_patches is not None and num_patches_processed >= max_num_patches:
             logger.debug("Reached maximum number of patches: %d", max_num_patches)
             break
-
-        # sort by timepoint to ensure that trajectory is in correct order before
-        # computing differences
-        df_patch = df_patch_.sort_values(by=Column.TIMEPOINT)
 
         # compute forward differences along trajectory for this crop, and filter
         # to keep only differences between timepoints that are separated by
