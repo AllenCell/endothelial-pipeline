@@ -150,11 +150,12 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
 
     # Build list of examples paired with their next timepoint counterpart
     example_pairs: list[tuple[ExampleImage, ExampleImage]] = []
+    description_prefix = "crop_"
     for df in all_examples:
         for row in df.to_dict("records"):
             example = ExampleImage(
                 dataset_name=row[Column.DATASET],
-                description=f"crop_{row[Column.CROP_INDEX]}",
+                description=f"{description_prefix}{row[Column.CROP_INDEX]}",
                 position=row[Column.POSITION],
                 timepoint=row[Column.TIMEPOINT],
                 crop_x_start=row[Column.DiffAEData.START_X],
@@ -302,6 +303,15 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
 
                 results.append(
                     {
+                        # General dataset info
+                        Column.DATASET: example.dataset_name,
+                        Column.POSITION: example.position,
+                        Column.TIMEPOINT: example.timepoint,
+                        Column.CROP_INDEX: int(
+                            example.description.removeprefix(description_prefix)
+                        ),
+                        Column.DiffAEData.START_X: example.crop_x_start,
+                        Column.DiffAEData.START_Y: example.crop_y_start,
                         # Model comparison general info
                         Column.DiffAEData.MODEL_MANIFEST: model_manifest_name,
                         Column.DiffAEData.MODEL_RUN: run_name,

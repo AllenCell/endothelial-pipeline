@@ -757,7 +757,7 @@ class ColumnName:
     MODEL_COMPARISON_SELF_HAUSDORFF_SEG = "self_hausdorff_seg"
     """Hausdorff distance between segmentations of input and itself."""
 
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlation"
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlations"
     """Pearson correlation between input and scrambled image."""
 
     MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM = "scrambled_image_ssim"
@@ -790,7 +790,7 @@ class ColumnName:
     MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG = "scrambled_image_hausdorff_seg"
     """Hausdorff distance between segmentations of input and scrambled image."""
 
-    MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlation"
+    MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlations"
     """Pearson correlation between input and scrambled latent representation."""
 
     MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM = "scrambled_latent_ssim"
