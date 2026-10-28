@@ -74,6 +74,7 @@ def main(
     )
     from endo_pipeline.library.model.model_comparison import (
         ModelComparisonMetricsCalculator,
+        get_refined_segmentation_from_downscaled_image,
         load_nuclei_segmentation_image,
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
@@ -209,39 +210,73 @@ def main(
                 _ = rng.permuted(latent)
                 _ = rng.permuted(conditioning_ex.ravel())
 
+                # Segment the input image once, since it is the reference image in every
+                # comparison, and segment the input image at the next timepoint, the denoised
+                # image, and the scrambled latent and scrambled image controls
+                diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    diffusion_ex, img_nuc_seg
+                )
+                next_diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    next_diffusion_ex, img_nuc_seg
+                )
+                denoised_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    denoised_ex, img_nuc_seg
+                )
+                scrambled_latent_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_latent_control, img_nuc_seg
+                )
+                scrambled_image_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_image_control, img_nuc_seg
+                )
+
+                # Warn if segmentation failed, since the segmentation-based metrics will be NaN
+                example_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
+                for image_name, seg in [
+                    ("input", diffusion_ex_seg),
+                    ("next_timepoint", next_diffusion_ex_seg),
+                    ("denoise", denoised_ex_seg),
+                    ("scrambled_latent", scrambled_latent_control_seg),
+                    ("scrambled_image", scrambled_image_control_seg),
+                ]:
+                    if seg is None:
+                        logger.warning(
+                            "Segmentation failed for example [ %s ]. "
+                            "Setting segmentation metrics to NaN.",
+                            f"{example_name}_{image_name}",
+                        )
+
                 # Calculate comparison metrics between the input image vs. itself,
                 # input image at the current timepoint vs. the next timepoint, and
                 # input image vs. denoised image for a given seed
-                plot_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
                 self_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=diffusion_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_self",
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=diffusion_ex_seg,
                 )
                 baseline_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=next_diffusion_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_baseline",
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=next_diffusion_ex_seg,
                 )
                 denoise_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=denoised_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_denoise",
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=denoised_ex_seg,
                 )
                 scrambled_latent_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_latent_control,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_scrambled_latent",
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_latent_control_seg,
                 )
                 scrambled_image_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_image_control,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{plot_name}_scrambled_image",
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_image_control_seg,
                 )
 
                 results.append(

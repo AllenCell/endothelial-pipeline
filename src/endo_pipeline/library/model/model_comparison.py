@@ -481,8 +481,6 @@ class ModelComparisonMetricsCalculator:
         cls,
         img1: NDArray,
         img2: NDArray,
-        img_nuc_seg: NDArray,
-        example_name: str,
         img1_seg: NDArray | None = None,
         img2_seg: NDArray | None = None,
     ) -> ModelComparisonMetrics:
@@ -499,10 +497,6 @@ class ModelComparisonMetricsCalculator:
             First image to compare.
         img2
             Second image to compare.
-        img_nuc_seg
-            Nuclei segmentation image. Unused; kept so existing callers do not break.
-        example_name
-            Name of the example. Unused; kept so existing callers do not break.
         img1_seg
             Refined cell segmentation of the first image.
         img2_seg

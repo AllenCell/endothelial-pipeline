@@ -249,8 +249,20 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                 next_diffusion_ex, img_nuc_seg
             )
 
-            # Save validation plots of the input image and the input image at the next timepoint
+            # Warn if segmentation failed, since the segmentation-based metrics will be NaN
             plot_name = f"{example}_{model_manifest_name}_{run_name}"
+            for image_name, seg in [
+                ("input", diffusion_ex_seg),
+                ("next_timepoint", next_diffusion_ex_seg),
+            ]:
+                if seg is None:
+                    logger.warning(
+                        "Segmentation failed for example [ %s ]. "
+                        "Setting segmentation metrics to NaN.",
+                        f"{plot_name}_{image_name}",
+                    )
+
+            # Save validation plots of the input image and the input image at the next timepoint
             if save_validation_plots:
                 plot_image_validation(
                     f"{plot_name}_input", diffusion_ex, img_nuc_seg, diffusion_ex_seg
@@ -270,16 +282,12 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
             self_results = calculator.compute_all_metrics(
                 img1=diffusion_ex,
                 img2=diffusion_ex,
-                img_nuc_seg=img_nuc_seg,
-                example_name=f"{plot_name}_self",
                 img1_seg=diffusion_ex_seg,
                 img2_seg=diffusion_ex_seg,
             )
             baseline_results = calculator.compute_all_metrics(
                 img1=diffusion_ex,
                 img2=next_diffusion_ex,
-                img_nuc_seg=img_nuc_seg,
-                example_name=f"{plot_name}_baseline",
                 img1_seg=diffusion_ex_seg,
                 img2_seg=next_diffusion_ex_seg,
             )
@@ -312,9 +320,22 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                     scrambled_image_control, img_nuc_seg
                 )
 
+                # Warn if segmentation failed, since the segmentation-based metrics will be NaN
+                seed_plot_name = f"{plot_name}_seed{random_seed}"
+                for image_name, seg in [
+                    ("denoise", denoised_ex_seg),
+                    ("scrambled_latent", scrambled_latent_control_seg),
+                    ("scrambled_image", scrambled_image_control_seg),
+                ]:
+                    if seg is None:
+                        logger.warning(
+                            "Segmentation failed for example [ %s ]. "
+                            "Setting segmentation metrics to NaN.",
+                            f"{seed_plot_name}_{image_name}",
+                        )
+
                 # Save validation plots of the denoised image and the scrambled latent and
                 # scrambled image controls
-                seed_plot_name = f"{plot_name}_seed{random_seed}"
                 if save_validation_plots:
                     plot_image_validation(
                         f"{seed_plot_name}_denoise",
@@ -340,24 +361,18 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                 denoise_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=denoised_ex,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{seed_plot_name}_denoise",
                     img1_seg=diffusion_ex_seg,
                     img2_seg=denoised_ex_seg,
                 )
                 scrambled_latent_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_latent_control,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{seed_plot_name}_scrambled_latent",
                     img1_seg=diffusion_ex_seg,
                     img2_seg=scrambled_latent_control_seg,
                 )
                 scrambled_image_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_image_control,
-                    img_nuc_seg=img_nuc_seg,
-                    example_name=f"{seed_plot_name}_scrambled_image",
                     img1_seg=diffusion_ex_seg,
                     img2_seg=scrambled_image_control_seg,
                 )
