@@ -51,9 +51,9 @@ from endo_pipeline.settings.workflow_defaults import (
 logger = logging.getLogger(__name__)
 
 
-def _get_refined_segmentation_from_downscaled_image(
+def get_refined_segmentation_from_downscaled_image(
     cell_boundaries_image: "NDArray", nuclei_segmentations: "NDArray"
-) -> "NDArray":
+) -> "NDArray | None":
     """
     Get refined segmentation for the given image using classic segmentation
     and splitting multinucleate regions.
@@ -68,7 +68,7 @@ def _get_refined_segmentation_from_downscaled_image(
     Returns
     -------
     :
-        Refined segmentation mask.
+        Refined segmentation mask, or None if segmentation fails.
     """
     # Determine the upscale factor required to restore the image to native resolution based on the
     # resolution level of the ZARR dataset. Cell segmentation expects images at native resolution.
@@ -82,18 +82,25 @@ def _get_refined_segmentation_from_downscaled_image(
     upscaled_nuclei_segmentations = np.around(upscaled_nuclei_segmentations).astype(int)
 
     # Perform classic segmentation on the upscaled images and refine the segmentation by splitting
-    # multinucleate regions.
-    processed_img = preprocess(upscaled_cell_boundaries_image)
-    hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
-    seg2_lab_no_mask_merge, _ = generate_segmentations(
-        processed_img, hyst, hyst_clean, hyst_removed, 80
-    )
-    refined_segmentation, _ = split_multinucleate_regions(
-        cell_segmentations=seg2_lab_no_mask_merge,
-        nuclei_segmentations=upscaled_nuclei_segmentations,
-        cell_boundary_thresh=hyst,
-        cell_boundary_image=processed_img,
-    )
+    # multinucleate regions. Segmentation can fail on images without cell boundary structure (e.g.
+    # the scrambled controls) when all regions are filtered out or merged into one, leaving no
+    # boundaries.
+    try:
+        processed_img = preprocess(upscaled_cell_boundaries_image)
+        hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
+        seg2_lab_no_mask_merge, _ = generate_segmentations(
+            processed_img, hyst, hyst_clean, hyst_removed, 80
+        )
+        refined_segmentation, _ = split_multinucleate_regions(
+            cell_segmentations=seg2_lab_no_mask_merge,
+            nuclei_segmentations=upscaled_nuclei_segmentations,
+            cell_boundary_thresh=hyst,
+            cell_boundary_image=processed_img,
+        )
+    except ValueError as error:
+        logger.debug("Segmentation failed with error [ %s ]", error)
+        return None
+
     return refined_segmentation
 
 
@@ -476,14 +483,15 @@ class ModelComparisonMetricsCalculator:
         img2: NDArray,
         img_nuc_seg: NDArray,
         example_name: str,
-        save_validation_plots: bool = False,
+        img1_seg: NDArray | None = None,
+        img2_seg: NDArray | None = None,
     ) -> ModelComparisonMetrics:
         """
         Compute image and segmentation-based metrics between two images.
 
         Image metrics (correlation, SSIM, and LPIPS) are computed directly on the images.
-        Segmentation-based metrics are computed on refined cell segmentations of each image.
-        Validation plots of the images and segmentations are optionally saved along the way.
+        Segmentation-based metrics are computed on the given refined cell segmentations of each
+        image (see ``get_refined_segmentation_from_downscaled_image``).
 
         Parameters
         ----------
@@ -492,42 +500,26 @@ class ModelComparisonMetricsCalculator:
         img2
             Second image to compare.
         img_nuc_seg
-            Nuclei segmentation image (used to refine the cell segmentations).
+            Nuclei segmentation image. Unused; kept so existing callers do not break.
         example_name
-            Name used for the saved validation plots and log messages.
-        save_validation_plots
-            True to save validation plots of the images and segmentations, False otherwise.
+            Name of the example. Unused; kept so existing callers do not break.
+        img1_seg
+            Refined cell segmentation of the first image.
+        img2_seg
+            Refined cell segmentation of the second image.
 
         Returns
         -------
         :
-            Computed metrics. Segmentation-based metrics are NaN if segmentation fails for
-            either image.
+            Computed metrics. Segmentation-based metrics are NaN if the segmentation for either
+            image is not given.
         """
 
         metrics = cls.compute_image_metrics(img1, img2)
 
-        # Save the input images for validation, even if segmentation fails below
-        if save_validation_plots:
-            plot_image_validation(example_name, img1, img2, img_nuc_seg)
-
-        # Segmentation can fail on images without cell boundary structure (e.g. the scrambled
-        # controls) when all regions are filtered out or merged into one, leaving no boundaries
-        try:
-            img1_seg = _get_refined_segmentation_from_downscaled_image(img1, img_nuc_seg)
-            img2_seg = _get_refined_segmentation_from_downscaled_image(img2, img_nuc_seg)
-        except ValueError as error:
-            logger.warning(
-                "Segmentation failed for example [ %s ] with error [ %s ]. "
-                "Setting segmentation metrics to NaN.",
-                example_name,
-                error,
-            )
+        # Exit early and leave segmentation-based metrics as NaN if either segmentation is missing
+        if img1_seg is None or img2_seg is None:
             return metrics
-
-        # Save the refined segmentations for validation
-        if save_validation_plots:
-            plot_segmentation_validation(example_name, img1_seg, img2_seg)
 
         img1_boundaries = find_boundaries(img1_seg)
         img2_boundaries = find_boundaries(img2_seg)
@@ -810,96 +802,52 @@ def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict
 
 def plot_image_validation(
     example_name: str,
-    img1: np.ndarray,
-    img2: np.ndarray,
+    img: np.ndarray,
     img_nuc_seg: np.ndarray,
+    img_seg: np.ndarray | None,
 ) -> None:
     """
-    Plot validation images that do not depend on the cell segmentations.
+    Plot validation images of an image, the nuclear segmentation overlaid on the image, and the
+    cell segmentation of the image (if available).
 
     Parameters
     ----------
     example_name
         Name of the example.
-    img1
-        First image.
-    img2
-        Second image.
+    img
+        Image.
     img_nuc_seg
         Nuclear segmentation.
+    img_seg
+        Cell segmentation of the image, or None if segmentation failed.
     """
     output_path = get_output_path(__file__, "segmentation_validation")
     cmap = colorcet.cm.glasbey_bw
     plot_image_thumbnail(
-        img1.squeeze(),
-        f"{example_name}_img1",
-        output_path=output_path,
-        figsize=(2, 2),
-    )
-    plot_image_thumbnail(
-        img2.squeeze(),
-        f"{example_name}_img2",
+        img.squeeze(),
+        f"{example_name}_img",
         output_path=output_path,
         figsize=(2, 2),
     )
     overlay = label2rgb(
         label=img_nuc_seg.squeeze(),
-        image=rescale_intensity(img1.squeeze(), out_range="uint8"),
+        image=rescale_intensity(img.squeeze(), out_range="uint8"),
         bg_label=0,
         alpha=0.5,
     )
     plot_image_thumbnail(
         overlay,
-        f"{example_name}_nuc_seg_on_img1",
-        output_path=output_path,
-        figsize=(2, 2),
-        image_colormap=cmap,
-    )
-    overlay = label2rgb(
-        label=img_nuc_seg.squeeze(),
-        image=rescale_intensity(img2.squeeze(), out_range="uint8"),
-        bg_label=0,
-        alpha=0.5,
-    )
-    plot_image_thumbnail(
-        overlay,
-        f"{example_name}_nuc_seg_on_img2",
+        f"{example_name}_nuc_seg_on_img",
         output_path=output_path,
         figsize=(2, 2),
         image_colormap=cmap,
     )
 
-
-def plot_segmentation_validation(
-    example_name: str,
-    img1_seg: np.ndarray,
-    img2_seg: np.ndarray,
-) -> None:
-    """
-    Plot validation images of the cell segmentations.
-
-    Parameters
-    ----------
-    example_name
-        Name of the example.
-    img1_seg
-        Segmentation of the first image.
-    img2_seg
-        Segmentation of the second image.
-    """
-    output_path = get_output_path(__file__, "segmentation_validation")
-    cmap = colorcet.cm.glasbey_bw
-    plot_image_thumbnail(
-        img1_seg.squeeze(),
-        f"{example_name}_img1_seg",
-        output_path=output_path,
-        figsize=(2, 2),
-        image_colormap=cmap,
-    )
-    plot_image_thumbnail(
-        img2_seg.squeeze(),
-        f"{example_name}_img2_seg",
-        output_path=output_path,
-        figsize=(2, 2),
-        image_colormap=cmap,
-    )
+    if img_seg is not None:
+        plot_image_thumbnail(
+            img_seg.squeeze(),
+            f"{example_name}_img_seg",
+            output_path=output_path,
+            figsize=(2, 2),
+            image_colormap=cmap,
+        )

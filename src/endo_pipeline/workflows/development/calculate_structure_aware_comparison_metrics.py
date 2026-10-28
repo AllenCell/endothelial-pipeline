@@ -61,8 +61,8 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
         Datasets to sample example crops from. Defaults to the datasets in
         `STRUCTURE_AWARE_COMPARISON_EXAMPLES`.
     save_validation_plots
-        True to save validation plots of the images and segmentations for each
-        comparison, False otherwise.
+        True to save validation plots of each image and its segmentation, False
+        otherwise.
     """
 
     import logging
@@ -89,9 +89,11 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
     )
     from endo_pipeline.library.model.model_comparison import (
         ModelComparisonMetricsCalculator,
+        get_refined_segmentation_from_downscaled_image,
         load_nuclei_segmentation_image,
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
+        plot_image_validation,
     )
     from endo_pipeline.library.model.model_performance import (
         denoise_with_scrambled_conditioning_input,
@@ -238,25 +240,48 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
             # are used to compute segmentation-based features).
             img_nuc_seg = load_nuclei_segmentation_image(example, config)
 
+            # Segment the input image once, since it is the reference image in every comparison,
+            # and segment the input image at the next timepoint
+            diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                diffusion_ex, img_nuc_seg
+            )
+            next_diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                next_diffusion_ex, img_nuc_seg
+            )
+
+            # Save validation plots of the input image and the input image at the next timepoint
+            plot_name = f"{example}_{model_manifest_name}_{run_name}"
+            if save_validation_plots:
+                plot_image_validation(
+                    f"{plot_name}_input", diffusion_ex, img_nuc_seg, diffusion_ex_seg
+                )
+                plot_image_validation(
+                    f"{plot_name}_next_timepoint",
+                    next_diffusion_ex,
+                    img_nuc_seg,
+                    next_diffusion_ex_seg,
+                )
+
             # Encode conditioning image to a latent vector
             latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
 
             # Calculate seed-independent comparison metrics between the input image vs. itself
             # and the input image at the next timepoint
-            plot_name = f"{example}_{model_manifest_name}_{run_name}"
             self_results = calculator.compute_all_metrics(
                 img1=diffusion_ex,
                 img2=diffusion_ex,
                 img_nuc_seg=img_nuc_seg,
                 example_name=f"{plot_name}_self",
-                save_validation_plots=save_validation_plots,
+                img1_seg=diffusion_ex_seg,
+                img2_seg=diffusion_ex_seg,
             )
             baseline_results = calculator.compute_all_metrics(
                 img1=diffusion_ex,
                 img2=next_diffusion_ex,
                 img_nuc_seg=img_nuc_seg,
                 example_name=f"{plot_name}_baseline",
-                save_validation_plots=save_validation_plots,
+                img1_seg=diffusion_ex_seg,
+                img2_seg=next_diffusion_ex_seg,
             )
 
             for random_seed in seeds_to_evaluate:
@@ -276,29 +301,65 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                     rng, model, [noise], conditioning_ex, NUM_GPUS, show_progress=False
                 )[0]
 
+                # Segment the denoised image and the scrambled latent and scrambled image controls
+                denoised_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    denoised_ex, img_nuc_seg
+                )
+                scrambled_latent_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_latent_control, img_nuc_seg
+                )
+                scrambled_image_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_image_control, img_nuc_seg
+                )
+
+                # Save validation plots of the denoised image and the scrambled latent and
+                # scrambled image controls
+                seed_plot_name = f"{plot_name}_seed{random_seed}"
+                if save_validation_plots:
+                    plot_image_validation(
+                        f"{seed_plot_name}_denoise",
+                        denoised_ex,
+                        img_nuc_seg,
+                        denoised_ex_seg,
+                    )
+                    plot_image_validation(
+                        f"{seed_plot_name}_scrambled_latent",
+                        scrambled_latent_control,
+                        img_nuc_seg,
+                        scrambled_latent_control_seg,
+                    )
+                    plot_image_validation(
+                        f"{seed_plot_name}_scrambled_image",
+                        scrambled_image_control,
+                        img_nuc_seg,
+                        scrambled_image_control_seg,
+                    )
+
                 # Calculate comparison metrics between the input image vs. the denoised image, and
                 # the scrambled latent and scrambled image controls for a given seed
-                seed_plot_name = f"{plot_name}_seed{random_seed}"
                 denoise_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=denoised_ex,
                     img_nuc_seg=img_nuc_seg,
                     example_name=f"{seed_plot_name}_denoise",
-                    save_validation_plots=save_validation_plots,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=denoised_ex_seg,
                 )
                 scrambled_latent_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_latent_control,
                     img_nuc_seg=img_nuc_seg,
                     example_name=f"{seed_plot_name}_scrambled_latent",
-                    save_validation_plots=save_validation_plots,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_latent_control_seg,
                 )
                 scrambled_image_results = calculator.compute_all_metrics(
                     img1=diffusion_ex,
                     img2=scrambled_image_control,
                     img_nuc_seg=img_nuc_seg,
                     example_name=f"{seed_plot_name}_scrambled_image",
-                    save_validation_plots=save_validation_plots,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_image_control_seg,
                 )
 
                 results.append(
