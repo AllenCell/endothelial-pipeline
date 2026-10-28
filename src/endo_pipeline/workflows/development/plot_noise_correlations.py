@@ -89,8 +89,8 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
         *get_datasets_in_collection("perturbation"),
     ]
 
-    max_num_timepoints = None
-    max_num_patches = None
+    max_num_timepoints: int | None = None
+    max_num_patches: int | None = None
     if DEMO_MODE:
         max_num_timepoints = 25
         max_num_patches = 50
@@ -168,7 +168,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
             # this flow condition
             timepoints_range = sorted(df_flow[Column.TIMEPOINT].unique())
             if max_num_timepoints is not None:
-                timepoints_range = timepoints_range[-int(max_num_timepoints) :]
+                timepoints_range = timepoints_range[-max_num_timepoints:]
             logger.debug("Number of timepoints: %d", len(timepoints_range))
             n_timepoints = len(timepoints_range)
             timepoints_array = np.asarray(timepoints_range)
