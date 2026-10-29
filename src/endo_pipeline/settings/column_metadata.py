@@ -579,6 +579,88 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         name="LPIPS score",
         type=ColumnType.CONTINUOUS,
     ),
+    # Structure-aware model comparison types ===================================
+    Column.ModelComparisonType.SELF: ColumnMetadata(
+        name="Input vs. input (self)",
+        label="Self",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.BASELINE: ColumnMetadata(
+        name="Input vs. next timepoint (baseline)",
+        label="Baseline",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.DENOISED: ColumnMetadata(
+        name="Input vs. denoised image",
+        label="Denoised",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.SCRAMBLED_IMAGE: ColumnMetadata(
+        name="Input vs. denoised from scrambled image",
+        label="Scrambled image",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.SCRAMBLED_LATENT: ColumnMetadata(
+        name="Input vs. denoised from scrambled latent",
+        label="Scrambled latent",
+        type=ColumnType.DISCRETE,
+    ),
+    # Structure-aware model comparison metrics =================================
+    Column.ModelComparisonMetric.CORRELATION: ColumnMetadata(
+        name="Pearson correlation coefficient",
+        label="Pearson correlation",
+        type=ColumnType.CONTINUOUS,
+        min=-1,
+        max=1,
+    ),
+    Column.ModelComparisonMetric.SSIM: ColumnMetadata(
+        name="SSIM score",
+        type=ColumnType.CONTINUOUS,
+        min=-1,
+        max=1,
+    ),
+    Column.ModelComparisonMetric.LPIPS: ColumnMetadata(
+        name="LPIPS score",
+        type=ColumnType.CONTINUOUS,
+        min=0,
+        max=None,
+    ),
+    Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE: ColumnMetadata(
+        name="Mean cell orientation difference",
+        label="Mean cell orientation\ndifference",
+        unit="rad",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO: ColumnMetadata(
+        name="Mean relative cell aspect ratio",
+        label="Mean relative cell\naspect ratio",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelComparisonMetric.MEAN_RELATIVE_AREA: ColumnMetadata(
+        name="Mean relative cell area",
+        label="Mean relative\ncell area",
+        type=ColumnType.CONTINUOUS,
+    ),
+    Column.ModelComparisonMetric.NUMBER_OF_SEGMENTATIONS_DIFFERENCE: ColumnMetadata(
+        name="Difference in number of segmentations",
+        label="Difference in number\nof segmentations",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonMetric.SSIM_SEG: ColumnMetadata(
+        name="Segmentation boundary SSIM score",
+        label="Segmentation\nboundary SSIM score",
+        type=ColumnType.CONTINUOUS,
+        min=-1,
+        max=1,
+    ),
+    Column.ModelComparisonMetric.HAUSDORFF_SEG: ColumnMetadata(
+        name="Segmentation boundary Hausdorff distance",
+        label="Segmentation boundary\nHausdorff distance",
+        unit="px",
+        type=ColumnType.CONTINUOUS,
+        min=0,
+        max=None,
+    ),
     # ModelNoiseSensitivity workflows ==========================================
     Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN: ColumnMetadata(
         name="Log-normalized standard deviation projection mean",

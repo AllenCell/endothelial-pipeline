@@ -823,6 +823,54 @@ class ColumnName:
     MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG = "scrambled_latent_hausdorff_seg"
     """Hausdorff distance between segmentations of input and scrambled latent representation."""
 
+    class ModelComparisonType(StrEnum):
+        """Comparison types (column name prefixes) used in structure-aware model comparison."""
+
+        SELF = "self"
+        """Comparison between input and itself."""
+
+        BASELINE = "baseline"
+        """Comparison between ground truth and next timepoint."""
+
+        DENOISED = "denoised"
+        """Comparison between input and denoised image."""
+
+        SCRAMBLED_IMAGE = "scrambled_image"
+        """Comparison between input and scrambled image."""
+
+        SCRAMBLED_LATENT = "scrambled_latent"
+        """Comparison between input and image denoised from scrambled latent representation."""
+
+    class ModelComparisonMetric(StrEnum):
+        """Metrics (column name suffixes) used in structure-aware model comparison."""
+
+        CORRELATION = "correlations"
+        """Pearson correlation between two images."""
+
+        SSIM = "ssim"
+        """Structural Similarity Index (SSIM) between two images."""
+
+        LPIPS = "lpips"
+        """Learned Perceptual Image Patch Similarity (LPIPS) between two images."""
+
+        MEAN_ORIENTATION_DIFFERENCE = "mean_orientation_difference"
+        """Mean orientation difference between segmentations of two images."""
+
+        MEAN_RELATIVE_ASPECT_RATIO = "mean_relative_aspect_ratio"
+        """Mean aspect ratio of segmentations of second image relative to first image."""
+
+        MEAN_RELATIVE_AREA = "mean_relative_area"
+        """Mean area of segmentations of second image relative to first image."""
+
+        NUMBER_OF_SEGMENTATIONS_DIFFERENCE = "number_of_segmentations_difference"
+        """Difference in number of segmentations between two images (second - first)."""
+
+        SSIM_SEG = "ssim_seg"
+        """Structural Similarity Index (SSIM) between segmentation boundaries of two images."""
+
+        HAUSDORFF_SEG = "hausdorff_seg"
+        """Hausdorff distance between segmentation boundaries of two images."""
+
     class ModelNoiseSensitivity(StrEnum):
         """Column names used in model noise sensitivity analysis."""
 
@@ -1006,6 +1054,8 @@ ColumnNameType = (
     | ColumnName.OpticalFlow
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
+    | ColumnName.ModelComparisonType
+    | ColumnName.ModelComparisonMetric
     | ColumnName.ModelNoiseSensitivity
 )
 """Type hint for all column name enums."""
