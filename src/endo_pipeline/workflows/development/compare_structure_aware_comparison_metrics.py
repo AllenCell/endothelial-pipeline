@@ -87,13 +87,8 @@ def main() -> None:
     # Define which metrics to include in the plots
     metrics_to_keep = [
         Column.ModelComparisonMetric.CORRELATION,
-        Column.ModelComparisonMetric.SSIM,
-        Column.ModelComparisonMetric.LPIPS,
         Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE,
         Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO,
-        Column.ModelComparisonMetric.MEAN_RELATIVE_AREA,
-        Column.ModelComparisonMetric.NUMBER_OF_SEGMENTATIONS_DIFFERENCE,
-        Column.ModelComparisonMetric.HAUSDORFF_SEG,
     ]
 
     all_metrics_df_long = all_metrics_df_long[
