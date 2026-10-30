@@ -699,9 +699,6 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG = "baseline_hausdorff_seg"
     """Hausdorff distance between segmentations of ground truth and next timepoint."""
 
-    MODEL_COMPARISON_BASELINE_MEAN_BOUNDARY_DISTANCE_SEG = "baseline_mean_boundary_distance_seg"
-    """Mean nearest distance between segmentation boundaries of ground truth and next timepoint."""
-
     MODEL_COMPARISON_CORRELATION = "denoised_correlations"
     """Pearson correlation between input and denoised image."""
 
@@ -731,9 +728,6 @@ class ColumnName:
     MODEL_COMPARISON_HAUSDORFF_SEG = "denoised_hausdorff_seg"
     """Hausdorff distance between segmentations of input and denoised image."""
 
-    MODEL_COMPARISON_MEAN_BOUNDARY_DISTANCE_SEG = "denoised_mean_boundary_distance_seg"
-    """Mean nearest distance between segmentation boundaries of input and denoised image."""
-
     MODEL_COMPARISON_SELF_CORRELATION = "self_correlations"
     """Pearson correlation between input and itself."""
 
@@ -762,9 +756,6 @@ class ColumnName:
 
     MODEL_COMPARISON_SELF_HAUSDORFF_SEG = "self_hausdorff_seg"
     """Hausdorff distance between segmentations of input and itself."""
-
-    MODEL_COMPARISON_SELF_MEAN_BOUNDARY_DISTANCE_SEG = "self_mean_boundary_distance_seg"
-    """Mean nearest distance between segmentation boundaries of input and itself."""
 
     MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlations"
     """Pearson correlation between input and scrambled image."""
@@ -799,11 +790,6 @@ class ColumnName:
     MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG = "scrambled_image_hausdorff_seg"
     """Hausdorff distance between segmentations of input and scrambled image."""
 
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_BOUNDARY_DISTANCE_SEG = (
-        "scrambled_image_mean_boundary_distance_seg"
-    )
-    """Mean nearest distance between segmentation boundaries of input and scrambled image."""
-
     MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlations"
     """Pearson correlation between input and scrambled latent representation."""
 
@@ -836,11 +822,6 @@ class ColumnName:
 
     MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG = "scrambled_latent_hausdorff_seg"
     """Hausdorff distance between segmentations of input and scrambled latent representation."""
-
-    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_BOUNDARY_DISTANCE_SEG = (
-        "scrambled_latent_mean_boundary_distance_seg"
-    )
-    """Mean nearest distance between segmentation boundaries of input and scrambled latent representation."""
 
     class ModelComparisonType(StrEnum):
         """Comparison types (column name prefixes) used in structure-aware model comparison."""
@@ -889,9 +870,6 @@ class ColumnName:
 
         HAUSDORFF_SEG = "hausdorff_seg"
         """Hausdorff distance between segmentation boundaries of two images."""
-
-        MEAN_BOUNDARY_DISTANCE_SEG = "mean_boundary_distance_seg"
-        """Mean nearest distance between segmentation boundaries of two images."""
 
     class ModelNoiseSensitivity(StrEnum):
         """Column names used in model noise sensitivity analysis."""
