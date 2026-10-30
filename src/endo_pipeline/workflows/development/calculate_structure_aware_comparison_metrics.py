@@ -7,13 +7,12 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
 
     #diffae #model-comparison #test-ready #gpu
 
-    This workflow evaluates the default DiffAE model run from two model
-    manifests (the default model and the CDH5-conditioned model). For each
-    dataset, 100 image crops are randomly sampled from the grid-based feature
-    dataframe, and each crop is paired with the same crop at the next timepoint.
+    This workflow evaluates the default DiffAE model run from two model manifests (the default model
+    and the CDH5-conditioned model). For each dataset, 100 image crops are randomly sampled from the
+    grid-based feature dataframe, and each crop is paired with the same crop at the next timepoint.
 
-    For each crop and each of 10 random seeds, the crop is encoded to a latent
-    vector, noised, and denoised. The original image is then compared to:
+    For each crop and each of 10 random seeds, the crop is encoded to a latent vector, noised, and
+    denoised. The original image is then compared to:
 
     - itself (self control)
     - the next timepoint (baseline)
@@ -21,12 +20,11 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
     - an image denoised from a scrambled latent vector (scrambled latent control)
     - an image denoised from a latent vector of scrambled pixels (scrambled image control)
 
-    Each comparison reports correlation, SSIM, and LPIPS, as well as
-    segmentation-based metrics (mean orientation difference, mean relative
-    aspect ratio, mean relative area, difference in number of segmentations,
-    segmentation SSIM, and segmentation Hausdorff distance). Results are saved
-    as one parquet file per model manifest, with one row for each
-    (random seed, example image) combination, and catalogued in a dataframe
+    Each comparison reports correlation, SSIM, and LPIPS, as well as segmentation-based metrics
+    (mean orientation difference, mean relative aspect ratio, mean relative area, difference in
+    number of segmentations, segmentation SSIM, segmentation Hausdorff distance, and segmentation
+    mean nearest boundary distance). Results are saved as one parquet file per model manifest, with
+    one row for each (random seed, example image) combination, and catalogued in a dataframe
     manifest.
 
     ## Example usage
@@ -52,8 +50,8 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
 
     ## Workflow demo
 
-    Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate
-    metrics for two example crops and two seeds for each model manifest.
+    Running the workflow in demo mode (`-d` or `--demo-mode`) will calculate metrics for two example
+    crops and two seeds for each model manifest.
 
     Parameters
     ----------
@@ -61,8 +59,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
         Datasets to sample example crops from. Defaults to the datasets in
         `STRUCTURE_AWARE_COMPARISON_EXAMPLES`.
     save_validation_plots
-        True to save validation plots of each image and its segmentation, False
-        otherwise.
+        True to save validation plots of each image and its segmentation, False otherwise.
     """
 
     import logging
@@ -403,6 +400,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_SELF_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: self_results.number_of_segmentations_difference,
                         Column.MODEL_COMPARISON_SELF_SSIM_SEG: self_results.ssim_seg,
                         Column.MODEL_COMPARISON_SELF_HAUSDORFF_SEG: self_results.hausdorff_seg,
+                        Column.MODEL_COMPARISON_SELF_MEAN_BOUNDARY_DISTANCE_SEG: self_results.mean_boundary_distance_seg,
                         # Model comparison of input image with baseline
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,
                         Column.MODEL_COMPARISON_BASELINE_SSIM: baseline_results.ssim,
@@ -413,6 +411,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_BASELINE_LPIPS: baseline_results.lpips,
                         Column.MODEL_COMPARISON_BASELINE_SSIM_SEG: baseline_results.ssim_seg,
                         Column.MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG: baseline_results.hausdorff_seg,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_BOUNDARY_DISTANCE_SEG: baseline_results.mean_boundary_distance_seg,
                         # Model comparison of input image with denoised image
                         Column.MODEL_COMPARISON_CORRELATION: denoise_results.correlation,
                         Column.MODEL_COMPARISON_SSIM: denoise_results.ssim,
@@ -423,6 +422,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: denoise_results.number_of_segmentations_difference,
                         Column.MODEL_COMPARISON_SSIM_SEG: denoise_results.ssim_seg,
                         Column.MODEL_COMPARISON_HAUSDORFF_SEG: denoise_results.hausdorff_seg,
+                        Column.MODEL_COMPARISON_MEAN_BOUNDARY_DISTANCE_SEG: denoise_results.mean_boundary_distance_seg,
                         # Model comparison of input image with scrambled image
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION: scrambled_image_results.correlation,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM: scrambled_image_results.ssim,
@@ -433,6 +433,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: scrambled_image_results.number_of_segmentations_difference,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG: scrambled_image_results.ssim_seg,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG: scrambled_image_results.hausdorff_seg,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_BOUNDARY_DISTANCE_SEG: scrambled_image_results.mean_boundary_distance_seg,
                         # Model comparison of input image with scrambled latent vector
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION: scrambled_latent_results.correlation,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM: scrambled_latent_results.ssim,
@@ -443,6 +444,7 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: scrambled_latent_results.number_of_segmentations_difference,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG: scrambled_latent_results.ssim_seg,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG: scrambled_latent_results.hausdorff_seg,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_BOUNDARY_DISTANCE_SEG: scrambled_latent_results.mean_boundary_distance_seg,
                     }
                 )
 

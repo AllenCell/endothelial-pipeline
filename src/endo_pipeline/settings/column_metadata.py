@@ -661,6 +661,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         min=0,
         max=None,
     ),
+    Column.ModelComparisonMetric.MEAN_BOUNDARY_DISTANCE_SEG: ColumnMetadata(
+        name="Segmentation boundary mean distance",
+        label="Segmentation boundary\nmean distance",
+        unit="px",
+        type=ColumnType.CONTINUOUS,
+        min=0,
+        max=None,
+    ),
     # ModelNoiseSensitivity workflows ==========================================
     Column.ModelNoiseSensitivity.LOG_NORMD_STDEV_MEAN: ColumnMetadata(
         name="Log-normalized standard deviation projection mean",

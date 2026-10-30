@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 from omegaconf import DictConfig
+from scipy.ndimage import distance_transform_edt
 from scipy.stats import circmean, pearsonr
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
@@ -137,6 +138,9 @@ class ModelComparisonMetrics(NamedTuple):
 
     hausdorff_seg: float = np.nan
     """Hausdorff distance between two segmentation boundary images (lower is better, 0 = identical)."""
+
+    mean_boundary_distance_seg: float = np.nan
+    """Mean nearest distance between two segmentation boundary images (lower is better, 0 = identical)."""
 
 
 class ModelComparisonMetricsCalculator:
@@ -451,6 +455,55 @@ class ModelComparisonMetricsCalculator:
         return float(hausdorff)
 
     @classmethod
+    def compute_mean_boundary_distance(cls, img1: "NDArray", img2: "NDArray") -> float:
+        """
+        Compute the mean nearest distance between the boundary pixels of two images.
+
+        For each nonzero pixel in one image, the distance to the nearest nonzero pixel in the other
+        image is computed, in both directions. The mean is taken over the distances of all
+        nonzero pixels in both images, so the metric is symmetric. Inputs should be binary masks
+        (e.g. segmentation boundaries).
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+
+        Returns
+        -------
+        :
+            Mean nearest distance between image 1 and image 2, or NaN if either image has no
+            nonzero pixels.
+        """
+
+        if img1.ndim > 2:
+            img1 = img1.squeeze()
+        if img2.ndim > 2:
+            img2 = img2.squeeze()
+
+        img1 = img1.astype(bool)
+        img2 = img2.astype(bool)
+
+        if not img1.any() or not img2.any():
+            return np.nan
+
+        # Distance from every pixel to the nearest nonzero pixel in each image
+        distance_to_img1 = distance_transform_edt(~img1)
+        distance_to_img2 = distance_transform_edt(~img2)
+
+        if distance_to_img1 is None or distance_to_img2 is None:
+            return np.nan
+
+        nearest_dist_img1_to_img2 = distance_to_img2[img1]
+        nearest_dist_img2_to_img1 = distance_to_img1[img2]
+
+        nearest_distances = np.concatenate([nearest_dist_img1_to_img2, nearest_dist_img2_to_img1])
+
+        return float(np.mean(nearest_distances))
+
+    @classmethod
     def compute_image_metrics(cls, img1: NDArray, img2: NDArray) -> ModelComparisonMetrics:
         """
         Compute correlation, SSIM, and LPIPS between two images.
@@ -526,6 +579,9 @@ class ModelComparisonMetricsCalculator:
             ),
             ssim_seg=cls.compute_ssim(img1_boundaries, img2_boundaries),
             hausdorff_seg=cls.compute_hausdorff(img1_boundaries, img2_boundaries),
+            mean_boundary_distance_seg=cls.compute_mean_boundary_distance(
+                img1_boundaries, img2_boundaries
+            ),
         )
 
 
