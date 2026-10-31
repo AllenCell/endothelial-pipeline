@@ -118,129 +118,66 @@ def main() -> None:
 
     # Fix the dataset order and model colors so all plotting options are consistent
     dataset_order = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
-    palette = dict(
-        zip(models_to_compare, sns.color_palette(n_colors=len(models_to_compare)), strict=True)
-    )
-    hue_offset = 0.2
 
-    def plot_boxes(ax, df_crops, add_legend):
-        # Option 1: box plots of each crop's mean over seeds for each dataset and model
-        sns.boxplot(
-            data=df_crops,
-            x=Column.DATASET,
-            y=crop_mean_col,
-            hue=Column.DiffAEData.MODEL_MANIFEST,
-            order=dataset_order,
-            hue_order=models_to_compare,
-            palette=palette,
-            legend=add_legend,
-            ax=ax,
-        )
-
-    def plot_crop_seed_sems(ax, df_crops, add_legend):
-        # Option 2: each crop's mean over seeds with the standard error of the mean across its
-        # seeds. Crops are spread out horizontally within each dataset and model.
-        offsets = np.linspace(-hue_offset, hue_offset, len(models_to_compare))
-        for dataset_idx, dataset in enumerate(dataset_order):
-            for model, offset in zip(models_to_compare, offsets, strict=True):
-                df_group = df_crops[
-                    (df_crops[Column.DATASET] == dataset)
-                    & (df_crops[Column.DiffAEData.MODEL_MANIFEST] == model)
-                ]
-                x = (
-                    dataset_idx
-                    + offset
-                    + np.linspace(-0.8 * hue_offset, 0.8 * hue_offset, len(df_group))
-                )
-                ax.errorbar(
-                    x,
-                    df_group[crop_mean_col],
-                    yerr=df_group[crop_sem_col],
-                    fmt="o",
-                    markersize=2,
-                    elinewidth=0.5,
-                    color=palette[model],
-                    alpha=0.3,
-                    label=model if dataset_idx == 0 else None,
-                )
-        ax.set_xticks(range(len(dataset_order)), dataset_order)
-        ax.set_xlim(-0.5, len(dataset_order) - 0.5)
-        if add_legend:
-            ax.legend(title=str(Column.DiffAEData.MODEL_MANIFEST))
-
-    def plot_violins(ax, df_crops, add_legend):
-        # Option 3: split violins of each crop's mean over seeds for each dataset and model
-        sns.violinplot(
-            data=df_crops,
-            x=Column.DATASET,
-            y=crop_mean_col,
-            hue=Column.DiffAEData.MODEL_MANIFEST,
-            order=dataset_order,
-            hue_order=models_to_compare,
-            palette=palette,
-            split=True,
-            legend=add_legend,
-            ax=ax,
-        )
-
-    plot_options = {
-        "Boxes of crop means": plot_boxes,
-        "Per-crop points with SEM": plot_crop_seed_sems,
-        "Violins of crop means": plot_violins,
-    }
-
-    # Plot a grid of metrics (rows) by comparison types (columns), split by model, with one
-    # figure per plotting option
+    # Plot a grid of metrics (rows) by comparison types (columns), with box plots of each crop's
+    # mean over seeds for each dataset and model
     panel_size = 4
     num_rows, num_cols = len(metrics_to_keep), len(comparisons_to_keep)
-    out_path = get_output_path(__file__)
-    for option_name, plot_option in plot_options.items():
-        fig, ax = plt.subplots(
-            nrows=num_rows,
-            ncols=num_cols,
-            figsize=(panel_size * num_cols, panel_size * num_rows),
-            sharex=True,
-            sharey="row",
-            squeeze=False,
-        )
+    fig, ax = plt.subplots(
+        nrows=num_rows,
+        ncols=num_cols,
+        figsize=(panel_size * num_cols, panel_size * num_rows),
+        sharex=True,
+        sharey="row",
+        squeeze=False,
+    )
 
-        for row_idx, metric in enumerate(metrics_to_keep):
-            metric_col_metadata = COLUMN_METADATA[str(metric)]
+    for row_idx, metric in enumerate(metrics_to_keep):
+        metric_col_metadata = COLUMN_METADATA[str(metric)]
 
-            for col_idx, comparison in enumerate(comparisons_to_keep):
-                axis = ax[row_idx, col_idx]
-                axis.axhline(0, color="gray", linestyle="--")
+        for col_idx, comparison in enumerate(comparisons_to_keep):
+            axis = ax[row_idx, col_idx]
+            axis.axhline(0, color="gray", linestyle="--")
 
-                df_crops = crop_stats_df[
-                    (crop_stats_df[metric_col] == metric)
-                    & (crop_stats_df[comparison_col] == comparison)
-                ]
+            df_crops = crop_stats_df[
+                (crop_stats_df[metric_col] == metric)
+                & (crop_stats_df[comparison_col] == comparison)
+            ]
 
-                # Add legend to the top right subplot only
-                add_legend = row_idx == 0 and col_idx == num_cols - 1
+            # Add legend to the top right subplot only
+            add_legend = row_idx == 0 and col_idx == num_cols - 1
 
-                plot_option(axis, df_crops, add_legend)
+            sns.boxplot(
+                data=df_crops,
+                x=Column.DATASET,
+                y=crop_mean_col,
+                hue=Column.DiffAEData.MODEL_MANIFEST,
+                order=dataset_order,
+                hue_order=models_to_compare,
+                legend=add_legend,
+                ax=axis,
+            )
 
-                # Set axis limits where appropriate
-                if metric_col_metadata.min is not None and metric_col_metadata.max is not None:
-                    axis.set_ylim(metric_col_metadata.min, metric_col_metadata.max)
+            # Set axis limits where appropriate
+            if metric_col_metadata.min is not None and metric_col_metadata.max is not None:
+                axis.set_ylim(metric_col_metadata.min, metric_col_metadata.max)
 
-                # Label the metric on the first column, the comparison on the top row, and the
-                # dataset on the bottom row
-                axis.set_ylabel(metric_col_metadata.label if col_idx == 0 else "")
-                if row_idx == 0:
-                    axis.set_title(COLUMN_METADATA[str(comparison)].name)
-                if row_idx == num_rows - 1:
-                    axis.set_xlabel(COLUMN_METADATA[str(Column.DATASET)].label)
-                    axis.tick_params(axis="x", labelrotation=45)
-                else:
-                    axis.set_xlabel("")
+            # Label the metric on the first column, the comparison on the top row, and the
+            # dataset on the bottom row
+            axis.set_ylabel(metric_col_metadata.label if col_idx == 0 else "")
+            if row_idx == 0:
+                axis.set_title(COLUMN_METADATA[str(comparison)].name)
+            if row_idx == num_rows - 1:
+                axis.set_xlabel(COLUMN_METADATA[str(Column.DATASET)].label)
+                axis.tick_params(axis="x", labelrotation=45)
+            else:
+                axis.set_xlabel("")
 
-        save_plot_to_path(
-            figure=fig,
-            output_path=out_path,
-            figure_name=option_name.lower().replace(" ", "_"),
-        )
+    save_plot_to_path(
+        figure=fig,
+        output_path=get_output_path(__file__),
+        figure_name="boxplots_crop_means",
+    )
 
 
 if __name__ == "__main__":
