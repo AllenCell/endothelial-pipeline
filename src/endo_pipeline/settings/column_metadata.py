@@ -67,6 +67,12 @@ class ColumnMetadata:
     tick_labels: list[str] | None = None
     """Tick labels."""
 
+    log_base: float | None = None
+    """Base for plotting the column on a log scale. If not provided, use a linear scale."""
+
+    reference_value: float | None = None
+    """Reference value for the column (e.g. the value for identical images) to mark on plots."""
+
     slug: str = field(init=False)
     """Slug version of name."""
 
@@ -581,12 +587,12 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     # Structure-aware model comparison types ===================================
     Column.ModelComparisonType.SELF: ColumnMetadata(
-        name="Input vs. input (self)",
+        name="Input vs. input",
         label="Self",
         type=ColumnType.DISCRETE,
     ),
     Column.ModelComparisonType.BASELINE: ColumnMetadata(
-        name="Input vs. next timepoint (baseline)",
+        name="Input vs. next timepoint",
         label="Baseline",
         type=ColumnType.DISCRETE,
     ),
@@ -612,6 +618,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         type=ColumnType.CONTINUOUS,
         min=-1,
         max=1,
+        reference_value=0,
     ),
     Column.ModelComparisonMetric.SSIM: ColumnMetadata(
         name="SSIM score",
@@ -630,11 +637,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         label="Mean cell orientation\ndifference",
         unit="rad",
         type=ColumnType.CONTINUOUS,
+        reference_value=0,
     ),
     Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO: ColumnMetadata(
         name="Mean relative cell aspect ratio",
         label="Mean relative cell\naspect ratio",
         type=ColumnType.CONTINUOUS,
+        log_base=2,
+        reference_value=1,
     ),
     Column.ModelComparisonMetric.MEAN_RELATIVE_AREA: ColumnMetadata(
         name="Mean relative cell area",

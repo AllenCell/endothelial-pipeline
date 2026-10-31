@@ -96,25 +96,12 @@ def main() -> None:
     ]
     all_metrics_df_long = all_metrics_df_long[all_metrics_df_long[metric_col].isin(metrics_to_keep)]
 
-    # Summarize the variation across random seeds for each crop. Example key is used rather than
-    # crop index because crop indices repeat across positions and timepoints.
+    # Define column names for the per-crop statistics and the summary across crops
     crop_mean_col, crop_sem_col = "crop_mean", "crop_sem"
-    crop_stats_df = (
-        all_metrics_df_long.groupby(
-            [
-                Column.DiffAEData.MODEL_MANIFEST,
-                Column.DATASET,
-                Column.EXAMPLE_KEY,
-                Column.CROP_INDEX,
-                comparison_col,
-                metric_col,
-            ]
-        )[value_col]
-        .agg(["mean", "std", "count"])
-        .reset_index()
-    )
-    crop_stats_df[crop_mean_col] = crop_stats_df["mean"]
-    crop_stats_df[crop_sem_col] = crop_stats_df["std"] / np.sqrt(crop_stats_df["count"])
+    mean_crop_sem_col, unit_col = "mean_crop_sem", "unit"
+    mean_crop_sem_fold_change_col = "mean_crop_sem_fold_change"
+
+    output_path = get_output_path(__file__)
 
     # Fix the dataset order and model colors so all plotting options are consistent
     dataset_order = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
@@ -132,17 +119,60 @@ def main() -> None:
         squeeze=False,
     )
 
+    sem_summaries = []
+
     for row_idx, metric in enumerate(metrics_to_keep):
         metric_col_metadata = COLUMN_METADATA[str(metric)]
+        log_base = metric_col_metadata.log_base
+
+        # Summarize the variation across random seeds for each crop. Example key is used rather
+        # than crop index because crop indices repeat across positions and timepoints. Metrics
+        # plotted on a log scale (e.g. ratios) are summarized in log space, so that the crop mean
+        # is a geometric mean and the SEM is in log fold-change units.
+        df_metric = all_metrics_df_long[all_metrics_df_long[metric_col] == metric]
+        if log_base is not None:
+            df_metric = df_metric.assign(
+                **{value_col: np.log(df_metric[value_col]) / np.log(log_base)}
+            )
+        crop_stats_df = (
+            df_metric.groupby(
+                [
+                    Column.DiffAEData.MODEL_MANIFEST,
+                    Column.DATASET,
+                    Column.EXAMPLE_KEY,
+                    Column.CROP_INDEX,
+                    comparison_col,
+                ]
+            )[value_col]
+            .agg(["mean", "sem"])
+            .rename(columns={"mean": crop_mean_col, "sem": crop_sem_col})
+            .reset_index()
+        )
+        if log_base is not None:
+            crop_stats_df[crop_mean_col] = log_base ** crop_stats_df[crop_mean_col]
+
+        # Summarize the SEM across crops for each model and comparison. For log-scaled metrics,
+        # also convert the log fold-change SEM to a fold-change factor (i.e. multiply or divide).
+        sem_summary = (
+            crop_stats_df.groupby([Column.DiffAEData.MODEL_MANIFEST, comparison_col])[crop_sem_col]
+            .mean()
+            .rename(mean_crop_sem_col)
+            .reset_index()
+        )
+        sem_summary[metric_col] = metric
+        if log_base is not None:
+            sem_summary[unit_col] = f"log{log_base:g} fold-change"
+            sem_summary[mean_crop_sem_fold_change_col] = log_base ** sem_summary[mean_crop_sem_col]
+        else:
+            sem_summary[unit_col] = metric_col_metadata.unit
+        sem_summaries.append(sem_summary)
 
         for col_idx, comparison in enumerate(comparisons_to_keep):
             axis = ax[row_idx, col_idx]
-            axis.axhline(0, color="gray", linestyle="--")
+            if metric_col_metadata.reference_value is not None:
+                axis.axhline(metric_col_metadata.reference_value, color="gray", linestyle="--")
 
-            df_crops = crop_stats_df[
-                (crop_stats_df[metric_col] == metric)
-                & (crop_stats_df[comparison_col] == comparison)
-            ]
+            df_crops = crop_stats_df[crop_stats_df[comparison_col] == comparison]
 
             # Add legend to the top right subplot only
             add_legend = row_idx == 0 and col_idx == num_cols - 1
@@ -155,6 +185,7 @@ def main() -> None:
                 order=dataset_order,
                 hue_order=models_to_compare,
                 legend=add_legend,
+                log_scale=metric_col_metadata.log_base,
                 ax=axis,
             )
 
@@ -175,9 +206,22 @@ def main() -> None:
 
     save_plot_to_path(
         figure=fig,
-        output_path=get_output_path(__file__),
+        output_path=output_path,
         figure_name="boxplots_crop_means",
     )
+
+    # Save the mean SEM across crops, which summarizes the variation across random seeds
+    sem_summary_df = pd.concat(sem_summaries, ignore_index=True)[
+        [
+            metric_col,
+            comparison_col,
+            Column.DiffAEData.MODEL_MANIFEST,
+            mean_crop_sem_col,
+            unit_col,
+            mean_crop_sem_fold_change_col,
+        ]
+    ]
+    sem_summary_df.to_csv(output_path / "mean_crop_sem_summary.csv", index=False)
 
 
 if __name__ == "__main__":
