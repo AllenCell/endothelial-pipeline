@@ -46,9 +46,25 @@ from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, DIME
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
     DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
+    DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX,
 )
 
 logger = logging.getLogger(__name__)
+
+STRUCTURE_AWARE_COMPARISON_COLUMN = "comparison"
+"""Comparison type column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_METRIC_COLUMN = "metric"
+"""Metric name column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_VALUE_COLUMN = "value"
+"""Metric value column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_CROP_MEAN_COLUMN = "crop_mean"
+"""Mean of each crop's structure-aware comparison metric across random seeds."""
+
+STRUCTURE_AWARE_CROP_SEM_COLUMN = "crop_sem"
+"""SEM of each crop's structure-aware comparison metric across random seeds."""
 
 
 def get_refined_segmentation_from_downscaled_image(
@@ -792,6 +808,151 @@ def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict
         ).to_dict("index")
 
     return aggregate_by_group
+
+
+def load_structure_aware_comparison_metrics(
+    model_manifest_names: list[str],
+    run_name: str,
+    comparisons: list[Column.ModelComparisonType],
+    metrics: list[Column.ModelComparisonMetric],
+) -> pd.DataFrame:
+    """
+    Load structure-aware comparison metrics for the given models in long format.
+
+    The wide-format metric columns are melted into one row per (example, seed,
+    comparison, metric). Relative aspect ratios are converted to log2 fold
+    changes, so that reductions and increases by the same factor are weighted
+    equally (e.g. halving is -1 and doubling is +1).
+
+    Parameters
+    ----------
+    model_manifest_names
+        List of model manifest names.
+    run_name
+        Name of the model run (shared across all model manifests).
+    comparisons
+        Comparison types to keep.
+    metrics
+        Metrics to keep. Use LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO to keep the
+        converted relative aspect ratios.
+
+    Returns
+    -------
+    :
+        Long-format dataframe of structure-aware comparison metrics.
+    """
+
+    # Load the structure-aware comparison metrics dataframe for each model manifest
+    all_metrics = []
+    for model_manifest_name in model_manifest_names:
+        dataframe_manifest = load_dataframe_manifest(
+            f"{DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX}_{model_manifest_name}"
+        )
+        location = get_dataframe_location_for_dataset(dataframe_manifest, run_name)
+        all_metrics.append(load_dataframe(location))
+
+    # Combine into a single dataframe, with model manifest and run name columns identifying rows
+    all_metrics_df = pd.concat(all_metrics, ignore_index=True)
+
+    # Melt into long format with one row per (example, seed, comparison, metric), splitting each
+    # metric column name into the comparison type and the metric name
+    id_columns = [
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.DiffAEData.MODEL_RUN,
+        Column.EXAMPLE_KEY,
+        Column.RANDOM_SEED,
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+    ]
+    metrics_df = all_metrics_df.melt(
+        id_vars=id_columns, var_name="column", value_name=STRUCTURE_AWARE_VALUE_COLUMN
+    )
+
+    # Split out the existing wide-format column names into comparison and metric components
+    comparison_pattern = "|".join(Column.ModelComparisonType)
+    metric_pattern = "|".join(Column.ModelComparisonMetric)
+    metrics_df[[STRUCTURE_AWARE_COMPARISON_COLUMN, STRUCTURE_AWARE_METRIC_COLUMN]] = metrics_df[
+        "column"
+    ].str.extract(rf"^({comparison_pattern})_({metric_pattern})$")
+
+    # Convert the relative aspect ratios to log2 fold changes
+    is_aspect_ratio = (
+        metrics_df[STRUCTURE_AWARE_METRIC_COLUMN]
+        == Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO
+    )
+    metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_VALUE_COLUMN] = np.log2(
+        metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_VALUE_COLUMN]
+    )
+    metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_METRIC_COLUMN] = (
+        Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO
+    )
+
+    # Keep only the requested comparisons and metrics
+    return metrics_df[
+        metrics_df[STRUCTURE_AWARE_COMPARISON_COLUMN].isin(comparisons)
+        & metrics_df[STRUCTURE_AWARE_METRIC_COLUMN].isin(metrics)
+    ]
+
+
+def calculate_structure_aware_crop_stats(
+    metrics_df: pd.DataFrame, baseline_model_manifest_name: str
+) -> pd.DataFrame:
+    """
+    Calculate the mean and SEM across random seeds of each crop's structure-aware
+    comparison metrics.
+
+    The baseline comparison (target vs. next timepoint) does not use a DiffAE
+    model and is identical for every model, so only the crops from one model are
+    kept for the baseline (to avoid counting each crop once per model).
+
+    Parameters
+    ----------
+    metrics_df
+        Long-format dataframe of structure-aware comparison metrics.
+    baseline_model_manifest_name
+        Model manifest name whose crops are kept for the baseline comparison.
+
+    Returns
+    -------
+    :
+        Dataframe with the mean and SEM across seeds for each crop, comparison,
+        and metric.
+    """
+
+    # Example key is used rather than crop index because crop indices repeat across positions and
+    # timepoints
+    crop_stats_df = (
+        metrics_df.groupby(
+            [
+                STRUCTURE_AWARE_METRIC_COLUMN,
+                Column.DiffAEData.MODEL_MANIFEST,
+                Column.DATASET,
+                Column.EXAMPLE_KEY,
+                Column.CROP_INDEX,
+                STRUCTURE_AWARE_COMPARISON_COLUMN,
+            ]
+        )[STRUCTURE_AWARE_VALUE_COLUMN]
+        .agg(["mean", "sem"])
+        .rename(
+            columns={
+                "mean": STRUCTURE_AWARE_CROP_MEAN_COLUMN,
+                "sem": STRUCTURE_AWARE_CROP_SEM_COLUMN,
+            }
+        )
+        .reset_index()
+    )
+
+    is_baseline = (
+        crop_stats_df[STRUCTURE_AWARE_COMPARISON_COLUMN] == Column.ModelComparisonType.BASELINE
+    )
+    is_baseline_model = (
+        crop_stats_df[Column.DiffAEData.MODEL_MANIFEST] == baseline_model_manifest_name
+    )
+    return crop_stats_df[~is_baseline | is_baseline_model]
 
 
 def plot_image_validation(
