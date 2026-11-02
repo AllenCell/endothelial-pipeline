@@ -22,20 +22,36 @@ def main() -> None:
     import numpy as np
     import pandas as pd
     import seaborn as sns
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import AutoMinorLocator, LogLocator, NullFormatter
 
+    from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.workflow_defaults import (
         CDH5_CONDITIONED_MODEL_MANIFEST_NAME,
         DEFAULT_MODEL_MANIFEST_NAME,
+        DEFAULT_MODEL_QC_LABEL_MAP,
         DEFAULT_MODEL_RUN_NAME,
         DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX,
     )
 
+    def _get_shear_replicate_label(dataset_name: str) -> str:
+        """Get "[shear stress bin] replicate [replicate number]" label for the given dataset."""
+        dataset_config = load_dataset_config(dataset_name)
+        shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+        shear_units = COLUMN_METADATA[Column.SHEAR_REPLICATE_NAME].unit
+        return f"{shear_stress_bin} {shear_units}\n[repl. {dataset_config.replicate_number}]"
+
     models_to_compare = [DEFAULT_MODEL_MANIFEST_NAME, CDH5_CONDITIONED_MODEL_MANIFEST_NAME]
     run_name = DEFAULT_MODEL_RUN_NAME
+    model_labels = [
+        DEFAULT_MODEL_QC_LABEL_MAP[(model, run_name)].replace("\n", "")
+        for model in models_to_compare
+    ]
 
     # Load the structure-aware comparison metrics dataframe for each model manifest
     all_metrics = []
@@ -105,12 +121,14 @@ def main() -> None:
 
     # Fix the dataset order and model colors so all plotting options are consistent
     dataset_order = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
+    shear_replicate_order = [_get_shear_replicate_label(dataset) for dataset in dataset_order]
 
     # Plot a grid of metrics (rows) by comparison types (columns), with box plots of each crop's
     # mean over seeds for each dataset and model
-    panel_size = 4
     num_rows, num_cols = len(metrics_to_keep), len(comparisons_to_keep)
-    fig, ax = plt.subplots(
+    panel_size = MAX_FIGURE_WIDTH / num_cols
+
+    fig, axes = plt.subplots(
         nrows=num_rows,
         ncols=num_cols,
         figsize=(panel_size * num_cols, panel_size * num_rows),
@@ -121,6 +139,10 @@ def main() -> None:
 
     sem_summaries = []
 
+    # Style of the horizontal line at each metric's reference value (i.e. identical images)
+    reference_line_color, reference_line_style = "black", ":"
+
+    # Plot a subset of the comparison metrics (1 per row)
     for row_idx, metric in enumerate(metrics_to_keep):
         metric_col_metadata = COLUMN_METADATA[str(metric)]
         log_base = metric_col_metadata.log_base
@@ -148,6 +170,14 @@ def main() -> None:
             .rename(columns={"mean": crop_mean_col, "sem": crop_sem_col})
             .reset_index()
         )
+        # Label each row by shear stress and replicate, loading each dataset config only once
+        shear_replicate_labels = {
+            dataset: _get_shear_replicate_label(dataset)
+            for dataset in crop_stats_df[Column.DATASET].unique()
+        }
+        crop_stats_df[Column.SHEAR_REPLICATE_NAME] = crop_stats_df[Column.DATASET].map(
+            shear_replicate_labels
+        )
         if log_base is not None:
             crop_stats_df[crop_mean_col] = log_base ** crop_stats_df[crop_mean_col]
 
@@ -168,9 +198,14 @@ def main() -> None:
         sem_summaries.append(sem_summary)
 
         for col_idx, comparison in enumerate(comparisons_to_keep):
-            axis = ax[row_idx, col_idx]
+            ax = axes[row_idx, col_idx]
             if metric_col_metadata.reference_value is not None:
-                axis.axhline(metric_col_metadata.reference_value, color="gray", linestyle="--")
+                ax.axhline(
+                    metric_col_metadata.reference_value,
+                    color=reference_line_color,
+                    linestyle=reference_line_style,
+                    zorder=4,  # draw in front of the box plots but behind the legend (zorder 5)
+                )
 
             df_crops = crop_stats_df[crop_stats_df[comparison_col] == comparison]
 
@@ -179,30 +214,52 @@ def main() -> None:
 
             sns.boxplot(
                 data=df_crops,
-                x=Column.DATASET,
+                x=Column.SHEAR_REPLICATE_NAME,
                 y=crop_mean_col,
                 hue=Column.DiffAEData.MODEL_MANIFEST,
-                order=dataset_order,
+                order=shear_replicate_order,
                 hue_order=models_to_compare,
                 legend=add_legend,
                 log_scale=metric_col_metadata.log_base,
-                ax=axis,
+                ax=ax,
             )
+
+            # Replace the model manifest names in the legend with their display labels and add
+            # the reference line, which marks the value for identical images
+            if add_legend:
+                handles = [
+                    *ax.get_legend().legend_handles,
+                    Line2D([], [], color=reference_line_color, linestyle=reference_line_style),
+                ]
+                labels = [*model_labels, "Identical\nimages"]
+                ax.legend(handles, labels, loc="best", fontsize=FONTSIZE_XSMALL)
+            ax.tick_params(axis="both", which="major", labelsize=FONTSIZE_SMALL)
+
+            # Turn on y axis minor ticks. Matplotlib adds no minor ticks to base 2 log axes, so
+            # place three minor ticks between each power of the log base instead.
+            if log_base is None:
+                ax.yaxis.set_minor_locator(AutoMinorLocator())
+            else:
+                minor_subs = np.linspace(1, log_base, 5)[1:-1].tolist()
+                ax.yaxis.set_minor_locator(LogLocator(base=log_base, subs=minor_subs))
+                ax.yaxis.set_minor_formatter(NullFormatter())
 
             # Set axis limits where appropriate
             if metric_col_metadata.min is not None and metric_col_metadata.max is not None:
-                axis.set_ylim(metric_col_metadata.min, metric_col_metadata.max)
+                ax.set_ylim(metric_col_metadata.min, metric_col_metadata.max)
 
             # Label the metric on the first column, the comparison on the top row, and the
             # dataset on the bottom row
-            axis.set_ylabel(metric_col_metadata.label if col_idx == 0 else "")
+            ax.set_ylabel(
+                metric_col_metadata.label if col_idx == 0 else "", fontsize=FONTSIZE_SMALL
+            )
             if row_idx == 0:
-                axis.set_title(COLUMN_METADATA[str(comparison)].name)
+                ax.set_title(COLUMN_METADATA[str(comparison)].label, fontsize=FONTSIZE_SMALL)
             if row_idx == num_rows - 1:
-                axis.set_xlabel(COLUMN_METADATA[str(Column.DATASET)].label)
-                axis.tick_params(axis="x", labelrotation=45)
+                ax.set_xlabel("")
+                plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
             else:
-                axis.set_xlabel("")
+                ax.set_xlabel("")
 
     save_plot_to_path(
         figure=fig,

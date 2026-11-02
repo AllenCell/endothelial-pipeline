@@ -46,6 +46,9 @@ class ColumnName:
     SHEAR_STRESS_REGIME = "shear_stress_regime"
     """Experimentalist categorization of the shear stress response."""
 
+    SHEAR_REPLICATE_NAME = "shear_replicate_name"
+    """Dataset label combining shear stress bin and replicate number (e.g. "12 replicate 5")."""
+
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
     """Index of the CDH5 channel in the Zarr file."""
 
@@ -858,6 +861,9 @@ class ColumnName:
 
         MEAN_RELATIVE_ASPECT_RATIO = "mean_relative_aspect_ratio"
         """Mean aspect ratio of segmentations of second image relative to first image."""
+
+        LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO = "log2_fold_change_mean_aspect_ratio"
+        """Log2 fold change in mean cell aspect ratio."""
 
         MEAN_RELATIVE_AREA = "mean_relative_area"
         """Mean area of segmentations of second image relative to first image."""
