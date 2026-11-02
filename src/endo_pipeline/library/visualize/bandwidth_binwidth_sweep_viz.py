@@ -17,6 +17,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import MaxNLocator
 
+from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
     get_param_sweep_run_name,
@@ -47,6 +48,7 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.manifest_names import GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +100,18 @@ def _get_main_analysis_parameters() -> tuple[float, float]:
     bw_original = np.unique(list(BIN_WIDTHS_DYNAMICS.values())).item()
     kb_original = np.unique(list(KERNEL_BANDWIDTHS_DYNAMICS.values())).item()
     return bw_original, kb_original
+
+
+def _get_dataset_title(dataset: str) -> str:
+    """
+    Get the title of the column of axes of a dataset, giving the shear stress bin of the dataset
+    followed by its replicate number in square brackets (e.g. "12 dyn/cm² [3]").
+    """
+    dataset_config = load_dataset_config(dataset)
+    shear_stress_bin = dataset_config.flow_conditions[-1].shear_stress_bin
+    replicate_number = dataset_config.replicate_number
+    assert replicate_number is not None  # for type checking
+    return f"{shear_stress_bin} dyn/cm{Unicode.SQUARED} [repl. {replicate_number}]"
 
 
 def load_sweep_fixed_points(unwrap_angle: bool = True) -> pd.DataFrame:
@@ -396,7 +410,7 @@ def plot_fixed_point_count_heatmaps(
             if label.get_text() == f"{bw_original:g}":
                 label.set_fontweight("bold")
 
-        ax.set_title(dataset, fontsize=FONTSIZE_MEDIUM)
+        ax.set_title(_get_dataset_title(dataset), fontsize=FONTSIZE_MEDIUM)
         ax.set_xlabel("Kernel Bandwidth", fontsize=FONTSIZE_SMALL)
         if axis_index == 0:
             ax.set_ylabel("Binwidth", fontsize=FONTSIZE_SMALL)
@@ -513,8 +527,9 @@ def plot_fixed_point_location_summary(
         df_dataset = df_plot.loc[df_plot[ColumnName.DATASET] == dataset]
         dataset_axes = axes[:, axis_index]
 
-        # label each column of axes with the dataset name over the top row only
-        dataset_axes[0].set_title(dataset, fontsize=FONTSIZE_MEDIUM)
+        # label each column of axes with the dataset shear stress and replicate over the top row
+        # only
+        dataset_axes[0].set_title(_get_dataset_title(dataset), fontsize=FONTSIZE_MEDIUM)
 
         for col, ax in zip(DYNAMICS_COLUMN_NAMES, dataset_axes, strict=True):
             ax.scatter(
