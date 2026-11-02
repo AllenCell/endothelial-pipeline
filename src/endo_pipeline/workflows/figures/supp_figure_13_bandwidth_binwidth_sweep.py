@@ -1,11 +1,44 @@
-"""
-Visualization script for bandwidth and binwidth sweep results.
-"""
+from endo_pipeline.cli import UniqueStrList
 
 
-def main():
-    """Plot the kernel bandwidth and binwidth sweep results."""
-    from endo_pipeline.cli import DEMO_MODE
+def main(include_panels: UniqueStrList | None = None) -> None:
+    """
+    **Supplemental Figure 13**. Robustness of stable fixed points to the kernel
+    bandwidth and binwidth used to estimate the drift
+
+    #supp-figure #fixed-points #parameter-sweep
+
+    | Panel | Description                                                                      |
+    | ----- | -------------------------------------------------------------------------------- |
+    | A     | Number of stable fixed points for every kernel bandwidth and binwidth in sweep   |
+    | B     | Stable fixed point locations for parameters surrounding main analysis parameters |
+
+    ## Example usage
+
+    To run the figure workflow:
+
+    ```bash
+    uv run endopipe supp-figure-13-bandwidth-binwidth-sweep
+    ```
+
+    To run the figure workflow for a specific panel:
+
+    ```bash
+    uv run endopipe supp-figure-13-bandwidth-binwidth-sweep PANEL
+    ```
+
+    ## Figure panels
+
+    All panels in this workflow can be run without GPU.
+
+    Parameters
+    ----------
+    include_panels
+        List of panels to include in figure. Leave empty to include all panels.
+    """
+
+    import matplotlib.pyplot as plt
+
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.bandwidth_binwidth_sweep_viz import (
         load_sweep_fixed_points,
@@ -13,34 +46,74 @@ def main():
         plot_fixed_point_count_scatterplots,
         plot_fixed_point_location_summary,
     )
-    from endo_pipeline.settings.bootstrap_fixed_points import BOOTSTRAP_THRESHOLD
-    from endo_pipeline.settings.column_names import ColumnName
+    from endo_pipeline.library.visualize.figures import (
+        FigurePanel,
+        build_figure_from_panels,
+        parse_placeholder_panels,
+    )
     from endo_pipeline.settings.examples import SUPP_FIG_PARAM_SWEEP
+    from endo_pipeline.settings.figures import MAX_FIGURE_WIDTH
+    from endo_pipeline.settings.flow_field_dataframes import StabilityLabel
 
-    out_dir = get_output_path(__file__)
+    plt.style.use("endo_pipeline.figure")
 
-    file_format = ".png" if DEMO_MODE else ".pdf"
+    output_path = get_output_path(__file__)
 
-    # load the bootstrapped fixed points from every sweep run for the datasets in the figure
+    placeholders = parse_placeholder_panels(include_panels, ["A", "B"])
+
+    stability = StabilityLabel.STABLE
+
+    # load the bootstrapped fixed points from every sweep run
     df_sweep = load_sweep_fixed_points()
-    df_sweep = df_sweep.loc[df_sweep[ColumnName.DATASET].isin(SUPP_FIG_PARAM_SWEEP)]
 
-    for stability in sorted(df_sweep[ColumnName.FIXED_POINT_STABILITY].unique()):
-        df_stability = df_sweep.loc[df_sweep[ColumnName.FIXED_POINT_STABILITY] == stability]
+    heatmap_panel_path = plot_fixed_point_count_heatmaps(
+        df_sweep,
+        stability,
+        output_path,
+        datasets=SUPP_FIG_PARAM_SWEEP,
+        file_format=".svg",
+        **placeholders["A"],
+    )
 
-        # skip this stability if no parameter combination has a detection rate below the threshold
-        if not (df_stability[ColumnName.FIXED_POINT_DETECTION_RATE] < BOOTSTRAP_THRESHOLD).any():
-            continue
+    location_summary_panel_path = plot_fixed_point_location_summary(
+        df_sweep,
+        stability,
+        output_path,
+        datasets=SUPP_FIG_PARAM_SWEEP,
+        file_format=".svg",
+        **placeholders["B"],
+    )
 
-        plot_fixed_point_count_heatmaps(
-            df_sweep, stability, out_dir, datasets=SUPP_FIG_PARAM_SWEEP, file_format=file_format
-        )
-        plot_fixed_point_count_scatterplots(
-            df_sweep, stability, out_dir, datasets=SUPP_FIG_PARAM_SWEEP, file_format=file_format
-        )
-        plot_fixed_point_location_summary(
-            df_sweep, stability, out_dir, datasets=SUPP_FIG_PARAM_SWEEP, file_format=file_format
-        )
+    plot_fixed_point_count_scatterplots(
+        df_sweep, stability, output_path, datasets=SUPP_FIG_PARAM_SWEEP, file_format=".svg"
+    )
+
+    # both panels use the same x offset so that their dataset columns line up
+    panels = [
+        FigurePanel(
+            letter="A",
+            path=heatmap_panel_path,
+            x_position=0.0,
+            y_position=0.0,
+            x_offset=0.15,
+            y_offset=0.1,
+        ),
+        FigurePanel(
+            letter="B",
+            path=location_summary_panel_path,
+            x_position=0.0,
+            y_position=2.0,
+            x_offset=0.15,
+            y_offset=0.1,
+        ),
+    ]
+
+    build_figure_from_panels(
+        panels,
+        output_path / "supp_figure_13_bandwidth_binwidth_sweep.svg",
+        width=MAX_FIGURE_WIDTH,
+        height=4.9,
+    )
 
 
 if __name__ == "__main__":

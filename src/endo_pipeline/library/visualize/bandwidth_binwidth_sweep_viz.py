@@ -20,6 +20,7 @@ from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
     get_param_sweep_run_name,
     get_parameter_space,
 )
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings import plot_defaults
 from endo_pipeline.settings.bandwidth_binwidth_sweep import (
@@ -269,6 +270,7 @@ def _add_shared_colorbar(fig: Figure, bottom: float, top: float, vmax: int, stab
     cbar.ax.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=7))
 
 
+@figure_panel("Number of fixed points across the kernel bandwidth and binwidth sweep")
 def plot_fixed_point_count_heatmaps(
     df_sweep: pd.DataFrame,
     stability: str,
@@ -531,6 +533,7 @@ def _format_param_combo(kernel_bandwidth: float, binwidth: float) -> str:
     return f"({kernel_bandwidth}, {binwidth})"
 
 
+@figure_panel("Fixed point locations for parameters surrounding the main analysis parameters")
 def plot_fixed_point_location_summary(
     df_sweep: pd.DataFrame,
     stability: str,
