@@ -23,7 +23,8 @@ def main() -> None:
     import pandas as pd
     import seaborn as sns
     from matplotlib.lines import Line2D
-    from matplotlib.ticker import AutoMinorLocator, LogLocator, NullFormatter
+    from matplotlib.patches import Patch
+    from matplotlib.ticker import AutoMinorLocator
 
     from endo_pipeline.configs import load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe, save_plot_to_path
@@ -48,10 +49,12 @@ def main() -> None:
 
     models_to_compare = [DEFAULT_MODEL_MANIFEST_NAME, CDH5_CONDITIONED_MODEL_MANIFEST_NAME]
     run_name = DEFAULT_MODEL_RUN_NAME
-    model_labels = [
-        DEFAULT_MODEL_QC_LABEL_MAP[(model, run_name)].replace("\n", "")
+    model_label_map = {
+        model: DEFAULT_MODEL_QC_LABEL_MAP[(model, run_name)].replace("\n", "")
         for model in models_to_compare
-    ]
+    }
+    no_model_label = "No DiffAE model"
+    model_labels = [no_model_label, *model_label_map.values()]
 
     # Load the structure-aware comparison metrics dataframe for each model manifest
     all_metrics = []
@@ -93,6 +96,18 @@ def main() -> None:
         rf"^({comparison_pattern})_({metric_pattern})$"
     )
 
+    # Convert the relative aspect ratios to log2 fold changes, so that reductions and increases by
+    # the same factor are weighted equally (e.g. halving is -1 and doubling is +1)
+    is_aspect_ratio = (
+        all_metrics_df_long[metric_col] == Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO
+    )
+    all_metrics_df_long.loc[is_aspect_ratio, value_col] = np.log2(
+        all_metrics_df_long.loc[is_aspect_ratio, value_col]
+    )
+    all_metrics_df_long.loc[is_aspect_ratio, metric_col] = (
+        Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO
+    )
+
     # Define which comparisons to include in the plots
     comparisons_to_keep = [
         Column.ModelComparisonType.BASELINE,
@@ -104,7 +119,7 @@ def main() -> None:
     metrics_to_keep = [
         Column.ModelComparisonMetric.CORRELATION,
         Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE,
-        Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO,
+        Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO,
     ]
 
     all_metrics_df_long = all_metrics_df_long[
@@ -116,6 +131,7 @@ def main() -> None:
     crop_mean_col, crop_sem_col = "crop_mean", "crop_sem"
     mean_crop_sem_col, unit_col = "mean_crop_sem", "unit"
     mean_crop_sem_fold_change_col = "mean_crop_sem_fold_change"
+    model_col = "model"
 
     output_path = get_output_path(__file__)
 
@@ -142,20 +158,17 @@ def main() -> None:
     # Style of the horizontal line at each metric's reference value (i.e. identical images)
     reference_line_color, reference_line_style = "black", ":"
 
+    # Line color and width of the unfilled box plots for comparisons that do not use a DiffAE
+    # model, matching the outlines seaborn draws around the filled box plots
+    no_model_color, no_model_linewidth = "#3f3f3f", 1.0
+
     # Plot a subset of the comparison metrics (1 per row)
     for row_idx, metric in enumerate(metrics_to_keep):
         metric_col_metadata = COLUMN_METADATA[str(metric)]
-        log_base = metric_col_metadata.log_base
 
         # Summarize the variation across random seeds for each crop. Example key is used rather
-        # than crop index because crop indices repeat across positions and timepoints. Metrics
-        # plotted on a log scale (e.g. ratios) are summarized in log space, so that the crop mean
-        # is a geometric mean and the SEM is in log fold-change units.
+        # than crop index because crop indices repeat across positions and timepoints.
         df_metric = all_metrics_df_long[all_metrics_df_long[metric_col] == metric]
-        if log_base is not None:
-            df_metric = df_metric.assign(
-                **{value_col: np.log(df_metric[value_col]) / np.log(log_base)}
-            )
         crop_stats_df = (
             df_metric.groupby(
                 [
@@ -178,21 +191,31 @@ def main() -> None:
         crop_stats_df[Column.SHEAR_REPLICATE_NAME] = crop_stats_df[Column.DATASET].map(
             shear_replicate_labels
         )
-        if log_base is not None:
-            crop_stats_df[crop_mean_col] = log_base ** crop_stats_df[crop_mean_col]
 
-        # Summarize the SEM across crops for each model and comparison. For log-scaled metrics,
-        # also convert the log fold-change SEM to a fold-change factor (i.e. multiply or divide).
+        # The baseline comparison (target vs. next timepoint) does not use a DiffAE model and is
+        # identical for every model, so keep the crops from one model only (to avoid counting
+        # each crop once per model)
+        is_baseline = crop_stats_df[comparison_col] == Column.ModelComparisonType.BASELINE
+        is_first_model = crop_stats_df[Column.DiffAEData.MODEL_MANIFEST] == models_to_compare[0]
+        crop_stats_df = crop_stats_df[~is_baseline | is_first_model]
+
+        # Summarize the SEM across crops for each model and comparison. For log2 fold changes,
+        # also convert the SEM to a fold-change factor (i.e. multiply or divide).
         sem_summary = (
             crop_stats_df.groupby([Column.DiffAEData.MODEL_MANIFEST, comparison_col])[crop_sem_col]
             .mean()
             .rename(mean_crop_sem_col)
             .reset_index()
         )
+        # Label each model by its display label, and the baseline comparison as using no model
+        sem_summary[model_col] = sem_summary[Column.DiffAEData.MODEL_MANIFEST].map(model_label_map)
+        sem_summary.loc[
+            sem_summary[comparison_col] == Column.ModelComparisonType.BASELINE, model_col
+        ] = no_model_label
         sem_summary[metric_col] = metric
-        if log_base is not None:
-            sem_summary[unit_col] = f"log{log_base:g} fold-change"
-            sem_summary[mean_crop_sem_fold_change_col] = log_base ** sem_summary[mean_crop_sem_col]
+        if metric == Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO:
+            sem_summary[unit_col] = "log2 fold-change"
+            sem_summary[mean_crop_sem_fold_change_col] = 2 ** sem_summary[mean_crop_sem_col]
         else:
             sem_summary[unit_col] = metric_col_metadata.unit
         sem_summaries.append(sem_summary)
@@ -212,37 +235,49 @@ def main() -> None:
             # Add legend to the top right subplot only
             add_legend = row_idx == 0 and col_idx == num_cols - 1
 
-            sns.boxplot(
-                data=df_crops,
-                x=Column.SHEAR_REPLICATE_NAME,
-                y=crop_mean_col,
-                hue=Column.DiffAEData.MODEL_MANIFEST,
-                order=shear_replicate_order,
-                hue_order=models_to_compare,
-                legend=add_legend,
-                log_scale=metric_col_metadata.log_base,
-                ax=ax,
-            )
+            # Plot a single unfilled box plot for the baseline comparison, which does not use a
+            # DiffAE model, and one box plot for each model otherwise
+            if comparison == Column.ModelComparisonType.BASELINE:
+                sns.boxplot(
+                    data=df_crops,
+                    x=Column.SHEAR_REPLICATE_NAME,
+                    y=crop_mean_col,
+                    order=shear_replicate_order,
+                    color=no_model_color,
+                    linewidth=no_model_linewidth,
+                    fill=False,
+                    ax=ax,
+                )
+            else:
+                sns.boxplot(
+                    data=df_crops,
+                    x=Column.SHEAR_REPLICATE_NAME,
+                    y=crop_mean_col,
+                    hue=Column.DiffAEData.MODEL_MANIFEST,
+                    order=shear_replicate_order,
+                    hue_order=models_to_compare,
+                    legend=add_legend,
+                    ax=ax,
+                )
 
             # Replace the model manifest names in the legend with their display labels and add
-            # the reference line, which marks the value for identical images
+            # the unfilled box for comparisons without a DiffAE model, and the reference line,
+            # which marks the value for identical images
             if add_legend:
                 handles = [
+                    Patch(facecolor="none", edgecolor=no_model_color, linewidth=no_model_linewidth),
                     *ax.get_legend().legend_handles,
                     Line2D([], [], color=reference_line_color, linestyle=reference_line_style),
                 ]
-                labels = [*model_labels, "Identical\nimages"]
+                labels = [*model_labels, "Identical images"]
                 ax.legend(handles, labels, loc="best", fontsize=FONTSIZE_XSMALL)
             ax.tick_params(axis="both", which="major", labelsize=FONTSIZE_SMALL)
 
-            # Turn on y axis minor ticks. Matplotlib adds no minor ticks to base 2 log axes, so
-            # place three minor ticks between each power of the log base instead.
-            if log_base is None:
-                ax.yaxis.set_minor_locator(AutoMinorLocator())
-            else:
-                minor_subs = np.linspace(1, log_base, 5)[1:-1].tolist()
-                ax.yaxis.set_minor_locator(LogLocator(base=log_base, subs=minor_subs))
-                ax.yaxis.set_minor_formatter(NullFormatter())
+            # Use y ticks (and tick labels) from the column metadata where available, and turn on
+            # y axis minor ticks
+            if metric_col_metadata.ticks is not None:
+                ax.set_yticks(metric_col_metadata.ticks, labels=metric_col_metadata.tick_labels)
+            ax.yaxis.set_minor_locator(AutoMinorLocator())
 
             # Set axis limits where appropriate
             if metric_col_metadata.min is not None and metric_col_metadata.max is not None:
@@ -272,7 +307,7 @@ def main() -> None:
         [
             metric_col,
             comparison_col,
-            Column.DiffAEData.MODEL_MANIFEST,
+            model_col,
             mean_crop_sem_col,
             unit_col,
             mean_crop_sem_fold_change_col,

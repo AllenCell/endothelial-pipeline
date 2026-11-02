@@ -638,14 +638,14 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE: ColumnMetadata(
         name="Absolute difference in mean cell orientation",
-        label="Absolute difference in\nmean cell orientation",
+        label="Absolute change in\nmean cell orientation",
         unit="rad",
         type=ColumnType.CONTINUOUS,
         min=0 - pi / 32,
         max=pi / 2 + pi / 32,
         ticks=[0, pi / 4, pi / 2],
         tick_labels=[
-            f"0={Unicode.PI}",
+            "0",
             f"{Unicode.PI}/4",
             f"{Unicode.PI}/2",
         ],
@@ -658,9 +658,10 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         reference_value=1,
     ),
     Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO: ColumnMetadata(
-        name=f"log{Unicode.SUBSCRIPT_2} fold change in mean cell aspect ratio",
-        label=f"log{Unicode.SUBSCRIPT_2} fold change in\nmean cell aspect ratio",
+        name=f"Log{Unicode.SUBSCRIPT_2} fold change in mean cell aspect ratio",
+        label=f"Log{Unicode.SUBSCRIPT_2} fold-change in\nmean cell aspect ratio",
         type=ColumnType.CONTINUOUS,
+        ticks=[-1, -0.5, 0, 0.5],
         reference_value=0,
     ),
     Column.ModelComparisonMetric.MEAN_RELATIVE_AREA: ColumnMetadata(
