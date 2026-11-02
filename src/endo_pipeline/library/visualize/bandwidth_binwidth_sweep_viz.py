@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
-from matplotlib.ticker import MaxNLocator, NullFormatter
+from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
 from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
@@ -24,8 +24,6 @@ from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings import plot_defaults
 from endo_pipeline.settings.bandwidth_binwidth_sweep import (
-    SWEEP_BINWIDTHS,
-    SWEEP_KERNEL_BANDWIDTHS,
     SWEEP_PARAM_EXAMPLE_BINWIDTHS,
     SWEEP_PARAM_EXAMPLE_KERNEL_BANDWIDTHS,
 )
@@ -396,135 +394,7 @@ def plot_fixed_point_count_heatmaps(
         file_format=file_format,
         pad_inches=0,
         tight_layout=False,
-    )
-
-
-def plot_fixed_point_count_scatterplots(
-    df_sweep: pd.DataFrame,
-    stability: str,
-    output_path: Path,
-    datasets: Sequence[str] = SUPP_FIG_PARAM_SWEEP,
-    file_format: FileFormat = ".png",
-) -> Path:
-    """
-    Plot scatterplots of the number of fixed points of a given stability that passed the bootstrap
-    threshold for every parameter combination of the sweep, one scatterplot per dataset.
-
-    Unlike `plot_fixed_point_count_heatmaps`, each parameter combination is drawn as a point at its
-    actual (kernel bandwidth, binwidth) position on log-scaled axes, so the relative distances
-    between points reflect the ratios between parameter values. Points are colored by the number of
-    fixed points without annotations, and share a single colorbar drawn to the right of the dataset
-    columns. Parameter combinations with no results for a dataset are drawn in grey.
-
-    Parameters
-    ----------
-    df_sweep
-        Bootstrapped fixed points of all datasets and all sweep runs, as returned by
-        `load_sweep_fixed_points`.
-    stability
-        Fixed point stability to plot (e.g. "stable" or "unstable").
-    output_path
-        Directory path to save the output figure.
-    datasets
-        Datasets to plot, in the order in which they appear as columns of the figure.
-    file_format
-        File format for the figure.
-
-    Returns
-    -------
-    :
-        Path to the saved figure file.
-    """
-    parameter_space = get_parameter_space()
-    sweep_binwidths = sorted({bw for bw, _ in parameter_space})
-    sweep_kernel_bandwidths = sorted({kb for _, kb in parameter_space})
-
-    df_datasets = df_sweep.loc[df_sweep[ColumnName.DATASET].isin(datasets)]
-    df_stability = df_datasets.loc[df_datasets[ColumnName.FIXED_POINT_STABILITY] == stability]
-
-    # use a common color range across all datasets so that the shared colorbar applies to every
-    # scatterplot
-    vmax = _get_max_fixed_point_count(df_stability)
-
-    fig, axes = plt.subplots(
-        figsize=(HEATMAP_FIG_WIDTH, HEATMAP_FIG_HEIGHT),
-        ncols=len(datasets),
-        sharex=True,
-        sharey=True,
-    )
-    bottom, top = _apply_shared_horizontal_layout(
-        fig, HEATMAP_FIG_WIDTH, HEATMAP_FIG_HEIGHT, HEATMAP_BOTTOM_MARGIN, HEATMAP_TOP_MARGIN
-    )
-
-    for axis_index, (dataset, ax) in enumerate(zip(datasets, axes, strict=True)):
-        counts = _count_fixed_points_on_sweep_grid(
-            df_dataset_stability=df_stability.loc[df_stability[ColumnName.DATASET] == dataset],
-            df_dataset=df_datasets.loc[df_datasets[ColumnName.DATASET] == dataset],
-            binwidths=sweep_binwidths,
-            kernel_bandwidths=sweep_kernel_bandwidths,
-        )
-        if counts is None:
-            fig.delaxes(ax)
-            continue
-
-        # one point per parameter combination at its actual (kernel bandwidth, binwidth) position
-        df_points = pd.DataFrame(
-            [(kb, bw, counts.at[bw, kb]) for bw in counts.index for kb in counts.columns],
-            columns=[KERNEL_BANDWIDTH_COLUMN, BINWIDTH_COLUMN, "num_fixedpoints"],
-        ).astype(float)
-        has_results = df_points["num_fixedpoints"].notna()
-
-        # parameter combinations with no results are drawn in grey, matching the heatmaps
-        ax.scatter(
-            x=df_points.loc[~has_results, KERNEL_BANDWIDTH_COLUMN],
-            y=df_points.loc[~has_results, BINWIDTH_COLUMN],
-            c="lightgrey",
-            s=12,
-            edgecolors="none",
-        )
-        ax.scatter(
-            x=df_points.loc[has_results, KERNEL_BANDWIDTH_COLUMN],
-            y=df_points.loc[has_results, BINWIDTH_COLUMN],
-            c=df_points.loc[has_results, "num_fixedpoints"],
-            cmap="magma",
-            vmin=0,
-            vmax=vmax,
-            s=12,
-            edgecolors="none",
-        )
-
-        # log-scale the axes so that the closely spaced small parameter values do not overlap. Only
-        # the broad sweep values, which are roughly evenly spaced on a log scale, are labeled; every
-        # other sampled parameter value gets an unlabeled minor tick
-        ax.set_xscale("log")
-        ax.set_yscale("log")
-        ax.set_xticks(SWEEP_KERNEL_BANDWIDTHS, labels=[f"{kb:g}" for kb in SWEEP_KERNEL_BANDWIDTHS])
-        ax.set_yticks(SWEEP_BINWIDTHS, labels=[f"{bw:g}" for bw in SWEEP_BINWIDTHS])
-        ax.set_xticks(sweep_kernel_bandwidths, minor=True)
-        ax.set_yticks(sweep_binwidths, minor=True)
-        ax.xaxis.set_minor_formatter(NullFormatter())
-        ax.yaxis.set_minor_formatter(NullFormatter())
-        ax.tick_params(axis="both", which="major", labelsize=FONTSIZE_XSMALL)
-
-        ax.set_title(dataset, fontsize=FONTSIZE_MEDIUM)
-        ax.set_xlabel("Kernel Bandwidth", fontsize=FONTSIZE_SMALL)
-        if axis_index == 0:
-            ax.set_ylabel("Binwidth", fontsize=FONTSIZE_SMALL)
-        else:
-            ax.set(ylabel=None)
-
-    _add_shared_colorbar(fig, bottom, top, vmax, stability)
-
-    # the layout is set explicitly above, so skip tight layout / bbox cropping that would shift
-    # the axes
-    return save_plot_to_path(
-        figure=fig,
-        output_path=output_path,
-        figure_name=f"{stability}_scatterplot",
-        dpi=FIGURE_SAVE_DPI,
-        file_format=file_format,
-        pad_inches=0,
-        tight_layout=False,
+        show_and_close=False,
     )
 
 
@@ -661,9 +531,7 @@ def plot_fixed_point_location_summary(
                 label="Main analysis parameters",
             )
 
-        dataset_axes[-1].set_xticklabels(
-            dataset_axes[-1].get_xticklabels(), rotation=90, fontsize=FONTSIZE_XSMALL
-        )
+        dataset_axes[-1].tick_params(axis="x", labelrotation=90, labelsize=FONTSIZE_XSMALL)
         dataset_axes[-1].set_xlabel("Parameters (kb, bw)", fontsize=FONTSIZE_SMALL)
 
     # add a single legend for the main analysis parameter line, centered under the dataset columns
@@ -708,4 +576,5 @@ def plot_fixed_point_location_summary(
         file_format=file_format,
         pad_inches=0,
         tight_layout=False,
+        show_and_close=False,
     )

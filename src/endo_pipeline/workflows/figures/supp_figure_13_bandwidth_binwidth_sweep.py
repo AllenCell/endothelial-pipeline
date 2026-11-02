@@ -43,7 +43,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.bandwidth_binwidth_sweep_viz import (
         load_sweep_fixed_points,
         plot_fixed_point_count_heatmaps,
-        plot_fixed_point_count_scatterplots,
         plot_fixed_point_location_summary,
     )
     from endo_pipeline.library.visualize.figures import (
@@ -82,10 +81,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         datasets=SUPP_FIG_PARAM_SWEEP,
         file_format=".svg",
         **placeholders["B"],
-    )
-
-    plot_fixed_point_count_scatterplots(
-        df_sweep, stability, output_path, datasets=SUPP_FIG_PARAM_SWEEP, file_format=".svg"
     )
 
     # both panels use the same x offset so that their dataset columns line up
