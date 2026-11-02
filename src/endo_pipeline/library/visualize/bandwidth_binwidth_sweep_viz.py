@@ -6,6 +6,7 @@ from itertools import product
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.patheffects as pe
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -13,6 +14,7 @@ from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.io import load_dataframe, save_plot_to_path
@@ -82,8 +84,10 @@ FP_LOCATION_TOP_MARGIN = 0.25
 
 FileFormat = Literal[".png", ".svg", ".pdf"]
 
-# color used to highlight the parameter combination used in the main analysis in all figures
-MAIN_ANALYSIS_PARAMS_COLOR = "tab:green"
+# color used to mark the parameter combination used in the main analysis in all figures. Cyan is
+# absent from the magma colormap of the heatmaps, so it stands out against every heatmap cell as
+# well as against the white background and black points of the fixed point location figure
+MAIN_ANALYSIS_PARAMS_COLOR = "tab:cyan"
 
 
 def _get_main_analysis_parameters() -> tuple[float, float]:
@@ -281,8 +285,8 @@ def plot_fixed_point_count_heatmaps(
     threshold for every parameter combination of the sweep, one heatmap per dataset.
 
     The heatmaps share a single colorbar drawn to the right of the dataset columns. Parameter
-    combinations with no results for a dataset are drawn in grey. The annotation and tick labels of
-    the parameter combination used in the main analysis are highlighted.
+    combinations with no results for a dataset are drawn in grey. The cell of the parameter
+    combination used in the main analysis is boxed, and its annotation and tick labels are bolded.
 
     Parameters
     ----------
@@ -342,9 +346,13 @@ def plot_fixed_point_count_heatmaps(
             cmap="magma",
             linewidths=0.5,
             annot=True,
-            # all annotations are white, the main analysis parameter combination is highlighted
-            # below
-            annot_kws={"fontsize": FONTSIZE_XSMALL, "color": "white"},
+            # all annotations are white with a black outline so they stay legible against every
+            # color of the colormap, the main analysis parameter combination is highlighted below
+            annot_kws={
+                "fontsize": FONTSIZE_XSMALL,
+                "color": "white",
+                "path_effects": [pe.withStroke(linewidth=1, foreground="black")],
+            },
             ax=ax,
             vmin=0,
             vmax=vmax,
@@ -359,21 +367,34 @@ def plot_fixed_point_count_heatmaps(
         ax.tick_params(axis="x", rotation=90)
         ax.tick_params(axis="y", rotation=0)
 
-        # highlight the annotation and the tick labels of the parameter combination used in the
-        # main analysis. Seaborn centers each annotation in its cell, so the integer part of its
-        # position gives the (column, row) index of the cell in the heatmap data
+        # box the cell and bold the annotation and the tick labels of the parameter combination
+        # used in the main analysis. Seaborn draws the cell at (row, column) index of the heatmap
+        # data as the unit square with lower left corner (column, row) in data coordinates, and
+        # centers each annotation in its cell, so the integer part of its position gives the
+        # (column, row) index of the cell
+        main_row_index = np.flatnonzero(np.isclose(heatmap_data.index, bw_original)).item()
+        main_col_index = np.flatnonzero(np.isclose(heatmap_data.columns, kb_original)).item()
+        ax.add_patch(
+            Rectangle(
+                (main_col_index, main_row_index),
+                1,
+                1,
+                fill=False,
+                edgecolor=MAIN_ANALYSIS_PARAMS_COLOR,
+                linewidth=1.5,
+                clip_on=False,
+            )
+        )
         for text in ax.texts:
             col_index, row_index = (int(coord) for coord in text.get_position())
-            if np.isclose(heatmap_data.index[row_index], bw_original) and np.isclose(
-                heatmap_data.columns[col_index], kb_original
-            ):
-                text.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
+            if (row_index, col_index) == (main_row_index, main_col_index):
+                text.set_fontweight("bold")
         for label in ax.get_xticklabels():
             if label.get_text() == f"{kb_original:g}":
-                label.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
+                label.set_fontweight("bold")
         for label in ax.get_yticklabels():
             if label.get_text() == f"{bw_original:g}":
-                label.set_color(MAIN_ANALYSIS_PARAMS_COLOR)
+                label.set_fontweight("bold")
 
         ax.set_title(dataset, fontsize=FONTSIZE_MEDIUM)
         ax.set_xlabel("Kernel Bandwidth", fontsize=FONTSIZE_SMALL)
