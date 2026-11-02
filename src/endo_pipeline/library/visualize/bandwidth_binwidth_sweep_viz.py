@@ -76,6 +76,9 @@ HEATMAP_TOP_MARGIN = 0.25
 HEATMAP_FIG_WIDTH = PANEL_BLOCK_WIDTH + COLORBAR_PAD + COLORBAR_WIDTH + COLORBAR_LABEL_SPACE
 assert HEATMAP_FIG_WIDTH <= MAX_FIGURE_WIDTH
 
+# inset (as a fraction of the cell size) of the X drawn in heatmap cells with no results
+EMPTY_CELL_CROSS_INSET = 0.25
+
 # the bottom margin of the fixed point location figure is adjusted at draw time to fit the legend
 # right underneath the x-axis labels, so the final figure height differs from FP_LOCATION_FIG_HEIGHT
 # while the axes height (FP_LOCATION_FIG_HEIGHT - FP_LOCATION_BOTTOM_MARGIN - FP_LOCATION_TOP_MARGIN)
@@ -282,7 +285,7 @@ def _add_shared_colorbar(fig: Figure, bottom: float, top: float, vmax: int, stab
     )
     cbar.ax.minorticks_off()
     cbar.ax.tick_params(labelsize=FONTSIZE_XSMALL)
-    cbar.set_label(f"Number of {stability.capitalize()}\nFixed Points", fontsize=FONTSIZE_SMALL)
+    cbar.set_label(f"Number of {stability.lower()}\nfixed points", fontsize=FONTSIZE_SMALL)
     cbar.ax.yaxis.set_major_locator(MaxNLocator(integer=True, nbins=7))
 
 
@@ -299,8 +302,9 @@ def plot_fixed_point_count_heatmaps(
     threshold for every parameter combination of the sweep, one heatmap per dataset.
 
     The heatmaps share a single colorbar drawn to the right of the dataset columns. Parameter
-    combinations with no results for a dataset are drawn in grey. The cell of the parameter
-    combination used in the main analysis is boxed, and its annotation and tick labels are bolded.
+    combinations with no results for a dataset are drawn in grey and crossed out. The cell of the
+    parameter combination used in the main analysis is boxed, and its annotation and tick labels
+    are bolded.
 
     Parameters
     ----------
@@ -377,6 +381,21 @@ def plot_fixed_point_count_heatmaps(
             yticklabels=[f"{bw:g}" for bw in heatmap_data.index],
         )
 
+        # cross out the grey cells of parameter combinations with no results. Seaborn draws the
+        # cell at (row, column) index of the heatmap data as the unit square with lower left
+        # corner (column, row) in data coordinates
+        for row_index, col_index in np.argwhere(heatmap_data.isna().to_numpy()):
+            x_start, x_end = (
+                col_index + EMPTY_CELL_CROSS_INSET,
+                col_index + 1 - EMPTY_CELL_CROSS_INSET,
+            )
+            y_start, y_end = (
+                row_index + EMPTY_CELL_CROSS_INSET,
+                row_index + 1 - EMPTY_CELL_CROSS_INSET,
+            )
+            for y_values in [(y_start, y_end), (y_end, y_start)]:
+                ax.plot((x_start, x_end), y_values, color="black", linewidth=0.75)
+
         ax.tick_params(axis="both", which="major", labelsize=FONTSIZE_XSMALL)
         ax.tick_params(axis="x", rotation=90)
         ax.tick_params(axis="y", rotation=0)
@@ -411,7 +430,7 @@ def plot_fixed_point_count_heatmaps(
                 label.set_fontweight("bold")
 
         ax.set_title(_get_dataset_title(dataset), fontsize=FONTSIZE_MEDIUM)
-        ax.set_xlabel("Kernel Bandwidth", fontsize=FONTSIZE_SMALL)
+        ax.set_xlabel("Kernel bandwidth", fontsize=FONTSIZE_SMALL)
         if axis_index == 0:
             ax.set_ylabel("Binwidth", fontsize=FONTSIZE_SMALL)
         else:
@@ -568,7 +587,7 @@ def plot_fixed_point_location_summary(
             )
 
         dataset_axes[-1].tick_params(axis="x", labelrotation=90, labelsize=FONTSIZE_XSMALL)
-        dataset_axes[-1].set_xlabel("Parameters (kb, bw)", fontsize=FONTSIZE_SMALL)
+        dataset_axes[-1].set_xlabel("Parameters\n(bandwidth, binwidth)", fontsize=FONTSIZE_SMALL)
 
     # add a single legend for the main analysis parameter line, centered under the dataset columns
     # right underneath the x-axis labels with a gap of half the legend font height. The x-axis

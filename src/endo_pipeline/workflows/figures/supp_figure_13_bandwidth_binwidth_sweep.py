@@ -97,7 +97,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="B",
             path=location_summary_panel_path,
             x_position=0.0,
-            y_position=2.0,
+            y_position=1.8,
             x_offset=0.15,
             y_offset=0.1,
         ),
