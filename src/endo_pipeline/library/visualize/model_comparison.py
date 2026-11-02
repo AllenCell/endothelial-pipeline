@@ -25,8 +25,11 @@ from endo_pipeline.settings.figures import (
     MAX_FIGURE_WIDTH,
 )
 from endo_pipeline.settings.workflow_defaults import (
+    CDH5_CONDITIONED_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_COMPARISON_RUNS,
+    DEFAULT_MODEL_MANIFEST_NAME,
     DEFAULT_MODEL_QC_LABEL_MAP,
+    DEFAULT_MODEL_RUN_NAME,
 )
 
 MODEL_COMPARISON_DENOISE_COLUMNS = {
@@ -456,46 +459,72 @@ def _get_structure_aware_model_label_map(
     }
 
 
-def plot_structure_aware_comparison_boxplots(
+@figure_panel("Box plots of structure-aware comparison metrics for model predictions")
+def make_structure_aware_comparison_panel(
     output_path: Path,
-    crop_stats_df: pd.DataFrame,
-    model_manifest_names: list[str],
-    run_name: str,
-    comparisons: list[Column.ModelComparisonType],
-    metrics: list[Column.ModelComparisonMetric],
-    dataset_order: list[str],
-) -> None:
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 3.5),
+) -> Path:
     """
     Plot a grid of box plots of structure-aware comparison metrics.
 
     Each row is a metric and each column is a comparison type, with box plots of
     each crop's mean over seeds for each dataset and model. The baseline
     comparison does not use a DiffAE model and is plotted as a single unfilled
-    box plot per dataset.
+    box plot per dataset. The mean SEM across crops, which summarizes the
+    variation across random seeds, is also saved as a summary table.
+
+    Make sure to run the `calculate-structure-aware-comparison-metrics` workflow
+    for the default DiffAE model and the CDH5-conditioned model before creating
+    this panel.
 
     Parameters
     ----------
     output_path
-        Path to save output plot.
-    crop_stats_df
-        Dataframe with the mean and SEM across seeds for each crop, comparison,
-        and metric.
-    model_manifest_names
-        List of model manifest names, in plotting order.
-    run_name
-        Name of the model run (shared across all model manifests).
-    comparisons
-        Comparison types to plot (one per column).
-    metrics
-        Metrics to plot (one per row).
-    dataset_order
-        Datasets in plotting order along the x axis.
+        Output path to save box plots.
+    figure_size
+        Size of box plots.
+
+    Returns
+    -------
+    :
+        Path to output box plots.
     """
 
     from endo_pipeline.library.model.model_comparison import (
         STRUCTURE_AWARE_COMPARISON_COLUMN,
         STRUCTURE_AWARE_CROP_MEAN_COLUMN,
         STRUCTURE_AWARE_METRIC_COLUMN,
+        calculate_structure_aware_crop_stats,
+        load_structure_aware_comparison_metrics,
+    )
+
+    # Set defaults for models, comparisons (one per column), and metrics (one per row)
+    model_manifest_names = [DEFAULT_MODEL_MANIFEST_NAME, CDH5_CONDITIONED_MODEL_MANIFEST_NAME]
+    run_name = DEFAULT_MODEL_RUN_NAME
+    comparisons = [
+        Column.ModelComparisonType.BASELINE,
+        Column.ModelComparisonType.DENOISED,
+        Column.ModelComparisonType.SCRAMBLED_LATENT,
+        Column.ModelComparisonType.SCRAMBLED_IMAGE,
+    ]
+    metrics = [
+        Column.ModelComparisonMetric.CORRELATION,
+        Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE,
+        Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO,
+    ]
+
+    # Fix the dataset order along the x axis
+    dataset_order = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
+
+    # Load the metrics in long format and summarize each crop's variation across random seeds
+    metrics_df = load_structure_aware_comparison_metrics(
+        model_manifest_names, run_name, comparisons, metrics
+    )
+    crop_stats_df = calculate_structure_aware_crop_stats(
+        metrics_df, baseline_model_manifest_name=model_manifest_names[0]
+    )
+    save_structure_aware_crop_sem_summary(
+        output_path, crop_stats_df, model_manifest_names, run_name, metrics
     )
 
     model_labels = [
@@ -514,15 +543,15 @@ def plot_structure_aware_comparison_boxplots(
     shear_replicate_order = [shear_replicate_labels[dataset] for dataset in dataset_order]
 
     num_rows, num_cols = len(metrics), len(comparisons)
-    panel_size = MAX_FIGURE_WIDTH / num_cols
 
     fig, axes = plt.subplots(
         nrows=num_rows,
         ncols=num_cols,
-        figsize=(panel_size * num_cols, panel_size * num_rows),
+        figsize=figure_size,
         sharex=True,
         sharey="row",
         squeeze=False,
+        layout="constrained",
     )
 
     # Style of the horizontal line at each metric's reference value (i.e. identical images)
@@ -611,7 +640,14 @@ def plot_structure_aware_comparison_boxplots(
             if row_idx == num_rows - 1:
                 plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
 
-    save_plot_to_path(figure=fig, output_path=output_path, figure_name="boxplots_crop_means")
+    return save_plot_to_path(
+        fig,
+        output_path,
+        "structure_aware_comparison_box_plots",
+        file_format=".svg",
+        tight_layout=False,
+        show_and_close=True,
+    )
 
 
 def save_structure_aware_crop_sem_summary(
