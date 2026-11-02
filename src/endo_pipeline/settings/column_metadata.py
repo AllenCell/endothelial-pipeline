@@ -581,6 +581,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # Model comparison =========================================================
     Column.MODEL_COMPARISON_CORRELATION: ColumnMetadata(
         name="Pearson correlation coefficient",
+        label="Pearson\ncorrelation\ncoefficient",
         type=ColumnType.CONTINUOUS,
     ),
     Column.MODEL_COMPARISON_SSIM: ColumnMetadata(
@@ -604,23 +605,23 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.ModelComparisonType.DENOISED: ColumnMetadata(
         name="Input vs. denoised image",
-        label="Target vs.\ndenoised",
+        label="Target vs. denoised",
         type=ColumnType.DISCRETE,
     ),
     Column.ModelComparisonType.SCRAMBLED_IMAGE: ColumnMetadata(
         name="Input vs. denoised from scrambled image",
-        label="Target vs.\nscrambled image",
+        label="Target vs. denoised\nfrom scrambled image",
         type=ColumnType.DISCRETE,
     ),
     Column.ModelComparisonType.SCRAMBLED_LATENT: ColumnMetadata(
         name="Input vs. denoised from scrambled latent",
-        label="Target vs.\nscrambled latent",
+        label="Target vs. denoised\nfrom scrambled latent",
         type=ColumnType.DISCRETE,
     ),
     # Structure-aware model comparison metrics =================================
     Column.ModelComparisonMetric.CORRELATION: ColumnMetadata(
         name="Pearson correlation coefficient",
-        label="Pearson correlation\ncoefficient",
+        label="Pearson\ncorrelation\ncoefficient",
         type=ColumnType.CONTINUOUS,
         reference_value=1.0,
     ),
@@ -638,7 +639,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE: ColumnMetadata(
         name="Absolute difference in mean cell orientation",
-        label="Absolute change in\nmean cell orientation",
+        label="Absolute change\nin mean cell\norientation",
         unit="rad",
         type=ColumnType.CONTINUOUS,
         min=0 - pi / 32,
@@ -659,7 +660,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO: ColumnMetadata(
         name=f"Log{Unicode.SUBSCRIPT_2} fold change in mean cell aspect ratio",
-        label=f"Log{Unicode.SUBSCRIPT_2} fold-change in\nmean cell aspect ratio",
+        label=f"Log{Unicode.SUBSCRIPT_2} fold-change\nin mean cell\naspect ratio",
         type=ColumnType.CONTINUOUS,
         ticks=[-1, -0.5, 0, 0.5],
         reference_value=0,
