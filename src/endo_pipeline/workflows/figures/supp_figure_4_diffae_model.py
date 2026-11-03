@@ -54,7 +54,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
-        build_empty_panel,
         build_figure_from_panels,
         get_figure_asset_dir,
         parse_placeholder_panels,
@@ -77,21 +76,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     correlation_panel_path = make_model_prediction_correlation_panel(
-        output_path=output_path, figure_size=(3.5, 1.5), **placeholders["B"]
+        output_path=output_path, figure_size=(3.3, 1.5), **placeholders["B"]
     )
 
     # Panel C: diagram of how the structure-aware comparison metrics in panel D are computed,
     # sized to fit to the right of panel B
-    if placeholders["C"]["placeholder"]:
-        structure_aware_diagram_path = build_empty_panel(
-            output_path,
-            "Diagram of structure-aware comparison metric computations",
-            2.8,
-            1.5,
-        )
-    else:
-        assets_dir = get_figure_asset_dir()
-        structure_aware_diagram_path = assets_dir / "structure_aware_diagram.svg"
+    structure_aware_diagram_path = get_figure_asset_dir() / "structure_aware_diagram.svg"
 
     structure_aware_panel_path = make_structure_aware_comparison_panel(
         output_path=output_path, figure_size=(MAX_FIGURE_WIDTH, 4), **placeholders["D"]
@@ -111,15 +101,15 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=correlation_panel_path,
             x_position=0.0,
             y_position=2.25,
-            x_offset=0.0,
+            x_offset=0.1,
             y_offset=0.15,
         ),
         FigurePanel(
             letter="C",
             path=structure_aware_diagram_path,
-            x_position=3.5,
+            x_position=3.45,
             y_position=2.25,
-            x_offset=0.2,
+            x_offset=0.15,
             y_offset=0.15,
         ),
         FigurePanel(

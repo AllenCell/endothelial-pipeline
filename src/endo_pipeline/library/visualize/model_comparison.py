@@ -315,7 +315,7 @@ def make_model_prediction_correlation_panel(
 
     # Set plot positioning and colors
     x_pos = np.arange(len(model_runs))
-    model_run_labels = [DEFAULT_MODEL_QC_LABEL_MAP[mr] for mr in model_runs]
+    model_run_labels = [DEFAULT_MODEL_QC_LABEL_MAP[mr].replace("\n", "") for mr in model_runs]
     color = MODEL_COMPARISON_EXAMPLE_GROUP_COLORS[example_group]
 
     # Extract mean and stdev for given metric for each model run
@@ -339,8 +339,12 @@ def make_model_prediction_correlation_panel(
     ax.set_xticks(x_pos, model_run_labels)
     ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL)
 
+    # Rotate x tick labels to fit, anchoring the end of each label at its tick
+    plt.setp(ax.get_xticklabels(), rotation=30, ha="right", rotation_mode="anchor")
+
     # Label y axis
     ax.set_ylabel(get_label_for_column(column_name), fontsize=FONTSIZE_MEDIUM)
+    ax.set_yticks(np.arange(0, 1.01, 0.2))
     ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
     ax.grid(True, alpha=0.3, axis="y")
 
