@@ -335,7 +335,7 @@ def make_model_prediction_correlation_panel(
     )
 
     # Label x axis
-    ax.set_xlabel("Conditioning channel-Latent dimensions", fontsize=FONTSIZE_MEDIUM)
+    ax.set_xlabel("Conditioning channel-latent dimensions", fontsize=FONTSIZE_MEDIUM)
     ax.set_xticks(x_pos, model_run_labels)
     ax.tick_params(axis="x", labelsize=FONTSIZE_SMALL)
 
