@@ -74,7 +74,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     correlation_panel_path = make_model_prediction_correlation_panel(
-        output_path=output_path, figure_size=(6, 1.5), **placeholders["B"]
+        output_path=output_path, figure_size=(3, 1.5), **placeholders["B"]
     )
 
     structure_aware_panel_path = make_structure_aware_comparison_panel(
@@ -95,7 +95,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             path=correlation_panel_path,
             x_position=0.0,
             y_position=2.25,
-            x_offset=0.25,
+            x_offset=0.0,
             y_offset=0.15,
         ),
         FigurePanel(
