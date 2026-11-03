@@ -639,7 +639,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     ),
     Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE: ColumnMetadata(
         name="Absolute difference in mean cell orientation",
-        label="Absolute change\nin mean cell\norientation",
+        label="Abs. difference\nin mean cell\norientation",
         unit="rad",
         type=ColumnType.CONTINUOUS,
         min=0 - pi / 32,
