@@ -22,10 +22,9 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
     - an image denoised from a latent vector of scrambled pixels (scrambled image control)
 
     Each comparison reports correlation, SSIM, and LPIPS, as well as
-    segmentation-based metrics (mean orientation difference, mean relative
-    aspect ratio, mean relative area, difference in number of segmentations,
-    segmentation SSIM, and segmentation Hausdorff distance). Results are saved
-    as one parquet file per model manifest, with one row for each
+    segmentation-based metrics (mean orientation difference and mean relative
+    aspect ratio). Results are saved as one parquet file per model manifest,
+    with one row for each
     (random seed, example image) combination, and catalogued in a dataframe
     manifest.
 
@@ -399,50 +398,30 @@ def main(datasets: Datasets | None = None, save_validation_plots: bool = False):
                         Column.MODEL_COMPARISON_SELF_LPIPS: self_results.lpips,
                         Column.MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE: self_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO: self_results.mean_relative_aspect_ratio,
-                        Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA: self_results.mean_relative_area,
-                        Column.MODEL_COMPARISON_SELF_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: self_results.number_of_segmentations_difference,
-                        Column.MODEL_COMPARISON_SELF_SSIM_SEG: self_results.ssim_seg,
-                        Column.MODEL_COMPARISON_SELF_HAUSDORFF_SEG: self_results.hausdorff_seg,
                         # Model comparison of input image with baseline
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,
                         Column.MODEL_COMPARISON_BASELINE_SSIM: baseline_results.ssim,
                         Column.MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE: baseline_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO: baseline_results.mean_relative_aspect_ratio,
-                        Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA: baseline_results.mean_relative_area,
-                        Column.MODEL_COMPARISON_BASELINE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: baseline_results.number_of_segmentations_difference,
                         Column.MODEL_COMPARISON_BASELINE_LPIPS: baseline_results.lpips,
-                        Column.MODEL_COMPARISON_BASELINE_SSIM_SEG: baseline_results.ssim_seg,
-                        Column.MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG: baseline_results.hausdorff_seg,
                         # Model comparison of input image with denoised image
                         Column.MODEL_COMPARISON_CORRELATION: denoise_results.correlation,
                         Column.MODEL_COMPARISON_SSIM: denoise_results.ssim,
                         Column.MODEL_COMPARISON_LPIPS: denoise_results.lpips,
                         Column.MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE: denoise_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO: denoise_results.mean_relative_aspect_ratio,
-                        Column.MODEL_COMPARISON_MEAN_RELATIVE_AREA: denoise_results.mean_relative_area,
-                        Column.MODEL_COMPARISON_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: denoise_results.number_of_segmentations_difference,
-                        Column.MODEL_COMPARISON_SSIM_SEG: denoise_results.ssim_seg,
-                        Column.MODEL_COMPARISON_HAUSDORFF_SEG: denoise_results.hausdorff_seg,
                         # Model comparison of input image with scrambled image
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION: scrambled_image_results.correlation,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM: scrambled_image_results.ssim,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS: scrambled_image_results.lpips,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE: scrambled_image_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_ASPECT_RATIO: scrambled_image_results.mean_relative_aspect_ratio,
-                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_AREA: scrambled_image_results.mean_relative_area,
-                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: scrambled_image_results.number_of_segmentations_difference,
-                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG: scrambled_image_results.ssim_seg,
-                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG: scrambled_image_results.hausdorff_seg,
                         # Model comparison of input image with scrambled latent vector
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION: scrambled_latent_results.correlation,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM: scrambled_latent_results.ssim,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS: scrambled_latent_results.lpips,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE: scrambled_latent_results.mean_orientation_difference,
                         Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_ASPECT_RATIO: scrambled_latent_results.mean_relative_aspect_ratio,
-                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_AREA: scrambled_latent_results.mean_relative_area,
-                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_NUMBER_OF_SEGMENTATIONS_DIFFERENCE: scrambled_latent_results.number_of_segmentations_difference,
-                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG: scrambled_latent_results.ssim_seg,
-                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG: scrambled_latent_results.hausdorff_seg,
                     }
                 )
 

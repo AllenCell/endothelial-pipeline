@@ -688,20 +688,6 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO = "baseline_mean_relative_aspect_ratio"
     """Mean relative aspect ratio between ground truth and next timepoint."""
 
-    MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_AREA = "baseline_mean_relative_area"
-    """Mean relative area between ground truth and next timepoint."""
-
-    MODEL_COMPARISON_BASELINE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
-        "baseline_number_of_segmentations_difference"
-    )
-    """Difference in number of segmentations between ground truth and next timepoint (next - ground truth)."""
-
-    MODEL_COMPARISON_BASELINE_SSIM_SEG = "baseline_ssim_seg"
-    """Structural Similarity Index (SSIM) between segmentations of ground truth and next timepoint."""
-
-    MODEL_COMPARISON_BASELINE_HAUSDORFF_SEG = "baseline_hausdorff_seg"
-    """Hausdorff distance between segmentations of ground truth and next timepoint."""
-
     MODEL_COMPARISON_CORRELATION = "denoised_correlations"
     """Pearson correlation between input and denoised image."""
 
@@ -717,20 +703,6 @@ class ColumnName:
     MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO = "denoised_mean_relative_aspect_ratio"
     """Mean relative aspect ratio between input and denoised image."""
 
-    MODEL_COMPARISON_MEAN_RELATIVE_AREA = "denoised_mean_relative_area"
-    """Mean relative area between input and denoised image."""
-
-    MODEL_COMPARISON_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
-        "denoised_number_of_segmentations_difference"
-    )
-    """Difference in number of segmentations between input and denoised image (denoised - input)."""
-
-    MODEL_COMPARISON_SSIM_SEG = "denoised_ssim_seg"
-    """Structural Similarity Index (SSIM) between segmentations of input and denoised image."""
-
-    MODEL_COMPARISON_HAUSDORFF_SEG = "denoised_hausdorff_seg"
-    """Hausdorff distance between segmentations of input and denoised image."""
-
     MODEL_COMPARISON_SELF_CORRELATION = "self_correlations"
     """Pearson correlation between input and itself."""
 
@@ -745,20 +717,6 @@ class ColumnName:
 
     MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO = "self_mean_relative_aspect_ratio"
     """Mean relative aspect ratio between input and itself."""
-
-    MODEL_COMPARISON_SELF_MEAN_RELATIVE_AREA = "self_mean_relative_area"
-    """Mean relative area between input and itself."""
-
-    MODEL_COMPARISON_SELF_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
-        "self_number_of_segmentations_difference"
-    )
-    """Difference in number of segmentations between input and itself."""
-
-    MODEL_COMPARISON_SELF_SSIM_SEG = "self_ssim_seg"
-    """Structural Similarity Index (SSIM) between segmentations of input and itself."""
-
-    MODEL_COMPARISON_SELF_HAUSDORFF_SEG = "self_hausdorff_seg"
-    """Hausdorff distance between segmentations of input and itself."""
 
     MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlations"
     """Pearson correlation between input and scrambled image."""
@@ -779,20 +737,6 @@ class ColumnName:
     )
     """Mean relative aspect ratio between input and scrambled image."""
 
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_AREA = "scrambled_image_mean_relative_area"
-    """Mean relative area between input and scrambled image."""
-
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
-        "scrambled_image_number_of_segmentations_difference"
-    )
-    """Difference in number of segmentations between input and scrambled image (scrambled - input)."""
-
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM_SEG = "scrambled_image_ssim_seg"
-    """Structural Similarity Index (SSIM) between segmentations of input and scrambled image."""
-
-    MODEL_COMPARISON_SCRAMBLED_IMAGE_HAUSDORFF_SEG = "scrambled_image_hausdorff_seg"
-    """Hausdorff distance between segmentations of input and scrambled image."""
-
     MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlations"
     """Pearson correlation between input and scrambled latent representation."""
 
@@ -811,20 +755,6 @@ class ColumnName:
         "scrambled_latent_mean_relative_aspect_ratio"
     )
     """Mean relative aspect ratio between input and scrambled latent representation."""
-
-    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_AREA = "scrambled_latent_mean_relative_area"
-    """Mean relative area between input and scrambled latent representation."""
-
-    MODEL_COMPARISON_SCRAMBLED_LATENT_NUMBER_OF_SEGMENTATIONS_DIFFERENCE = (
-        "scrambled_latent_number_of_segmentations_difference"
-    )
-    """Difference in number of segmentations between input and scrambled latent representation (scrambled - input)."""
-
-    MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM_SEG = "scrambled_latent_ssim_seg"
-    """Structural Similarity Index (SSIM) between segmentations of input and scrambled latent representation."""
-
-    MODEL_COMPARISON_SCRAMBLED_LATENT_HAUSDORFF_SEG = "scrambled_latent_hausdorff_seg"
-    """Hausdorff distance between segmentations of input and scrambled latent representation."""
 
     class ModelComparisonType(StrEnum):
         """Comparison types (column name prefixes) used in structure-aware model comparison."""
@@ -864,18 +794,6 @@ class ColumnName:
 
         LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO = "log2_fold_change_mean_aspect_ratio"
         """Log2 fold change in mean cell aspect ratio."""
-
-        MEAN_RELATIVE_AREA = "mean_relative_area"
-        """Mean area of segmentations of second image relative to first image."""
-
-        NUMBER_OF_SEGMENTATIONS_DIFFERENCE = "number_of_segmentations_difference"
-        """Difference in number of segmentations between two images (second - first)."""
-
-        SSIM_SEG = "ssim_seg"
-        """Structural Similarity Index (SSIM) between segmentation boundaries of two images."""
-
-        HAUSDORFF_SEG = "hausdorff_seg"
-        """Hausdorff distance between segmentation boundaries of two images."""
 
 
 class ColumnNameTemplate(StrEnum):

@@ -665,30 +665,5 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         ticks=[-1, -0.5, 0, 0.5],
         reference_value=0,
     ),
-    Column.ModelComparisonMetric.MEAN_RELATIVE_AREA: ColumnMetadata(
-        name="Mean relative cell area",
-        label="Mean relative\ncell area",
-        type=ColumnType.CONTINUOUS,
-    ),
-    Column.ModelComparisonMetric.NUMBER_OF_SEGMENTATIONS_DIFFERENCE: ColumnMetadata(
-        name="Difference in number of segmentations",
-        label="Difference in number\nof segmentations",
-        type=ColumnType.DISCRETE,
-    ),
-    Column.ModelComparisonMetric.SSIM_SEG: ColumnMetadata(
-        name="Segmentation boundary SSIM score",
-        label="Segmentation\nboundary SSIM score",
-        type=ColumnType.CONTINUOUS,
-        min=-1,
-        max=1,
-    ),
-    Column.ModelComparisonMetric.HAUSDORFF_SEG: ColumnMetadata(
-        name="Segmentation boundary Hausdorff distance",
-        label="Segmentation boundary\nHausdorff distance",
-        unit="px",
-        type=ColumnType.CONTINUOUS,
-        min=0,
-        max=None,
-    ),
 }
 """Mapping of column names to column metadata."""

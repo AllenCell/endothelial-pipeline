@@ -12,9 +12,7 @@ from scipy.stats import circmean, pearsonr
 from skimage.color import label2rgb
 from skimage.exposure import rescale_intensity
 from skimage.measure import regionprops
-from skimage.metrics import hausdorff_distance
 from skimage.metrics import structural_similarity as ssim
-from skimage.segmentation import find_boundaries
 from skimage.transform import pyramid_expand
 
 from endo_pipeline.configs import load_dataset_config
@@ -141,18 +139,6 @@ class ModelComparisonMetrics(NamedTuple):
 
     mean_relative_aspect_ratio: float = np.nan
     """Mean elongation of image 2 relative to mean elongation of image 1 (lower is better, 1 = identical)."""
-
-    mean_relative_area: float = np.nan
-    """Mean area of image 2 relative to mean area of image 1 (lower is better, 1 = identical)."""
-
-    number_of_segmentations_difference: float = np.nan
-    """Difference in the number of segmentations (img2 - img1), or NaN if segmentation failed."""
-
-    ssim_seg: float = np.nan
-    """Structural Similarity Index Measure (SSIM) score between two segmentation boundary images(range [0, 1], 1 = identical)."""
-
-    hausdorff_seg: float = np.nan
-    """Hausdorff distance between two segmentation boundary images (lower is better, 0 = identical)."""
 
 
 class ModelComparisonMetricsCalculator:
@@ -373,100 +359,6 @@ class ModelComparisonMetricsCalculator:
         return float(mean_aspect_ratio_normalized)
 
     @classmethod
-    def compute_relative_area(cls, img1: "NDArray", img2: "NDArray") -> float:
-        """
-        Compute mean area of image 2 relative to mean area of image 1.
-
-        Parameters
-        ----------
-        img1
-            First image to compute mean area for.
-        img2
-            Second image to compute mean area for.
-
-        Returns
-        -------
-        :
-            Mean area of image 2 relative to mean area of image 1.
-        """
-        if img1.ndim > 2:
-            img1 = img1.squeeze()
-        if img2.ndim > 2:
-            img2 = img2.squeeze()
-
-        props1 = regionprops(img1)
-        props2 = regionprops(img2)
-
-        mean_area1 = np.mean([prop.area for prop in props1])
-        mean_area2 = np.mean([prop.area for prop in props2])
-
-        mean_area_normalized = mean_area2 / mean_area1
-
-        return float(mean_area_normalized)
-
-    @classmethod
-    def compute_number_of_segmentations_difference(cls, img1: "NDArray", img2: "NDArray") -> int:
-        """
-        Compute the difference in the number of segmentations between two images defined as
-        img2 number of segmentations - img1 number of segmentations.
-
-        Parameters
-        ----------
-        img1
-            First image to compute number of segmentations for.
-        img2
-            Second image to compute number of segmentations for.
-
-        Returns
-        -------
-        :
-            Difference in the number of segmentations (img2 - img1).
-        """
-        if img1.ndim > 2:
-            img1 = img1.squeeze()
-        if img2.ndim > 2:
-            img2 = img2.squeeze()
-
-        num_segmentations1 = np.count_nonzero(np.unique(img1))
-        num_segmentations2 = np.count_nonzero(np.unique(img2))
-
-        return num_segmentations2 - num_segmentations1
-
-    @classmethod
-    def compute_hausdorff(cls, img1: "NDArray", img2: "NDArray") -> float:
-        """
-        Compute the Hausdorff distance between two images.
-
-        Nonzero pixels are treated as points, so inputs should be binary masks (e.g.
-        segmentation boundaries). For intensity images nearly every pixel is nonzero, so the
-        distance is close to zero regardless of image content.
-
-        Parameters
-        ----------
-        img1
-            First image to compare.
-        img2
-            Second image to compare.
-
-        Returns
-        -------
-        :
-            Hausdorff distance between image 1 and image 2.
-        """
-
-        if img1.ndim > 2:
-            img1 = img1.squeeze()
-        if img2.ndim > 2:
-            img2 = img2.squeeze()
-
-        hausdorff = hausdorff_distance(img1, img2)
-
-        if not isinstance(hausdorff, float):
-            hausdorff = np.nan
-
-        return float(hausdorff)
-
-    @classmethod
     def compute_image_metrics(cls, img1: NDArray, img2: NDArray) -> ModelComparisonMetrics:
         """
         Compute correlation, SSIM, and LPIPS between two images.
@@ -531,17 +423,9 @@ class ModelComparisonMetricsCalculator:
         if img1_seg is None or img2_seg is None:
             return metrics
 
-        img1_boundaries = find_boundaries(img1_seg)
-        img2_boundaries = find_boundaries(img2_seg)
         return metrics._replace(
             mean_orientation_difference=cls.compute_orientation(img1_seg, img2_seg),
             mean_relative_aspect_ratio=cls.compute_relative_aspect_ratio(img1_seg, img2_seg),
-            mean_relative_area=cls.compute_relative_area(img1_seg, img2_seg),
-            number_of_segmentations_difference=cls.compute_number_of_segmentations_difference(
-                img1_seg, img2_seg
-            ),
-            ssim_seg=cls.compute_ssim(img1_boundaries, img2_boundaries),
-            hausdorff_seg=cls.compute_hausdorff(img1_boundaries, img2_boundaries),
         )
 
 
