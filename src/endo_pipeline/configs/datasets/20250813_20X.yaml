@@ -34,7 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: Cells take on more mixed than perpendicular alignment
 replicate_number: 1
-differentiation_batch: null
+differentiation_batch: 74
 stability_category: bistable
 timepoint_annotations:
   auto_bf_scope_error:
