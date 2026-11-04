@@ -48,6 +48,7 @@ DATE = "Date"
 CELL_LINE = "Cell line"
 SHEAR_STRESS = f"Shear stress (dyn/cm{UnicodeCharacters.SQUARED})"
 REPLICATE = "Replicate"
+DIFF_BATCH = "Differentiation batch ID"
 FOV_POSITIONS = "N FOV positions"
 TIMEPOINTS = "N Timepoints per FOV position"
 POSITION_FILTER = "Position filter (N removed)"
@@ -100,6 +101,7 @@ TABLE_S1_SHEAR_STRESS = {
         (CELL_LINE, "cell_line"),
         (SHEAR_STRESS, "shear_stress"),
         (REPLICATE, "replicate"),
+        (DIFF_BATCH, "differentiation_batch"),
         (FOV_POSITIONS, "fovs"),
         (TIMEPOINTS, "timepoints"),
         (POSITION_FILTER, "pos_removed"),
