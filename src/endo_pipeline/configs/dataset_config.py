@@ -246,6 +246,9 @@ class DatasetConfig:
     replicate_number: int | None = None
     """Replicate number for the dataset."""
 
+    differentiation_batch: int | None = None
+    """Differentiation batch ID for the dataset."""
+
     stability_category: Literal["monostable", "bistable"] | None = None
     """Fixed-point stability category (monostable or bistable)."""
 
