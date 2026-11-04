@@ -4,7 +4,6 @@ from endo_pipeline.cli import Datasets, PatchType
 def main(
     datasets: Datasets | None = None,
     patch_type: PatchType = "grid_based",
-    run_low_high_control: bool = False,
     overwrite_results: bool = True,
     fms_upload_only: bool = False,
 ) -> None:
@@ -38,8 +37,6 @@ def main(
     from tqdm import tqdm
 
     from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
-        bootstrap_fixed_points_for_low_high_control,
-        generate_flow_field_for_low_high_control,
         get_binwidth_bandwidth_dict,
         get_param_sweep_run_name,
         get_parameter_space,
@@ -54,11 +51,6 @@ def main(
         # use low, the bifurcation intermediate example from figure 4, and high datasets if no
         # datasets are specified by the user
         datasets = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
-
-    if run_low_high_control:
-        # when running low-high control, we combine the low and high datasets and only analyze that
-        logger.info("Running low-high control with datasets: %s", datasets)
-        datasets = ["20250618_20X", "20250611_20X"]
 
     parameter_space = get_parameter_space()
 
@@ -102,17 +94,6 @@ def main(
             kernel_bandwidths,
         )
 
-        if run_low_high_control:
-            generate_flow_field_for_low_high_control(
-                patch_type=patch_type,
-                datasets=datasets,
-                sweep_name=run_name_for_sweep_condition,
-                kernel_bandwidths_dynamics=kernel_bandwidths,
-                bin_widths_dynamics=bin_widths,
-                overwrite_results=overwrite_results,
-            )
-            continue
-
         generate_flow_field.main(
             patch_type=patch_type,
             datasets=datasets,
@@ -133,16 +114,6 @@ def main(
             bin_widths,
             kernel_bandwidths,
         )
-        if run_low_high_control:
-            bootstrap_fixed_points_for_low_high_control(
-                patch_type=patch_type,
-                datasets=datasets,
-                sweep_name=run_name_for_sweep_condition,
-                kernel_bandwidths_dynamics=kernel_bandwidths,
-                bin_widths_dynamics=bin_widths,
-                overwrite_results=overwrite_results,
-            )
-            continue
 
         bootstrap_fixed_points.main(
             patch_type=patch_type,
