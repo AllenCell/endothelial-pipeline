@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: ''
 replicate_number: 1
+differentiation_batch: 78
 stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:

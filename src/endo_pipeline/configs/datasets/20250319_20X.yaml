@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: Stopped imaging prior to 48 hours because cells were very packed
 replicate_number: 5
+differentiation_batch: 57
 stability_category: bistable
 timepoint_annotations:
   auto_bf_scope_error:
