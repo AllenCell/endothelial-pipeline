@@ -16,13 +16,13 @@ columns:
 locations:
   20250409_20X:
     fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250409_20X_start_steady_state_30min.parquet
+    path: //allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250409_20X_start_steady_state_30min.parquet
     s3uri: null
   20250319_20X:
     fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250319_20X_start_steady_state_30min.parquet
+    path: //allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250319_20X_start_steady_state_30min.parquet
     s3uri: null
   20260304_20X:
     fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260304_20X_start_steady_state_30min.parquet
+    path: //allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260304_20X_start_steady_state_30min.parquet
     s3uri: null
