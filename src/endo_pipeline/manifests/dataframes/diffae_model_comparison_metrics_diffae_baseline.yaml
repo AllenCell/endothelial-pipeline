@@ -19,33 +19,33 @@ columns:
 locations:
   latent_8:
     fmsid: a58fdced021844dfbaac8dd3d7016fa7
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_8_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_8.parquet
   latent_16:
     fmsid: 08f02ae557a14b3c90c19b1aef9b4d99
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_16_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_16.parquet
   latent_32:
     fmsid: a82cfc001dac4864912e6e9b31659967
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_32_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_32.parquet
   latent_64:
     fmsid: 707e8752553b4fe583bcfa1da9237739
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_64_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_64.parquet
   latent_128:
     fmsid: ef82853d73ee47f69f1ac0a6893ac614
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_128_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_128.parquet
   latent_256:
     fmsid: 89589540cd244dcabd53ac7e658d68e2
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_256_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_256.parquet
   latent_512:
     fmsid: 18fc8b0c798e40a2b04a8539cc2ddf9d
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_512_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_512.parquet
   latent_1024:
     fmsid: 0739283c6b33463ebd62de6704b14118
-    path: null
+    path: /allen/aics/users/serge.parent/model_training/cellsmap/results/2026-11-04/calculate_model_comparison_metrics/diffae_baseline_latent_1024_model_comparison.parquet
     s3uri: s3://allencell/aics/endo_cell_state_dynamics/diffae_model_comparison_metrics_diffae_baseline/latent_1024.parquet
