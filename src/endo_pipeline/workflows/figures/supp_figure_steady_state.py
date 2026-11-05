@@ -197,3 +197,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         width=MAX_FIGURE_WIDTH,
         height=6.5,
     )
+
+
+if __name__ == "__main__":
+    from endo_pipeline.cli import workflow_cli
+
+    workflow_cli(main)
