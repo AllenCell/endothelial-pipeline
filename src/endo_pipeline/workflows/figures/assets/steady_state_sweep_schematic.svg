@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="430.182pt"
+   height="113.041pt"
+   viewBox="0 0 430.182 113.041"
    version="1.1"
    id="svg1"
    inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
@@ -111,7 +111,8 @@
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     id="layer1">
+     id="layer1"
+     transform="matrix(2.834646,0,0,2.834646,-89.8391,-46.3441)">
     <path
        id="rect1-8-2"
        style="fill:#b3b3b3;fill-opacity:1;stroke:none;stroke-width:0.206281;stroke-linejoin:miter;stroke-dasharray:none"
@@ -190,7 +191,6 @@
       <g
          id="g11">
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="25.6643142700195"
@@ -201,7 +201,6 @@
              x="41.0250473022461"
              y="25.6643142700195">P5</tspan></text>
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="30.44846534729"
@@ -212,7 +211,6 @@
              x="41.0250473022461"
              y="30.44846534729">P4</tspan></text>
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="35.2016105651855"
@@ -223,7 +221,6 @@
              x="41.0250473022461"
              y="35.2016105651855">P3</tspan></text>
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="39.9864540100098"
@@ -234,7 +231,6 @@
              x="41.0250473022461"
              y="39.9864540100098">P2</tspan></text>
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="44.7533798217773"
@@ -245,7 +241,6 @@
              x="41.0250473022461"
              y="44.7533798217773">P1</tspan></text>
         <text
-           xml:space="preserve"
            style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
            x="41.0250473022461"
            y="49.5030784606934"
@@ -289,7 +284,6 @@
        id="g13"
        transform="translate(-8.08635003944418,-41.7656250831316)">
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="67.4299392700195"
@@ -300,7 +294,6 @@
            x="40.561954498291"
            y="67.4299392700195">P5</tspan></text>
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="72.2140884399414"
@@ -311,7 +304,6 @@
            x="40.561954498291"
            y="72.2140884399414">P4</tspan></text>
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="76.9672393798828"
@@ -322,7 +314,6 @@
            x="40.561954498291"
            y="76.9672393798828">P3</tspan></text>
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="81.752082824707"
@@ -333,7 +324,6 @@
            x="40.561954498291"
            y="81.752082824707">P2</tspan></text>
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="86.5190048217773"
@@ -344,7 +334,6 @@
            x="40.561954498291"
            y="86.5190048217773">P1</tspan></text>
       <text
-         xml:space="preserve"
          style="font-size:2.82222px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:#000000;stroke-width:1.23472;stroke-linejoin:round"
          x="40.561954498291"
          y="91.2687072753906"
@@ -380,7 +369,6 @@
          d="m 45.6648259864141,68.8205261439986 h 50.486925913761 v 4.7669263361276 h -50.486925913761 z" />
     </g>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="168.263656616211"
        y="26.0068302154541"
@@ -391,7 +379,6 @@
          x="168.263656616211"
          y="26.0068302154541">used in est.</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="169.35334777832"
        y="33.7426795959473"
@@ -402,7 +389,6 @@
          x="169.35334777832"
          y="33.7426795959473">excluded</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="55.9087867736816"
        y="54.6335868835449"
@@ -413,7 +399,6 @@
          x="55.9087867736816"
          y="54.6335868835449">Time (hrs)</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="121.735427856445"
        y="54.6335868835449"
@@ -424,7 +409,6 @@
          x="121.735427856445"
          y="54.6335868835449">Time (hrs)</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="116.021965026855"
        y="19.8549575805664"
@@ -435,7 +419,6 @@
          x="116.021965026855"
          y="19.8549575805664">Sweep: cell piling</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="47.2990379333496"
        y="19.4038505554199"
@@ -446,7 +429,6 @@
          x="47.2990379333496"
          y="19.4038505554199">Sweep: start of steady state</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="36.7454032897949"
        y="54.52734375"
@@ -457,7 +439,6 @@
          x="36.7454032897949"
          y="54.52734375">0</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="86.3835144042969"
        y="54.9002456665039"
@@ -468,7 +449,6 @@
          x="86.3835144042969"
          y="54.9002456665039">48</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="102.073722839355"
        y="54.9002380371094"
@@ -479,7 +459,6 @@
          x="102.073722839355"
          y="54.9002380371094">0</tspan></text>
     <text
-       xml:space="preserve"
        style="font-size:2.82223px;line-height:1.05;font-family:Arial;-inkscape-font-specification:Arial;fill:#000000;stroke:none;stroke-width:0.352777;stroke-linejoin:miter;stroke-dasharray:none"
        x="151.810989379883"
        y="54.9002380371094"

@@ -9,10 +9,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     | Panel | Description                                                                        | Notes                |
     | ----- | ---------------------------------------------------------------------------------- | -------------------- |
-    | A     | Steady state sweep for representative low shear stress dataset                     |                      |
-    | B     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (bistable)   |                      |
-    | C     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (monostable) |                      |
-    | D     | Steady state sweep for representative high shear stress dataset                    |                      |
+    | A     | Schematic of steady state window sweep                                             | _generated manually_ |
+    | B     | Steady state sweep for representative low shear stress dataset                     |                      |
+    | C     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (bistable)   |                      |
+    | D     | Steady state sweep for representative 12 dyn/cm2 shear stress dataset (monostable) |                      |
+    | E     | Steady state sweep for representative high shear stress dataset                    |                      |
 
     ## Example usage
 
@@ -45,6 +46,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         FigurePanel,
         build_empty_panel,
         build_figure_from_panels,
+        get_figure_asset_dir,
         parse_placeholder_panels,
     )
     from endo_pipeline.library.visualize.window_sweep_plots import plot_sweep_subset
@@ -66,8 +68,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    panel_list = ["A", "B", "C", "D"]
+    panel_list = ["A", "B", "C", "D", "E"]
     placeholders = parse_placeholder_panels(include_panels, panel_list)
+
+    assets_dir = get_figure_asset_dir()
+    schematic_path = assets_dir / "steady_state_sweep_schematic.svg"
 
     datasets = get_datasets_in_collection("supp_figure_examples")
 
@@ -81,7 +86,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     figure_paths: list[Path] = []
 
-    for dataset_name, panel_label in zip(datasets, panel_list, strict=True):
+    for dataset_name, panel_label in zip(datasets, panel_list[1:], strict=True):
         dataset_config = load_dataset_config(dataset_name)
 
         # Load "baseline" bootstrapping manifest, filter to high-confidence fixed points,
@@ -146,33 +151,41 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panels = [
         FigurePanel(
             letter="A",
-            path=figure_paths[0],
+            path=schematic_path,
             x_position=0,
             y_position=0,
-            x_offset=0,
+            x_offset=0.25,
             y_offset=0,
         ),
         FigurePanel(
             letter="B",
-            path=figure_paths[1],
-            x_position=3.2,
-            y_position=0,
+            path=figure_paths[0],
+            x_position=0,
+            y_position=1.7,
             x_offset=0,
             y_offset=0,
         ),
         FigurePanel(
             letter="C",
-            path=figure_paths[2],
-            x_position=0,
-            y_position=2.5,
+            path=figure_paths[1],
+            x_position=3.2,
+            y_position=1.7,
             x_offset=0,
             y_offset=0,
         ),
         FigurePanel(
             letter="D",
+            path=figure_paths[2],
+            x_position=0,
+            y_position=4.2,
+            x_offset=0,
+            y_offset=0,
+        ),
+        FigurePanel(
+            letter="E",
             path=figure_paths[3],
             x_position=3.2,
-            y_position=2.6,
+            y_position=4.3,
             x_offset=0.1,
             y_offset=0,
         ),
@@ -182,5 +195,5 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         panels,
         output_path / "supp_figure_steady_state.svg",
         width=MAX_FIGURE_WIDTH,
-        height=4.8,
+        height=6.5,
     )
