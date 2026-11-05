@@ -38,6 +38,33 @@ include_scenes: null
 notes: ''
 replicate_number: null
 stability_category: null
-timepoint_annotations: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [5, 7, 70, 323]
+    1: [7, 32, 82, 433]
+    2: [2, 40, 59, 267, 273, 322]
+    3: [2, 67]
+    4: [2, 94, 267]
+    5: [5, 6, 61, 245]
+  auto_bf_temp_artifact:
+    0: [62, 134, 232]
+    1: [25, 126]
+    2: [82, 232]
+    3: [62, 232]
+    4: [12, 62, 267, 524]
+    5: [232, 524]
+  auto_gfp_scope_error:
+    0: [232]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
 position_annotations: null
-center_z_plane: null
+center_z_plane:
+  0: 11
+  1: 11
+  2: 10
+  3: 10
+  4: 10
+  5: 11
