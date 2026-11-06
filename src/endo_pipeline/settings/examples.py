@@ -541,3 +541,11 @@ SUPP_FIG_RETRACTION_FIBER_BLOB: ExampleImage = ExampleImage(
     crop_y_start=690,  # res level 0
 )
 """Example image for illustrating spatial correlation of retraction fibers and bright blobs."""
+
+STRUCTURE_AWARE_COMPARISON_EXAMPLES: list[str] = [
+    "20250611_20X",
+    "20250618_20X",
+    "20250319_20X",
+    "20260304_20X",
+]
+"""Example images for illustrating structure-aware comparison metrics."""

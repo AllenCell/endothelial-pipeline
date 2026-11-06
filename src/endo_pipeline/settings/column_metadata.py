@@ -67,6 +67,12 @@ class ColumnMetadata:
     tick_labels: list[str] | None = None
     """Tick labels."""
 
+    log_base: float | None = None
+    """Base for plotting the column on a log scale. If not provided, use a linear scale."""
+
+    reference_value: float | None = None
+    """Reference value for the column (e.g. the value for identical images) to mark on plots."""
+
     slug: str = field(init=False)
     """Slug version of name."""
 
@@ -138,6 +144,12 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
         unit="frames",
     ),
     Column.DATASET: ColumnMetadata(name="Dataset", type=ColumnType.DISCRETE),
+    Column.SHEAR_REPLICATE_NAME: ColumnMetadata(
+        name="Shear stress and replicate",
+        label="Shear stress\n[replicate number]",
+        type=ColumnType.DISCRETE,
+        unit=f"dyn/cm{Unicode.SQUARED}",
+    ),
     Column.POSITION: ColumnMetadata(name="Position", type=ColumnType.DISCRETE),
     Column.TIMEPOINT: ColumnMetadata(name="Frame number", type=ColumnType.DISCRETE),
     Column.CROP_INDEX: ColumnMetadata(name="Crop index", type=ColumnType.DISCRETE),
@@ -569,6 +581,7 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     # Model comparison =========================================================
     Column.MODEL_COMPARISON_CORRELATION: ColumnMetadata(
         name="Pearson correlation coefficient",
+        label="Pearson\ncorrelation\ncoefficient",
         type=ColumnType.CONTINUOUS,
     ),
     Column.MODEL_COMPARISON_SSIM: ColumnMetadata(
@@ -578,6 +591,79 @@ COLUMN_METADATA: dict[ColumnNameType, ColumnMetadata] = {
     Column.MODEL_COMPARISON_LPIPS: ColumnMetadata(
         name="LPIPS score",
         type=ColumnType.CONTINUOUS,
+    ),
+    # Structure-aware model comparison types ===================================
+    Column.ModelComparisonType.SELF: ColumnMetadata(
+        name="Input vs. input",
+        label="Self",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.BASELINE: ColumnMetadata(
+        name="Input vs. next timepoint",
+        label="Target vs. self at\nnext timepoint",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.DENOISED: ColumnMetadata(
+        name="Input vs. denoised image",
+        label="Target vs. denoised",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.SCRAMBLED_IMAGE: ColumnMetadata(
+        name="Input vs. denoised from scrambled image",
+        label="Target vs. denoised\nfrom scrambled image",
+        type=ColumnType.DISCRETE,
+    ),
+    Column.ModelComparisonType.SCRAMBLED_LATENT: ColumnMetadata(
+        name="Input vs. denoised from scrambled latent",
+        label="Target vs. denoised\nfrom scrambled latent",
+        type=ColumnType.DISCRETE,
+    ),
+    # Structure-aware model comparison metrics =================================
+    Column.ModelComparisonMetric.CORRELATION: ColumnMetadata(
+        name="Pearson correlation coefficient",
+        label="Pearson\ncorrelation\ncoefficient",
+        type=ColumnType.CONTINUOUS,
+        reference_value=1.0,
+    ),
+    Column.ModelComparisonMetric.SSIM: ColumnMetadata(
+        name="SSIM score",
+        type=ColumnType.CONTINUOUS,
+        min=-1,
+        max=1,
+    ),
+    Column.ModelComparisonMetric.LPIPS: ColumnMetadata(
+        name="LPIPS score",
+        type=ColumnType.CONTINUOUS,
+        min=0,
+        max=None,
+    ),
+    Column.ModelComparisonMetric.MEAN_ORIENTATION_DIFFERENCE: ColumnMetadata(
+        name="Absolute difference in mean cell orientation",
+        label="Abs. difference\nin mean cell\norientation",
+        unit="rad",
+        type=ColumnType.CONTINUOUS,
+        min=0 - pi / 32,
+        max=pi / 2 + pi / 32,
+        ticks=[0, pi / 4, pi / 2],
+        tick_labels=[
+            "0",
+            f"{Unicode.PI}/4",
+            f"{Unicode.PI}/2",
+        ],
+        reference_value=0,
+    ),
+    Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO: ColumnMetadata(
+        name="Mean relative cell aspect ratio",
+        label="Mean relative cell\naspect ratio",
+        type=ColumnType.CONTINUOUS,
+        reference_value=1,
+    ),
+    Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO: ColumnMetadata(
+        name=f"Log{Unicode.SUBSCRIPT_2} fold change in mean cell aspect ratio",
+        label=f"Log{Unicode.SUBSCRIPT_2} fold-change\nin mean cell\naspect ratio",
+        type=ColumnType.CONTINUOUS,
+        ticks=[-1, -0.5, 0, 0.5],
+        reference_value=0,
     ),
 }
 """Mapping of column names to column metadata."""
