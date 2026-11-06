@@ -1,0 +1,10 @@
+name: supp_figure_examples
+description: Datasets used as representative examples in supplemental figures
+datasets:
+# 6 dyn / cm2
+- 20250409_20X
+# 12 dyn / cm2
+- 20250319_20X
+- 20260304_20X
+# 21 dyn / cm2
+- 20251001_20X
