@@ -344,7 +344,8 @@ def make_model_prediction_correlation_panel(
 
     # Label y axis
     ax.set_ylabel(get_label_for_column(column_name), fontsize=FONTSIZE_MEDIUM)
-    ax.set_yticks(np.arange(0, 1.01, 0.2))
+    ax.set_ylim(0, 0.6)
+    ax.set_yticks(np.arange(0, 0.61, 0.1))
     ax.tick_params(axis="y", labelsize=FONTSIZE_SMALL)
     ax.grid(True, alpha=0.3, axis="y")
 
