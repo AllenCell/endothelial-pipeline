@@ -65,6 +65,7 @@ def main(
         plot_first_passage_time_parameter_sweep,
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
+    from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.first_passage_time import (
@@ -117,7 +118,9 @@ def main(
 
     # report the mean and std of the per-bin means, and the median and std of
     # the per-bin medians, for each fixed point in each dataset, with flat
-    # column names formatted as "<column>_<statistic>"
+    # column names formatted as "<column>_<statistic> (<unit>)"; first passage
+    # times are computed from `Column.SegData.TIME_HRS`, so they share its unit
+    fpt_unit = COLUMN_METADATA[Column.SegData.TIME_HRS].unit
     stats_per_metric = {"mean": ["mean", "std"], "50%": ["median", "std"]}
     stats_per_col: dict[str, list[Any]] = {
         ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % (metric, patch_type): stats
@@ -128,7 +131,7 @@ def main(
         [Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY]
     ).agg(stats_per_col)
     mean_fpt_per_fp.columns = [
-        f"{col}_{stat}" for col, stat in mean_fpt_per_fp.columns.to_flat_index()
+        f"{col}_{stat} ({fpt_unit})" for col, stat in mean_fpt_per_fp.columns.to_flat_index()
     ]
     mean_fpt_per_fp = mean_fpt_per_fp.reset_index()
     mean_fpt_per_fp.to_csv(out_dir / "summary_stats_mfpt_per_fp.csv", index=False)
