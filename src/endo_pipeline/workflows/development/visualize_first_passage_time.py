@@ -51,7 +51,7 @@ def main(
     import pandas as pd
 
     from endo_pipeline.cli import DEMO_MODE
-    from endo_pipeline.configs import get_datasets_in_collection
+    from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path, load_dataframe
     from endo_pipeline.library.analyze.first_passage_time import (
         build_first_passage_time_line_fit_results_dataframe,
@@ -68,6 +68,7 @@ def main(
     from endo_pipeline.settings.column_metadata import COLUMN_METADATA
     from endo_pipeline.settings.column_names import ColumnName as Column
     from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+    from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME,
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
@@ -127,13 +128,47 @@ def main(
         for patch_type in ("grid_based", "cell_centered")
         for metric, stats in stats_per_metric.items()
     }
-    mean_fpt_per_fp = fpt_stats_df.groupby(
+    fixed_point_groups = fpt_stats_df.groupby(
         [Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY]
-    ).agg(stats_per_col)
+    )
+    mean_fpt_per_fp = fixed_point_groups.agg(stats_per_col)
     mean_fpt_per_fp.columns = [
         f"{col}_{stat} ({fpt_unit})" for col, stat in mean_fpt_per_fp.columns.to_flat_index()
     ]
-    mean_fpt_per_fp = mean_fpt_per_fp.reset_index()
+
+    # fixed point locations should be the same for every bin of a given fixed
+    # point, so take the single unique value in each group (`.item()` raises
+    # an error if there is more than one)
+    fixed_point_location_cols = [ColumnTemplate.FIXED_POINT % col for col in DYNAMICS_COLUMN_NAMES]
+    fixed_point_locations = fixed_point_groups[fixed_point_location_cols].agg(
+        lambda values: values.unique().item()
+    )
+    mean_fpt_per_fp = fixed_point_locations.join(mean_fpt_per_fp).reset_index()
+
+    # map each dataset to its shear stress bin(s) and replicate number and add
+    # them right after the dataset column; datasets with multiple flow
+    # conditions (e.g., flow switch) list all bins, matching the dataset
+    # summary tables
+    dataset_configs = {
+        dataset: load_dataset_config(dataset)
+        for dataset in mean_fpt_per_fp[Column.DATASET].unique()
+    }
+    dataset_info_columns = {
+        Column.SHEAR_STRESS_BIN: {
+            dataset: ", ".join(str(fc.shear_stress_bin) for fc in config.flow_conditions)
+            for dataset, config in dataset_configs.items()
+        },
+        Column.REPLICATE: {
+            dataset: config.replicate_number for dataset, config in dataset_configs.items()
+        },
+    }
+    insert_loc = mean_fpt_per_fp.columns.tolist().index(Column.DATASET) + 1
+    for offset, (column, value_per_dataset) in enumerate(dataset_info_columns.items()):
+        mean_fpt_per_fp.insert(
+            loc=insert_loc + offset,
+            column=column,
+            value=[value_per_dataset[dataset] for dataset in mean_fpt_per_fp[Column.DATASET]],
+        )
     mean_fpt_per_fp.to_csv(out_dir / "summary_stats_mfpt_per_fp.csv", index=False)
 
     # compute correlation between grid and tracked first passage time
