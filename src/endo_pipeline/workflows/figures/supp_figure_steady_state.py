@@ -172,8 +172,8 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="D",
             path=figure_paths[3],
             x_position=3.2,
-            y_position=2.6,
-            x_offset=0.1,
+            y_position=2.5,
+            x_offset=0,
             y_offset=0,
         ),
     ]
