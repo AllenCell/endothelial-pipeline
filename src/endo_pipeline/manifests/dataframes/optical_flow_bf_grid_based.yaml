@@ -154,17 +154,17 @@ locations:
     s3uri: null
   20250224_20X:
     fmsid: 27407adfeed14b318585b4c05671b911
-    path: null
+    path: //allen/aics/users/erin.angelini/2026-11-09/optical_flow_fix/20250224_20X_optical_flow_bf_grid_based_20261109_230155.parquet
     s3uri: null
   20260316_20X:
     fmsid: 4a92354cf64e428eae15d1147ee2883b
-    path: null
+    path: //allen/aics/users/erin.angelini/2026-11-09/optical_flow_fix/20260316_20X_optical_flow_bf_grid_based_20261109_230156.parquet
     s3uri: null
   20260318_20X:
     fmsid: 6e92d94f190e460fadfec5ec4593a3d9
-    path: null
+    path: //allen/aics/users/erin.angelini/2026-11-09/optical_flow_fix/20260318_20X_optical_flow_bf_grid_based_20261109_230156.parquet
     s3uri: null
   20260323_20X:
     fmsid: c6433cf745a3483a89cd87ff6189d8d8
-    path: null
+    path: //allen/aics/users/erin.angelini/2026-11-09/optical_flow_fix/20260323_20X_optical_flow_bf_grid_based_20261109_230157.parquet
     s3uri: null
