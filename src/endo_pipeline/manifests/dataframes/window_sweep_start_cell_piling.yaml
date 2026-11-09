@@ -15,14 +15,18 @@ columns:
   detection_rate: Fraction of bootstrap iterations in which a matched fixed point was found.
 locations:
   20250409_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-09-29/sweep_window_fixed_points/window_sweep_20250409_20X_start_cell_piling_30min.parquet
+    fmsid: c5593012b9ae438a9a15590c5511e2ef
+    path: null
     s3uri: null
   20250319_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20250319_20X_start_cell_piling_30min.parquet
+    fmsid: 5d3787d74a094429aedad5628f697fee
+    path: null
     s3uri: null
   20260304_20X:
-    fmsid: null
-    path: /allen/aics/users/chantelle.leveille/repos/endo_pipe/main/results/2026-10-01/sweep_window_fixed_points/window_sweep_20260304_20X_start_cell_piling_30min.parquet
+    fmsid: 6b57d3f4e37e469683e9730b4919bc1a
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 01c55d3f3f1b4acfb9fa19b565f7eb03
+    path: null
     s3uri: null
