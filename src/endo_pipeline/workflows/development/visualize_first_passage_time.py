@@ -169,6 +169,25 @@ def main(
             column=column,
             value=[value_per_dataset[dataset] for dataset in mean_fpt_per_fp[Column.DATASET]],
         )
+
+    # sort rows by shear stress bin, then replicate number; shear stress bins
+    # are strings (e.g., "6, 24" for flow switch datasets), so compare them as
+    # tuples of integers to sort naturally ("6" before "12"); dataset breaks
+    # ties between datasets with the same bin and replicate number
+    mean_fpt_per_fp = mean_fpt_per_fp.sort_values(
+        by=[
+            Column.SHEAR_STRESS_BIN,
+            Column.REPLICATE,
+            Column.DATASET,
+            Column.VectorField.FIXED_POINT_INDEX,
+        ],
+        key=lambda col: (
+            col.map(lambda bins: tuple(int(b) for b in bins.split(", ")))
+            if col.name == Column.SHEAR_STRESS_BIN
+            else col
+        ),
+        ignore_index=True,
+    )
     mean_fpt_per_fp.to_csv(out_dir / "summary_stats_mfpt_per_fp.csv", index=False)
 
     # compute correlation between grid and tracked first passage time
