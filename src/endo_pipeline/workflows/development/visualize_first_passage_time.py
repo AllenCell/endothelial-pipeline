@@ -153,7 +153,7 @@ def main(
         dataset: load_dataset_config(dataset)
         for dataset in mean_fpt_per_fp[Column.DATASET].unique()
     }
-    dataset_info_columns = {
+    dataset_info_columns: dict[str, dict[str, str | int | None]] = {
         Column.SHEAR_STRESS_BIN: {
             dataset: ", ".join(str(fc.shear_stress_bin) for fc in config.flow_conditions)
             for dataset, config in dataset_configs.items()
