@@ -1003,6 +1003,7 @@ def plot_first_passage_time_3d_scatter(
         file_format=".svg",
         bbox_inches="tight",
     )
+    plt.close(fig)
 
 
 def plot_first_passage_time_parameter_sweep(
@@ -1071,6 +1072,7 @@ def plot_first_passage_time_parameter_sweep(
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
     )
+    plt.close(fig)
 
     # also plot compute the fraction of trajectories that approached the fixed point
     # for each parameter combination to see how the fixed point distance threshold
@@ -1118,6 +1120,7 @@ def plot_first_passage_time_parameter_sweep(
     save_plot_to_path(
         fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
     )
+    plt.close(fig)
 
     return (
         out_dir / f"{filename_param_sweep_fpt}.svg",
@@ -1242,6 +1245,7 @@ def plot_first_passage_time_correlations(
         file_format=".svg",
         show_and_close=False,
     )
+    plt.close(fig)
     return out_dir / f"{filename}.svg"
 
 
@@ -1307,6 +1311,7 @@ def plot_first_passage_time_histogram(
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram"
     )
     save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
+    plt.close(fig)
 
 
 def plot_first_passage_time_correlation_summary(
@@ -1379,6 +1384,7 @@ def plot_first_passage_time_correlation_summary(
         file_format=".svg",
         show_and_close=False,
     )
+    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
@@ -1401,3 +1407,4 @@ def plot_first_passage_time_correlation_summary(
         file_format=".svg",
         show_and_close=False,
     )
+    plt.close(fig)
