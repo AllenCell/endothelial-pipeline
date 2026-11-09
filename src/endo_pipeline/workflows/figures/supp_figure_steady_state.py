@@ -69,7 +69,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     panel_list = ["A", "B", "C", "D"]
     placeholders = parse_placeholder_panels(include_panels, panel_list)
 
-    datasets = get_datasets_in_collection("supp_figure_examples")
+    datasets = get_datasets_in_collection("steady_state_sweep_examples")
 
     bootstrap_manifest = load_dataframe_manifest(BOOTSTRAPPING_MANIFEST_NAMES["grid_based"])
     start_sweep_manifest = load_dataframe_manifest(

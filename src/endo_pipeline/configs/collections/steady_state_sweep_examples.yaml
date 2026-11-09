@@ -1,4 +1,4 @@
-name: supp_figure_examples
+name: steady_state_sweep_examples
 description: Datasets used as representative examples in supplemental figures
 datasets:
 # 6 dyn / cm2
@@ -7,4 +7,4 @@ datasets:
 - 20250319_20X
 - 20260304_20X
 # 21 dyn / cm2
-- 20251001_20X
+- 20250611_20X
