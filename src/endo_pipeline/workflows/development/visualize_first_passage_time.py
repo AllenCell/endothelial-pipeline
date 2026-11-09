@@ -46,6 +46,7 @@ def main(
     """
 
     import logging
+    from typing import Any
 
     import pandas as pd
 
@@ -65,6 +66,7 @@ def main(
     )
     from endo_pipeline.manifests import get_dataframe_location_for_dataset, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
     from endo_pipeline.settings.first_passage_time import (
         FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME,
         FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME,
@@ -112,6 +114,24 @@ def main(
             for dataset in dataset_names
         ]
     )
+
+    # report the mean and std of the per-bin means, and the median and std of
+    # the per-bin medians, for each fixed point in each dataset, with flat
+    # column names formatted as "<column>_<statistic>"
+    stats_per_metric = {"mean": ["mean", "std"], "50%": ["median", "std"]}
+    stats_per_col: dict[str, list[Any]] = {
+        ColumnTemplate.FIRST_PASSAGE_TIME_METRIC % (metric, patch_type): stats
+        for patch_type in ("grid_based", "cell_centered")
+        for metric, stats in stats_per_metric.items()
+    }
+    mean_fpt_per_fp = fpt_stats_df.groupby(
+        [Column.DATASET, Column.VectorField.FIXED_POINT_INDEX, Column.FIXED_POINT_STABILITY]
+    ).agg(stats_per_col)
+    mean_fpt_per_fp.columns = [
+        f"{col}_{stat}" for col, stat in mean_fpt_per_fp.columns.to_flat_index()
+    ]
+    mean_fpt_per_fp = mean_fpt_per_fp.reset_index()
+    mean_fpt_per_fp.to_csv(out_dir / "summary_stats_mfpt_per_fp.csv", index=False)
 
     # compute correlation between grid and tracked first passage time
     # statistics for each dataset and fixed point and save results as a
