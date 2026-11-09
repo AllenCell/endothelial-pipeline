@@ -38,6 +38,7 @@ include_scenes: null
 notes: High to low SS 48h. Takedown between TP563 and TP564 - crop out TP564 to 577.
   GFP looks great, perpendicular at high SS then parallel at low SS. Early piling
   areas in FOV 4 and 6 (1-indexed). BF flickering at various FOVs affects ~Z25.
+replicate_number: 2
 timepoint_annotations:
   auto_bf_scope_error:
     0: [329, 345, 366, 368, 372, 384, 445, 447, 467, 471, 514, 534]

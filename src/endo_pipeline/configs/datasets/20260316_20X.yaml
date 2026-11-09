@@ -40,6 +40,7 @@ notes: FLAGGED CAUTION - notable gaps in monolayer in FOV 2, 4, and 5 (1-indexed
   low SS change. Debris bottom-right FOV 1 from start. FOV 1 flickers dark at TP22.
   FOV 2 flickers dark at TP239. FOV 4 flickers dark at TP241. FOV 2 flickers dark
   top at TP292 and TP405.
+replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
     0: [13, 16, 21, 31, 498, 537]
