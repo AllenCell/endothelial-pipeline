@@ -38,6 +38,7 @@ include_scenes: null
 notes: High to low SS 48h. GFP looks good, perpendicular at high SS then more parallel
   at low SS. BF looks good, no flickering. Some localized crowding after transition
   to low SS but large regions go parallel.
+replicate_number: 3
 timepoint_annotations:
   auto_bf_scope_error:
     0: [576]
