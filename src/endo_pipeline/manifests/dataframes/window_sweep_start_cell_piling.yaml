@@ -1,0 +1,32 @@
+name: window_sweep_start_cell_piling
+workflow: sweep_window_fixed_points
+parameters:
+  patch_type: grid_based
+  sweep_interval_minutes: 30
+  sweep_interval_timepoints: 6
+  num_bootstrap_iterations: 500
+  bootstrap_match_radius: 0.3
+columns:
+  window_edge_timepoint: Time in frame number of swept edge.
+  window_edge_minutes: Time in minutes of swept edge.
+  swept_boundary: Which window edge moved in sweep.
+  shear_stress_bin: Shear stress bin corresponding to flow condition.
+  num_window_timepoints: Number of window timepoints (rows pooled across all FOVs).
+  detection_rate: Fraction of bootstrap iterations in which a matched fixed point was found.
+locations:
+  20250409_20X:
+    fmsid: c5593012b9ae438a9a15590c5511e2ef
+    path: null
+    s3uri: null
+  20250319_20X:
+    fmsid: 5d3787d74a094429aedad5628f697fee
+    path: null
+    s3uri: null
+  20260304_20X:
+    fmsid: 6b57d3f4e37e469683e9730b4919bc1a
+    path: null
+    s3uri: null
+  20250611_20X:
+    fmsid: 01c55d3f3f1b4acfb9fa19b565f7eb03
+    path: null
+    s3uri: null

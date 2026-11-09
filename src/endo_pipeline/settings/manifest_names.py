@@ -53,3 +53,9 @@ AUTOCORRELATION_MANIFEST_NAME_PREFIXES: dict[PatchTypeLiteral, str] = {
     "cell_centered": "autocorrelation_cell_centered",
 }
 """Mapping of patch type to autocorrelation dataframe manifest name."""
+
+WINDOW_SWEEP_MANIFEST_NAMES = {
+    "start_steady_state": "window_sweep_start_steady_state",
+    "start_cell_piling": "window_sweep_start_cell_piling",
+}
+"""Mapping of swept boundary to window sweep dataframe manifest name."""
