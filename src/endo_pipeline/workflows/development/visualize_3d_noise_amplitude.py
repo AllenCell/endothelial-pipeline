@@ -37,12 +37,17 @@ def main(
 
     To run the workflow in demo mode:
 
-    ```bash uv run endopipe visualize-3d-noise-amplitude -d ```
+    ```
+    bash
+    uv run endopipe visualize-3d-noise-amplitude -d
+    ```
 
     To run the workflow for a single dataset:
 
-    ```bash uv run endopipe visualize-3d-noise-amplitude --datasets
-    DATASET_NAME ```
+    ```
+    bash
+    uv run endopipe visualize-3d-noise-amplitude --datasets DATASET_NAME
+    ```
 
     ## Dataset collection
 
