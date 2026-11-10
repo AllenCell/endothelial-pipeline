@@ -9,8 +9,6 @@ from itertools import combinations_with_replacement
 import numpy as np
 import pandas as pd
 
-logger = logging.getLogger(__name__)
-
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import (
     get_kernel_residual_covariance,
 )
@@ -18,6 +16,8 @@ from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalK
 from endo_pipeline.library.analyze.vector_field_function import compute_extrapolated_vector_field
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
+
+logger = logging.getLogger(__name__)
 
 
 def compute_noise_amplitude(sigma_squared_tensor: np.ndarray) -> np.ndarray:
