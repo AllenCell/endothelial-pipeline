@@ -133,8 +133,10 @@ def main(
     ]
 
     max_num_patches = None
+    name_suffix = ""
     if DEMO_MODE:
         max_num_patches = 50
+        name_suffix = "_demo"
         dataset_names = dataset_names[:1]
         logger.warning(
             "DEMO MODE - Limiting to %d dataset(s) and %d patches per dataset.",
@@ -171,13 +173,14 @@ def main(
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load pre-computed vector field dataframe manifest
-    name_suffix = join_sorted_strings(column_names)
-    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    col_name_suffix = join_sorted_strings(column_names)
+    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{col_name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to compute the noise amplitude tensor.
-    noise_amplitude_manifest_name = NOISE_AMPLITUDE_MANIFEST_NAMES[patch_type]
+    noise_amplitude_manifest_prefix = NOISE_AMPLITUDE_MANIFEST_NAMES[patch_type]
+    noise_amplitude_manifest_name = f"{noise_amplitude_manifest_prefix}{name_suffix}"
     noise_amplitude_manifest = create_dataframe_manifest(
         noise_amplitude_manifest_name, workflow_name=__file__
     )
@@ -335,7 +338,8 @@ def main(
 
         # Save dataframe to file
         save_path = (
-            output_path / f"{noise_amplitude_manifest_name}_{dataset_name}_{name_suffix}.parquet"
+            output_path
+            / f"{noise_amplitude_manifest_name}_{dataset_name}_{col_name_suffix}{name_suffix}.parquet"
         )
         noise_amplitude_for_dataset.to_parquet(save_path, index=False)
 
