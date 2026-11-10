@@ -553,7 +553,7 @@ def plot_noise_tensor_contours_at_fixed_point(
 
         axes_title_text = f"{sigma_11_label}\n{column_labels[slice_axis_index]} = {slice_value:.2f}"
 
-        fig, _ = plot_noise_tensor_contours(
+        fig = plot_noise_tensor_contours(
             (x_grid, y_grid),
             sigma_11_slice,
             [axes_title_text],
