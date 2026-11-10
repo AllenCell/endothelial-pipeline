@@ -1,0 +1,84 @@
+name: 20261021_20X
+date: '20261021'
+original_path: //allen/programs/allencell/data/proj0/14e/458/b27/3e7/2df/9f8/a4b/122/70d/ac7/3d/20261021_GE00011607_20X_sldy/20261021_GE00011607_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 3dac770d122a4b9f82df3e7b2745814e
+barcode: GE00011607
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: max_to_medium
+pixel_size_xy_in_um: 0.382
+duration: 552
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [VE-cadherin_mEGFP, Brightfield]
+flow_conditions:
+- start: -14
+  stop: 257
+  shear_stress: 20.09
+- start: 258
+  stop: 552
+  shear_stress: 11.93
+include_scenes: null
+notes: Imaging ended around 46h due to cell piling.
+replicate_number: 1
+stability_category: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [392]
+    1: [249, 250]
+    2: [249, 392]
+    3: [392]
+    4: [392]
+    5: []
+  auto_bf_temp_artifact:
+    0: [4]
+    1: [249]
+    2: [249]
+    3: []
+    4: []
+    5: [16, 249]
+  auto_gfp_scope_error:
+    0: []
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: [[455, 552]]
+    1: [[444, 552]]
+    2: [[425, 552]]
+    3: [[515, 552]]
+    4: [[521, 552]]
+    5: [[530, 552]]
+  not_steady_state:
+    0: [[0, 86], [258, 389]]
+    1: [[0, 74], [258, 349]]
+    2: [[0, 112], [258, 379]]
+    3: [[0, 92], [258, 406]]
+    4: [[0, 85], [258, 383]]
+    5: [[0, 58], [258, 399]]
+position_annotations: null
+center_z_plane:
+  0: 12
+  1: 11
+  2: 11
+  3: 10
+  4: 10
+  5: 10
