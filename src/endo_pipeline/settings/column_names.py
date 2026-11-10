@@ -681,7 +681,7 @@ class ColumnName:
 
         NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"
         """Number of window timepoints (rows pooled across all FOVs)."""
-        
+
     NOISE_CORRELATIONS_LAG = "lag"
     """Lag at which the noise correlation is computed."""
 
