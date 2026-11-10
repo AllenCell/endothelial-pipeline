@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.axes import Axes
 from matplotlib.patches import Patch
-from matplotlib.transforms import blended_transform_factory
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import join_sorted_strings, save_plot_to_path
@@ -42,12 +41,6 @@ FLOW_SWITCH_BAND_COLOR = "#F4C542"
 
 SLOT_WIDTH = 0.6
 """Spacing between x axis slots (matches summary plot replicate mode)."""
-
-ARROW_Y_START = 0.92
-"""Height (axes fraction) of the first flow switch arrow."""
-
-ARROW_Y_STEP = 0.1
-"""Vertical spacing (axes fraction) between arrows of different datasets."""
 
 
 @dataclass(frozen=True)
@@ -162,50 +155,68 @@ def _get_points_for_slot(df: pd.DataFrame, slot: _Slot) -> pd.DataFrame:
     return df_slot
 
 
-def _draw_flow_switch_arrows(
-    ax: Axes, flow_switch_slots: list[_Slot], positions: dict[str, float]
+def _draw_flow_switch_arrow(
+    ax: Axes,
+    df_flow_switch: pd.DataFrame,
+    column_name: "ColumnNameType | str",
+    flow_switch_slots: list[_Slot],
+    positions: dict[str, float],
 ) -> None:
     """
-    Draw a dashed arrow for each dataset from its first to its second flow condition.
+    Draw one dashed arrow showing the direction of the flow switch.
 
-    Arrows run from the edge of the first flow condition band to the nearest
-    edge of the second flow condition band. Arrows for different datasets are
-    staggered vertically so that they do not overlap.
+    The arrow runs from the facing edge of the first flow condition band to the
+    facing edge of the second flow condition band. Each band spans all slots
+    for that flow condition (the first flow condition of all datasets in the
+    plot, and likewise the second). The arrow is placed at the mean value of
+    ``column_name`` across replicates for the first flow condition, where the
+    mean is taken over the per-dataset mean of the fixed point locations.
     """
 
-    transform = blended_transform_factory(ax.transData, ax.transAxes)
-    slots_by_dataset: dict[str, dict[int, _Slot]] = {}
-    for slot in flow_switch_slots:
-        if slot.flow_condition_index is not None:
-            slots_by_dataset.setdefault(slot.dataset, {})[slot.flow_condition_index] = slot
+    def band_edges(flow_condition_index: int) -> tuple[float, float] | None:
+        xs = [
+            positions[slot.key]
+            for slot in flow_switch_slots
+            if slot.flow_condition_index == flow_condition_index
+        ]
+        return (min(xs) - SLOT_WIDTH / 2, max(xs) + SLOT_WIDTH / 2) if xs else None
 
-    arrow_index = 0
-    for conditions in slots_by_dataset.values():
-        if 0 not in conditions or 1 not in conditions:
-            continue
+    first_band = band_edges(0)
+    second_band = band_edges(1)
+    if first_band is None or second_band is None:
+        return
 
-        start_x = positions[conditions[0].key]
-        end_x = positions[conditions[1].key]
-        direction = 1 if end_x > start_x else -1
-        y = ARROW_Y_START - ARROW_Y_STEP * arrow_index
-        ax.annotate(
-            "",
-            xy=(end_x - direction * SLOT_WIDTH / 2, y),
-            xytext=(start_x + direction * SLOT_WIDTH / 2, y),
-            xycoords=transform,
-            textcoords=transform,
-            arrowprops={
-                "arrowstyle": "-|>",
-                "linestyle": "--",
-                "color": "black",
-                "linewidth": 0.8,
-                "shrinkA": 0,
-                "shrinkB": 0,
-                "mutation_scale": 6,
-            },
-            zorder=5,
-        )
-        arrow_index += 1
+    if second_band[0] > first_band[1]:
+        start_x, end_x = first_band[1], second_band[0]
+    elif second_band[1] < first_band[0]:
+        start_x, end_x = first_band[0], second_band[1]
+    else:
+        return
+
+    replicate_means = [
+        _get_points_for_slot(df_flow_switch, slot)[column_name].mean()
+        for slot in flow_switch_slots
+        if slot.flow_condition_index == 0
+    ]
+    arrow_y = float(pd.Series(replicate_means).mean())
+    if pd.isna(arrow_y):
+        return
+
+    ax.annotate(
+        "",
+        xy=(end_x, arrow_y),
+        xytext=(start_x, arrow_y),
+        arrowprops={
+            "arrowstyle": "-|>",
+            "linestyle": "--",
+            "color": "black",
+            "linewidth": 0.8,
+            "shrinkA": 0,
+            "shrinkB": 0,
+            "mutation_scale": 6,
+        },
+        zorder=5,
+    )
 
 
 def _plot_points(
@@ -270,8 +281,8 @@ def plot_flow_switch_summaries(
     flow condition of each dataset. Each slot is placed in the group matching
     the shear stress bin of its flow condition, so that flow switch fixed
     points can be compared against steady-state datasets at the same shear
-    stress. A dashed arrow on the top panel points from the first to the second
-    flow condition of each dataset. Slots are highlighted with a colored band and labeled with the
+    stress. A dashed arrow on each panel points from the first to the
+    second flow condition band. Slots are highlighted with a colored band and labeled with the
     replicate number from the dataset config followed by an asterisk (datasets
     without a replicate number are labeled with only an asterisk).
 
@@ -404,8 +415,20 @@ def plot_flow_switch_summaries(
         ax.tick_params(axis="y", pad=2)
         ax.yaxis.labelpad = 8
 
-    # Indicate the direction of each flow switch on the top panel only
-    _draw_flow_switch_arrows(axes[0], flow_switch_slots, positions)
+    # Indicate the direction of the flow switch on every panel, at the mean
+    # location of the first flow condition's fixed points for that panel's column
+    for ax, base_column_name in zip(axes, column_names, strict=True):
+        _draw_flow_switch_arrow(
+            ax,
+            df_flow_switch,
+            (
+                f"mean_{base_column_name}"
+                if base_column_name in BINNED_MEAN_FEATURES
+                else base_column_name
+            ),
+            flow_switch_slots,
+            positions,
+        )
 
     # Label ticks and add brackets on the bottom panel only
     bottom_ax = axes[-1]
