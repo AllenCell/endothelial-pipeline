@@ -32,22 +32,20 @@ def main(
     - For each of the three possible slicing axes, a stack of contour plots (one
       per grid value along that axis) showing every unique entry of the noise
       amplitude tensor over the corresponding 2D slice of state space.
+    - For each polar coordinate slice (theta), a plot of the noise amplitude
+      entry sigma_11 as a function of the polar radius r, along with the mean
+      over all theta slices.
 
     ## Example usage
 
     To run the workflow in demo mode:
 
-    ```
-    bash
-    uv run endopipe visualize-3d-noise-amplitude -d
-    ```
+    ``` bash uv run endopipe visualize-3d-noise-amplitude -d ```
 
     To run the workflow for a single dataset:
 
-    ```
-    bash
-    uv run endopipe visualize-3d-noise-amplitude --datasets DATASET_NAME
-    ```
+    ``` bash uv run endopipe visualize-3d-noise-amplitude --datasets
+    DATASET_NAME ```
 
     ## Dataset collection
 
