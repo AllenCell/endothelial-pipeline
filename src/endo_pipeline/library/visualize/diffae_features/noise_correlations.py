@@ -219,7 +219,7 @@ def plot_noise_tensor_contours(
     cbar_num_ticks: int = DIFFUSION_TENSOR_CONTOUR_CBAR_NUM_TICKS,
     vmin: float = DIFFUSION_TENSOR_CONTOUR_VMIN,
     vmax: float = DIFFUSION_TENSOR_CONTOUR_VMAX,
-) -> tuple[plt.Figure, np.ndarray[plt.Axes, Any]]:
+) -> plt.Figure:
     """Make contour plots of each unique entry of a diffusion/noise amplitude
     tensor over a single 2D slice of the 3D state space.
 
@@ -259,8 +259,7 @@ def plot_noise_tensor_contours(
     Returns
     -------
     :
-        Matplotlib Figure and 2D array of Axes with the contour plots of each
-        tensor entry.
+        Matplotlib Figure with the contour plots of each tensor entry.
 
     """
     fig, ax = plt.subplots(n_rows, n_cols, figsize=figsize, layout="constrained")
@@ -297,7 +296,7 @@ def plot_noise_tensor_contours(
         ax_.set_ylim(*axes_limits[1])
         ax_.set_aspect("auto", adjustable="box")
 
-    return fig, ax
+    return fig
 
 
 def plot_noise_tensor_stack(
@@ -367,7 +366,7 @@ def plot_noise_tensor_stack(
             axis=-1,
         )
 
-        fig, _ = plot_noise_tensor_contours(
+        fig = plot_noise_tensor_contours(
             (x1_grid, x2_grid),
             tensor_slice,
             entry_labels,
