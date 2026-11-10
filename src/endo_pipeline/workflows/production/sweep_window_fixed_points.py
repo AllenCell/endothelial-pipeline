@@ -28,7 +28,8 @@ def main(
     """
 
     import logging
-    from concurrent.futures import ProcessPoolExecutor, as_completed
+    from collections import defaultdict
+    from concurrent.futures import ProcessPoolExecutor
 
     import pandas as pd
 
@@ -51,7 +52,8 @@ def main(
         SweptBoundary,
         build_window_anchors,
         build_window_edge_grid,
-        compute_fixed_points_for_edge,
+        compute_detection_rate,
+        compute_single_fit,
         init_window_worker,
     )
     from endo_pipeline.manifests import (
@@ -61,6 +63,7 @@ def main(
         save_dataframe_manifest,
     )
     from endo_pipeline.settings.bootstrap_fixed_points import (
+        BATCH_SIZE_SCALING_FACTOR,
         BOOTSTRAP_MATCH_RADIUS,
         NUM_BOOTSTRAP_ITERATIONS,
     )
@@ -188,18 +191,29 @@ def main(
         upper_by_row = df[Column.POSITION].map(position_cell_piling)
 
         for boundary in boundaries:
-            # One worker per edge position (capped by CPUs); spare CPUs -> BLAS threads.
-            n_workers = max(1, min(max_workers, len(edge_grid)))
+            n_flow_conditions = len(dataset_config.flow_conditions)
+            n_candidate_windows = len(edge_grid) * n_flow_conditions
+
+            # Work is split into two pool phases so every worker shares in the
+            # bootstrap refits for every window, rather than one worker
+            # serially paying the full num_bootstrap_iterations cost per edge:
+            # first the baseline fit for every (edge, flow_condition) window,
+            # then one task per bootstrap iteration for only the windows that
+            # found baseline fixed points.
+            n_workers = max(1, min(max_workers, n_candidate_windows))
             blas_threads_per_worker = max(1, max_workers // n_workers)
 
             logger.info(
-                "Dataset '%s': sweeping %s over %d edge position(s) [%d, %d] timepoints "
-                "with %d worker(s), %d BLAS thread(s) each.",
+                "Dataset '%s': sweeping %s over %d edge position(s) [%d, %d] timepoints, "
+                "%d flow condition(s), %d bootstrap iteration(s) per window, with %d "
+                "worker(s), %d BLAS thread(s) each.",
                 dataset_name,
                 boundary,
                 len(edge_grid),
                 edge_grid[0],
                 edge_grid[-1],
+                n_flow_conditions,
+                NUM_BOOTSTRAP_ITERATIONS,
                 n_workers,
                 blas_threads_per_worker,
             )
@@ -215,20 +229,68 @@ def main(
                 bin_widths,
                 kernels,
                 blas_threads_per_worker,
-                NUM_BOOTSTRAP_ITERATIONS,
-                BOOTSTRAP_MATCH_RADIUS,
                 RANDOM_SEED,
+            )
+
+            baseline_jobs = [
+                (edge, flow_condition_index, None)
+                for edge in edge_grid
+                for flow_condition_index in range(n_flow_conditions)
+            ]
+            baseline_batch_size = max(
+                1, len(baseline_jobs) // (n_workers * BATCH_SIZE_SCALING_FACTOR)
             )
 
             sweep_fixed_points: list[pd.DataFrame] = []
             with ProcessPoolExecutor(
                 max_workers=n_workers, initializer=init_window_worker, initargs=init_args
             ) as pool:
-                futures = [pool.submit(compute_fixed_points_for_edge, edge) for edge in edge_grid]
-                for future in as_completed(futures):
-                    edge, n_rows, fp_dfs = future.result()
-                    logger.info("Edge @ %d timepoints: %d window rows.", edge, n_rows)
-                    sweep_fixed_points.extend(fp_dfs)
+                baseline_results = list(
+                    pool.map(compute_single_fit, baseline_jobs, chunksize=int(baseline_batch_size))
+                )
+
+                # Only bootstrap windows with at least one baseline fixed
+                # point - nothing to report (or match against) otherwise.
+                bootstrap_jobs = [
+                    (result.edge_timepoint, result.flow_condition_index, rep)
+                    for result in baseline_results
+                    if not result.fixed_points.empty
+                    for rep in range(NUM_BOOTSTRAP_ITERATIONS)
+                ]
+                bootstrap_fp_by_window: dict[tuple[int, int], list[pd.DataFrame]] = defaultdict(
+                    list
+                )
+                if bootstrap_jobs:
+                    bootstrap_batch_size = max(
+                        1, len(bootstrap_jobs) // (n_workers * BATCH_SIZE_SCALING_FACTOR)
+                    )
+                    for result in pool.map(
+                        compute_single_fit, bootstrap_jobs, chunksize=int(bootstrap_batch_size)
+                    ):
+                        window_key = (result.edge_timepoint, result.flow_condition_index)
+                        bootstrap_fp_by_window[window_key].append(result.fixed_points)
+
+            for result in baseline_results:
+                if result.fixed_points.empty:
+                    continue
+                window_key = (result.edge_timepoint, result.flow_condition_index)
+                fixed_points_dataframe = result.fixed_points.copy()
+                # Left unfiltered here; downstream can threshold on
+                # `detection_rate` (paper convention: > 0.4).
+                fixed_points_dataframe[Column.FIXED_POINT_DETECTION_RATE] = compute_detection_rate(
+                    baseline_fixed_points=fixed_points_dataframe,
+                    bootstrap_fixed_points=bootstrap_fp_by_window.get(window_key, []),
+                    column_names=column_names,
+                    bootstrap_match_radius=BOOTSTRAP_MATCH_RADIUS,
+                )
+                fixed_points_dataframe[Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT] = (
+                    result.edge_timepoint
+                )
+                fixed_points_dataframe[Column.SteadyStateWindow.SWEPT_BOUNDARY] = boundary
+                fixed_points_dataframe[Column.SteadyStateWindow.NUM_WINDOW_TIMEPOINTS] = (
+                    result.num_window_rows
+                )
+                sweep_fixed_points.append(fixed_points_dataframe)
 
             if not sweep_fixed_points:
                 logger.warning(

@@ -16,7 +16,11 @@ from enum import StrEnum
 import numpy as np
 import pandas as pd
 
-from endo_pipeline.configs import DatasetConfig, get_start_of_steady_state_for_position
+from endo_pipeline.configs import (
+    DatasetConfig,
+    FlowCondition,
+    get_start_of_steady_state_for_position,
+)
 from endo_pipeline.library.analyze.bootstrap_fixed_points import (
     match_bootstrap_fixed_points_to_baseline,
     run_flow_field_and_fixed_points,
@@ -27,11 +31,8 @@ from endo_pipeline.library.analyze.dataframe_filtering import (
 )
 from endo_pipeline.library.analyze.numerics.binning import get_bins
 from endo_pipeline.library.analyze.numerics.forward_difference import get_traj_and_diff
-from endo_pipeline.library.analyze.vector_field_estimation import (
-    get_drift_estimates_and_fixed_points,
-)
 from endo_pipeline.settings.column_names import ColumnName as Column
-from endo_pipeline.settings.dynamics_workflows import RESCALED_THETA_PERIOD, TIME_STEP_IN_HOURS
+from endo_pipeline.settings.dynamics_workflows import RESCALED_THETA_PERIOD
 from endo_pipeline.settings.flow_field_3d import PAD_BINS_FLOAT
 
 logger = logging.getLogger(__name__)
@@ -78,12 +79,6 @@ class WorkerState:
     kernels: list
     """List of kernels used for vector field estimation."""
 
-    num_bootstrap_iterations: int
-    """Number of bootstrap iterations to perform."""
-
-    bootstrap_match_radius: float
-    """Match radius for bootstrap fixed points."""
-
     random_seed: int
     """Random seed for reproducibility."""
 
@@ -113,8 +108,6 @@ def init_window_worker(
     bin_widths: list,
     kernels: list,
     blas_threads_per_worker: int,
-    num_bootstrap_iterations: int,
-    bootstrap_match_radius: float,
     random_seed: int,
 ) -> None:
     """
@@ -142,10 +135,6 @@ def init_window_worker(
         List of kernels used for vector field estimation.
     blas_threads_per_worker
         Number of BLAS threads to use per worker.
-    num_bootstrap_iterations
-        Number of bootstrap iterations to perform.
-    bootstrap_match_radius
-        Radius within which to match bootstrap fixed points.
     random_seed
         Random seed for reproducibility.
     """
@@ -164,126 +153,45 @@ def init_window_worker(
         column_names=column_names,
         bin_widths=bin_widths,
         kernels=kernels,
-        num_bootstrap_iterations=num_bootstrap_iterations,
-        bootstrap_match_radius=bootstrap_match_radius,
         random_seed=random_seed,
     )
 
 
-def compute_window_detection_rates(
-    df_flow: pd.DataFrame,
-    baseline_fixed_points: pd.DataFrame,
-    column_names: list,
-    bin_widths: list,
-    kernels: list,
-    num_bootstrap_iterations: int,
-    bootstrap_match_radius: float,
-    rng: np.random.Generator,
-) -> np.ndarray:
-    """
-    Bootstrap detection rate for each baseline fixed point in one window.
+@dataclass
+class FitResult:
+    """Result of one baseline or bootstrap flow-field fit for a single window."""
 
-    Resamples the window's trajectories with replacement
-    ``num_bootstrap_iterations`` times, refits the flow field, finds fixed
-    points, and matches them back to ``baseline_fixed_points`` (same
-    coordinate/stability matching as ``bootstrap_fixed_points``). Returns, per
-    baseline fixed point (in row order), the fraction of iterations in which a
-    match was found within ``bootstrap_match_radius``.
+    edge_timepoint: int
+    """Absolute movie timepoint of the swept edge for this window."""
 
-    Returns an array of ``nan`` (one per baseline row) if bootstrapping is
-    disabled or the window has no usable trajectories.
+    flow_condition_index: int
+    """Index into ``dataset_config.flow_conditions`` identifying this window."""
 
-    Parameters
-    ----------
-    df_flow
-        The feature data for the flow condition being processed.
-    baseline_fixed_points
-        The fixed points obtained from the baseline fit.
-    column_names
-        The column names corresponding to the feature variables.
-    bin_widths
-        The bin widths for the grid used in vector field estimation.
-    kernels
-        The kernels used for vector field estimation.
-    num_bootstrap_iterations
-        The number of bootstrap iterations to perform.
-    bootstrap_match_radius
-        The radius within which a bootstrap fixed point is considered a match to
-        a baseline fixed point.
-    rng
-        The random number generator for bootstrapping.
-    """
-    n_baseline = len(baseline_fixed_points)
-    if n_baseline == 0:
-        return np.array([])
-    if num_bootstrap_iterations <= 0:
-        return np.full(n_baseline, np.nan)
+    bootstrap_rep: int | None
+    """Bootstrap iteration index, or ``None`` for the (non-resampled) baseline fit."""
 
-    trajectories, displacements = get_traj_and_diff(df_flow, column_names)
-    if not trajectories:
-        return np.full(n_baseline, np.nan)
+    fixed_points: pd.DataFrame
+    """Fixed points found by this fit (may be empty)."""
 
-    # Fixed-point bounds/grid come from the full window data (shared across all
-    # iterations), matching the baseline fit so matches are comparable.
-    bins, centers = get_bins(
-        tuple(bin_widths), data=df_flow[column_names].to_numpy(), pad=PAD_BINS_FLOAT
-    )
-
-    bootstrap_fixed_points: list[pd.DataFrame] = []
-    for _ in range(num_bootstrap_iterations):
-        sub_trajectories, sub_displacements = (
-            sample_trajectories_and_displacements_for_bootstrapping(
-                trajectories, displacements, rng=rng
-            )
-        )
-        try:
-            fixed_points = run_flow_field_and_fixed_points(
-                trajectories=sub_trajectories,
-                displacements=sub_displacements,
-                df_for_bounds=df_flow,
-                bins=bins,
-                centers=centers,
-                column_names=column_names,
-                kernels=kernels,
-            )
-        except Exception as e:  # noqa: BLE001 - a failed fit is a miss, not a hard error
-            logger.warning("Failed to compute fixed points: %s", e)
-            fixed_points = pd.DataFrame()
-        bootstrap_fixed_points.append(fixed_points)
-
-    matched_coords = match_bootstrap_fixed_points_to_baseline(
-        baseline_fixed_points=baseline_fixed_points,
-        bootstrap_fixed_points=bootstrap_fixed_points,
-        column_names=column_names,
-        bootstrap_match_radius=bootstrap_match_radius,
-        polar_angle_period=RESCALED_THETA_PERIOD,
-    )
-    return np.array([len(matched_coords[i]) / num_bootstrap_iterations for i in range(n_baseline)])
+    num_window_rows: int
+    """Number of rows in this window's flow-condition-filtered dataframe."""
 
 
-def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[pd.DataFrame]]:
-    """Compute tagged fixed points for one absolute position of the swept edge.
+def _get_window_flow_dataframe(
+    edge_timepoint: int, flow_condition_index: int
+) -> tuple[FlowCondition, pd.DataFrame]:
+    """Build the per-flow-condition window dataframe for one swept-edge position.
 
-    Reads the shared per-worker state set by :func:`init_window_worker`. The
+    Reads the shared per-worker state set by ``init_window_worker``. The
     window is ``[lower, upper)`` per position: the swept edge is placed at the
     absolute movie timepoint ``edge_timepoint`` (shared across all positions)
-    while the other edge is held at each position's annotation. Returns the edge
-    timepoint, the number of pooled window rows, and a list of fixed-point
-    dataframes (one per flow condition that produced any).
+    while the other edge is held at each position's annotation.
     """
-    assert (
-        _worker_state is not None
-    ), "init_window_worker must run before compute_fixed_points_for_edge"
+    if _worker_state is None:
+        raise RuntimeError("init_window_worker must run before building window data")
+
     df = _worker_state.df
     swept_boundary = _worker_state.swept_boundary
-    dataset_config = _worker_state.dataset_config
-    dataset_name = _worker_state.dataset_name
-    column_names = _worker_state.column_names
-    num_bootstrap_iterations = _worker_state.num_bootstrap_iterations
-    bootstrap_match_radius = _worker_state.bootstrap_match_radius
-    # Per-edge RNG so bootstrap resampling is reproducible and independent
-    # across the parallel edge positions.
-    rng = np.random.default_rng(_worker_state.random_seed + edge_timepoint)
 
     lower_by_row: pd.Series | int
     upper_by_row: pd.Series | int
@@ -301,61 +209,137 @@ def compute_fixed_points_for_edge(edge_timepoint: int) -> tuple[int, int, list[p
     # Keep rows within the (per-position) window [lower, upper).
     df_swept = df[(df[Column.TIMEPOINT] >= lower_by_row) & (df[Column.TIMEPOINT] < upper_by_row)]
 
-    if df_swept.empty:
-        return edge_timepoint, 0, []
+    flow_condition = _worker_state.dataset_config.flow_conditions[flow_condition_index]
+    df_flow = filter_dataframe_to_flow_condition_by_timepoint(
+        df_swept, _worker_state.dataset_config, flow_condition
+    )
+    return flow_condition, df_flow
 
-    results: list[pd.DataFrame] = []
-    for flow_condition in dataset_config.flow_conditions:
-        df_flow = filter_dataframe_to_flow_condition_by_timepoint(
-            df_swept, dataset_config, flow_condition
+
+def compute_single_fit(job: tuple[int, int, int | None]) -> FitResult:
+    """Compute one baseline or bootstrap flow-field fit for one window.
+
+    Reads the shared per-worker state set by ``init_window_worker``. This
+    is the unit of work submitted to the process pool in
+    ``sweep_window_fixed_points``: each job is either the (non-resampled)
+    baseline fit for a window (``bootstrap_rep=None``) or one bootstrap
+    resampling iteration of it (``bootstrap_rep`` = iteration index). Flattening
+    the work to this granularity (rather than looping over all
+    ``num_bootstrap_iterations`` serially inside a single edge-level task)
+    lets every available worker share in the per-window bootstrap refits,
+    instead of one worker paying their full serial cost alone.
+
+    Parameters
+    ----------
+    job
+        Tuple of ``(edge_timepoint, flow_condition_index, bootstrap_rep)``.
+    """
+    assert _worker_state is not None, "init_window_worker must run before compute_single_fit"
+    edge_timepoint, flow_condition_index, bootstrap_rep = job
+    column_names = _worker_state.column_names
+
+    flow_condition, df_flow = _get_window_flow_dataframe(edge_timepoint, flow_condition_index)
+    empty_result = FitResult(
+        edge_timepoint, flow_condition_index, bootstrap_rep, pd.DataFrame(), len(df_flow)
+    )
+    if df_flow.empty:
+        return empty_result
+
+    # A window can contain rows but no usable trajectories (e.g. only
+    # single-timepoint track fragments), which yields no displacements and
+    # crashes the Kramers-Moyal fit with an IndexError.
+    trajectories, displacements = get_traj_and_diff(df_flow, column_names)
+    if not trajectories:
+        return empty_result
+
+    # Fixed-point bounds/grid come from the full (non-resampled) window data,
+    # shared across the baseline and all bootstrap iterations so matches are
+    # comparable.
+    bins, centers = get_bins(
+        tuple(_worker_state.bin_widths), data=df_flow[column_names].to_numpy(), pad=PAD_BINS_FLOAT
+    )
+
+    if bootstrap_rep is not None:
+        # Per-(edge, rep) RNG so bootstrap resampling is reproducible and
+        # independent across both the parallel edge positions and iterations.
+        rng = np.random.default_rng(_worker_state.random_seed + edge_timepoint + bootstrap_rep)
+        trajectories, displacements = sample_trajectories_and_displacements_for_bootstrapping(
+            trajectories, displacements, rng=rng
         )
-        if df_flow.empty:
-            continue
 
-        # A window can contain rows but no usable trajectories (e.g. only
-        # single-timepoint track fragments), which yields no displacements and
-        # crashes the Kramers-Moyal fit with an IndexError. Skip those flow
-        # conditions (mirrors the guard in compute_window_detection_rates).
-        trajectories, _ = get_traj_and_diff(df_flow, column_names)
-        if not trajectories:
-            continue
-
-        metadata_dict: dict[str, str | float] = {
-            Column.DATASET: dataset_name,
-            Column.SHEAR_STRESS: flow_condition.shear_stress,
-            Column.SHEAR_STRESS_BIN: flow_condition.shear_stress_bin,
-        }
-        _, fixed_points_dataframe = get_drift_estimates_and_fixed_points(
-            dataframe=df_flow,
+    metadata_dict: dict[str, str | float] = {
+        Column.DATASET: _worker_state.dataset_name,
+        Column.SHEAR_STRESS: flow_condition.shear_stress,
+        Column.SHEAR_STRESS_BIN: flow_condition.shear_stress_bin,
+    }
+    try:
+        fixed_points = run_flow_field_and_fixed_points(
+            trajectories=trajectories,
+            displacements=displacements,
+            df_for_bounds=df_flow,
+            bins=bins,
+            centers=centers,
             column_names=column_names,
-            bin_widths=_worker_state.bin_widths,
-            kernel=_worker_state.kernels,
-            time_step=TIME_STEP_IN_HOURS,
+            kernels=_worker_state.kernels,
             metadata_dict=metadata_dict,
         )
-        if fixed_points_dataframe.empty:
-            continue
+    except Exception as e:  # noqa: BLE001 - a failed bootstrap fit is a miss, not a hard error
+        if bootstrap_rep is None:
+            raise
+        logger.warning("Failed to compute fixed points: %s", e)
+        fixed_points = pd.DataFrame()
 
-        # Bootstrap the window to score each fixed point's reliability. Left
-        # unfiltered here; downstream can threshold on `detection_rate` (paper
-        # convention: > 0.4).
-        fixed_points_dataframe[Column.FIXED_POINT_DETECTION_RATE] = compute_window_detection_rates(
-            df_flow=df_flow,
-            baseline_fixed_points=fixed_points_dataframe,
-            column_names=column_names,
-            bin_widths=_worker_state.bin_widths,
-            kernels=_worker_state.kernels,
-            num_bootstrap_iterations=num_bootstrap_iterations,
-            bootstrap_match_radius=bootstrap_match_radius,
-            rng=rng,
-        )
+    return FitResult(
+        edge_timepoint, flow_condition_index, bootstrap_rep, fixed_points, len(df_flow)
+    )
 
-        fixed_points_dataframe[Column.SteadyStateWindow.WINDOW_EDGE_TIMEPOINT] = edge_timepoint
-        fixed_points_dataframe[Column.SteadyStateWindow.SWEPT_BOUNDARY] = swept_boundary
-        fixed_points_dataframe[Column.SteadyStateWindow.NUM_WINDOW_TIMEPOINTS] = len(df_flow)
-        results.append(fixed_points_dataframe)
 
-    return edge_timepoint, len(df_swept), results
+def compute_detection_rate(
+    baseline_fixed_points: pd.DataFrame,
+    bootstrap_fixed_points: list[pd.DataFrame],
+    column_names: list,
+    bootstrap_match_radius: float,
+) -> np.ndarray:
+    """
+    Bootstrap detection rate for each baseline fixed point in one window.
+
+    Matches each already-computed bootstrap fit in ``bootstrap_fixed_points``
+    back to ``baseline_fixed_points`` (same coordinate/stability matching as
+    ``bootstrap_fixed_points``-the-workflow). Returns, per baseline fixed point
+    (in row order), the fraction of iterations in which a match was found
+    within ``bootstrap_match_radius``.
+
+    Returns an array of ``nan`` (one per baseline row) if no bootstrap
+    iterations were run for this window.
+
+    Parameters
+    ----------
+    baseline_fixed_points
+        The fixed points obtained from the baseline fit.
+    bootstrap_fixed_points
+        Fixed-point dataframes from each bootstrap iteration for this window
+        (as returned by ``compute_single_fit``), one per iteration.
+    column_names
+        The column names corresponding to the feature variables.
+    bootstrap_match_radius
+        The radius within which a bootstrap fixed point is considered a match to
+        a baseline fixed point.
+    """
+    n_baseline = len(baseline_fixed_points)
+    if n_baseline == 0:
+        return np.array([])
+    if not bootstrap_fixed_points:
+        return np.full(n_baseline, np.nan)
+
+    matched_coords = match_bootstrap_fixed_points_to_baseline(
+        baseline_fixed_points=baseline_fixed_points,
+        bootstrap_fixed_points=bootstrap_fixed_points,
+        column_names=column_names,
+        bootstrap_match_radius=bootstrap_match_radius,
+        polar_angle_period=RESCALED_THETA_PERIOD,
+    )
+    n_bootstrap = len(bootstrap_fixed_points)
+    return np.array([len(matched_coords[i]) / n_bootstrap for i in range(n_baseline)])
 
 
 def _range_start(timepoint_range: int | tuple[int, int]) -> int:
