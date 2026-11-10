@@ -187,7 +187,9 @@ def _get_window_flow_dataframe(
     absolute movie timepoint ``edge_timepoint`` (shared across all positions)
     while the other edge is held at each position's annotation.
     """
-    assert _worker_state is not None, "init_window_worker must run before building window data"
+    if _worker_state is None:
+        raise RuntimeError("init_window_worker must run before building window data")
+
     df = _worker_state.df
     swept_boundary = _worker_state.swept_boundary
 
