@@ -43,7 +43,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.analyze.window_sweep import SweptBoundary
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
-        build_empty_panel,
         build_figure_from_panels,
         parse_placeholder_panels,
     )
@@ -124,23 +123,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
                 sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_MINUTES] / 60
             )
             sweep_dfs[boundary] = sweep_df
-        if not sweep_dfs:
-            # Temporary fix until workflow run is done on high shear dataset:
-            # build empty panel
-            panel_path = build_empty_panel(
-                output_path,
-                f"Steady state sweep for {dataset_name}",
-                3.15,
-                2.25,
-            )
-        else:
-            panel_path = plot_sweep_subset(
-                sweep_dfs,
-                baseline_df=bootstrap_df,
-                dataset_config=dataset_config,
-                output_path=output_path,
-                **placeholders[panel_label],
-            )
+        panel_path = plot_sweep_subset(
+            sweep_dfs,
+            baseline_df=bootstrap_df,
+            dataset_config=dataset_config,
+            output_path=output_path,
+            **placeholders[panel_label],
+        )
         figure_paths.append(panel_path)
 
     panels = [
