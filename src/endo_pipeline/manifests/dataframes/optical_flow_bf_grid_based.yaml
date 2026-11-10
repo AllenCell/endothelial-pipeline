@@ -149,6 +149,6 @@ locations:
     path: null
     s3uri: null
   20261028_20X:
-    fmsid: null
-    path: //allen/aics/users/erin.angelini/2026-11-09/compute_optical_flow/optical_flow_bf_grid_based_20261028_20X.parquet
+    fmsid: b56acca2d0f44a0eba13afcc4fe3b2bd
+    path: null
     s3uri: null
