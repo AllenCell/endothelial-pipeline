@@ -114,15 +114,16 @@ def get_parameter_space() -> list[tuple[float, float]]:
 
 
 def upload_bootstrapped_fixed_points_to_fms(
-    sweep_name: str,
+    output_file_name_suffix: str,
     dataset_name: str,
     patch_type: PatchType = "grid_based",
     overwrite_fmsids: bool = True,
 ):
-
     name_prefix = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     name_suffix = "demo" if DEMO_MODE else ""
-    bootstrap_results_manifest_name = "_".join(filter(None, [name_prefix, name_suffix, sweep_name]))
+    bootstrap_results_manifest_name = "_".join(
+        filter(None, [name_prefix, name_suffix, output_file_name_suffix])
+    )
 
     dataset_config = load_dataset_config(dataset_name)
     bootstrap_results_manifest = load_dataframe_manifest(bootstrap_results_manifest_name)
@@ -160,7 +161,7 @@ def upload_bootstrapped_fixed_points_to_fms(
 
 
 def upload_flow_fields_to_fms(
-    sweep_name: str,
+    output_file_name_suffix: str,
     dataset_name: str,
     patch_type: PatchType = "grid_based",
     overwrite_fmsids: bool = True,
@@ -174,10 +175,12 @@ def upload_flow_fields_to_fms(
 
     name_suffix = join_sorted_strings(column_names)
     vector_field_dataframe_manifest_name = "_".join(
-        filter(None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+        filter(
+            None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix]
+        )
     )
     fixed_points_dataframe_manifest_name = "_".join(
-        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix])
     )
 
     vector_field_dataframe_manifest = load_dataframe_manifest(vector_field_dataframe_manifest_name)

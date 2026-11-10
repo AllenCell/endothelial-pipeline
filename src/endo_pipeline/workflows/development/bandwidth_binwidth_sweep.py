@@ -12,13 +12,13 @@ def main(
 
     #dynamical-systems #fixed-points #grid-based #cell-centered
 
-    For each combination of bin width and kernel bandwidth in
-    `BIN_WIDTHS_SWEEP` x `KERNEL_BANDWIDTHS_SWEEP`, this workflow:
+    For each combination of bin width and kernel bandwidth this workflow:
 
-    1. Temporarily overrides `BIN_WIDTHS_DYNAMICS` and `KERNEL_BANDWIDTHS_DYNAMICS`
-       (uniformly across all `DYNAMICS_COLUMN_NAMES`) and tags the vector field,
-       fixed point, and bootstrapping manifest names with the parameter
-       combination so that each combination's outputs are kept separate.
+    1. Applies the bin width and kernel bandwidth uniformly across all
+       `DYNAMICS_COLUMN_NAMES` and tags the vector field, fixed point, and
+       bootstrapping manifest and file names with the parameter combination
+       (via `output_file_name_suffix`) so that each combination's outputs are
+       kept separate.
     2. Runs `generate_flow_field.main()` to compute the drift vector field and
        baseline fixed points for the parameter combination.
     3. Runs `bootstrap_fixed_points.main()` to compute bootstrap confidence
@@ -26,10 +26,17 @@ def main(
 
     Parameters
     ----------
-    patch_type
-        Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to sweep parameters for.
+        Defaults to a fixed set of four example datasets.
+    patch_type
+        Patch type used to calculate the features.
+    overwrite_results
+        True to regenerate (or re-upload) outputs that already exist, False to
+        skip them.
+    fms_upload_only
+        True to only upload existing local sweep outputs to FMS without
+        running the analyses.
     """
 
     import logging
@@ -65,7 +72,7 @@ def main(
 
                 # Flow field uploads:
                 upload_flow_fields_to_fms(
-                    sweep_name=run_name_for_sweep_condition,
+                    output_file_name_suffix=run_name_for_sweep_condition,
                     dataset_name=dataset_name,
                     patch_type=patch_type,
                     overwrite_fmsids=overwrite_results,
@@ -73,7 +80,7 @@ def main(
 
                 # Bootstrapped fixed points uploads:
                 upload_bootstrapped_fixed_points_to_fms(
-                    sweep_name=run_name_for_sweep_condition,
+                    output_file_name_suffix=run_name_for_sweep_condition,
                     dataset_name=dataset_name,
                     patch_type=patch_type,
                     overwrite_fmsids=overwrite_results,
@@ -118,7 +125,7 @@ def main(
         bootstrap_fixed_points.main(
             patch_type=patch_type,
             datasets=datasets,
-            sweep_name=run_name_for_sweep_condition,
+            output_file_name_suffix=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
             overwrite_results=overwrite_results,
