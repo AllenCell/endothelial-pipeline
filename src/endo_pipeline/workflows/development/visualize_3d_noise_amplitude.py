@@ -116,7 +116,8 @@ def main(
     if DEMO_MODE:
         max_slice_steps = 10
         logger.warning(
-            "DEMO MODE - Limiting to one dataset and a maximum of %d 2D slices for plots", 10
+            "DEMO MODE - Limiting to one dataset and a maximum of %d 2D slices for plots",
+            max_slice_steps,
         )
         dataset_names = dataset_names[:1]
 
