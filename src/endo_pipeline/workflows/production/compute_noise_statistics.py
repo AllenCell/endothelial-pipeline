@@ -18,14 +18,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     To run the workflow in demo mode:
 
-    ```
-    bash uv run endopipe compute-noise-statistics -d
+    ```bash
+    uv run endopipe compute-noise-statistics -d
     ```
 
     To run the workflow for a single dataset:
 
-    ```
-    bash uv run endopipe compute-noise-statistics --datasets DATASET_NAME
+    ```bash
+    uv run endopipe compute-noise-statistics --datasets DATASET_NAME
     ```
 
     ## Dataset collection
