@@ -182,9 +182,6 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    if sweep_name is None:
-        sweep_name = ""
-
     if kernel_bandwidths_dynamics is None:
         kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
 

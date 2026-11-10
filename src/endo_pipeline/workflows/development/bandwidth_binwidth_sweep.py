@@ -97,7 +97,7 @@ def main(
         generate_flow_field.main(
             patch_type=patch_type,
             datasets=datasets,
-            sweep_name=run_name_for_sweep_condition,
+            output_file_name_suffix=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
             overwrite_results=overwrite_results,
