@@ -112,10 +112,12 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
     max_num_timepoints = None
     max_num_patches = None
+    name_suffix = ""
     if DEMO_MODE:
         max_num_timepoints = 25
         max_num_patches = 50
         dataset_names = dataset_names[:1]
+        name_suffix = "_demo"
         logger.warning(
             "DEMO MODE - Limiting to %d datasets, %d patches per dataset, "
             "and no more than %d steady state timepoints.",
@@ -134,13 +136,14 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
     feature_dataframe_manifest = load_dataframe_manifest(feature_dataframe_manifest_name)
 
     # Load pre-computed vector field dataframe manifest
-    name_suffix = join_sorted_strings(column_names)
-    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    col_name_suffix = join_sorted_strings(column_names)
+    vector_field_manifest_name = f"{VECTOR_FIELD_MANIFEST_NAMES[patch_type]}_{col_name_suffix}"
     vector_field_manifest = load_dataframe_manifest(vector_field_manifest_name)
 
     # Build dataframe manifest names that include sorted list of selected
     # columns used to compute noise statistics.
-    noise_statistics_manifest_name = NOISE_STATISTICS_MANIFEST_NAMES[patch_type]
+    noise_statistics_manifest_prefix = NOISE_STATISTICS_MANIFEST_NAMES[patch_type]
+    noise_statistics_manifest_name = f"{noise_statistics_manifest_prefix}{name_suffix}"
     noise_statistics_manifest = create_dataframe_manifest(
         noise_statistics_manifest_name, workflow_name=__file__
     )
@@ -249,7 +252,7 @@ def main(patch_type: PatchType = "grid_based", datasets: Datasets | None = None)
 
         # Save dataframe to file
         save_path = (
-            output_path / f"{noise_statistics_manifest_name}_{dataset_name}_{name_suffix}.parquet"
+            output_path / f"{noise_statistics_manifest_name}_{dataset_name}{name_suffix}.parquet"
         )
         noise_statistics_for_dataset.to_parquet(save_path, index=False)
 
