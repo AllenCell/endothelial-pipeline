@@ -118,6 +118,27 @@ def _build_flow_switch_slots(
     return slots
 
 
+def _build_flow_switch_legend_label(flow_switch_slots: list[_Slot]) -> str:
+    """
+    Build legend label of the shear stress bins before and after the flow switch.
+
+    If flow switch datasets differ in their shear stress bin for a flow
+    condition, the bins are joined with a slash.
+    """
+
+    def format_bins(flow_condition_index: int) -> str:
+        bins = sorted(
+            {
+                slot.shear_stress_bin
+                for slot in flow_switch_slots
+                if slot.flow_condition_index == flow_condition_index
+            }
+        )
+        return f"{'/'.join(str(b) for b in bins)} dyn/cm2"
+
+    return f"{format_bins(0)} to {format_bins(1)}"
+
+
 def _combine_slots(background_slots: list[_Slot], flow_switch_slots: list[_Slot]) -> list[_Slot]:
     """
     Insert flow switch slots into the background slots.
@@ -297,7 +318,7 @@ def plot_flow_switch_summaries(
         Output path to save plot.
     regime_label
         Label for the shear stress regime of the flow switch datasets (e.g.
-        ``"min_to_max"``) used in the legend and output file name.
+        ``"min_to_max"``) used in the output file name.
     column_names
         List of feature column names, one panel per column.
     color_by_column
@@ -449,7 +470,7 @@ def plot_flow_switch_summaries(
             Patch(
                 facecolor=FLOW_SWITCH_BAND_COLOR,
                 alpha=0.4,
-                label=f"* Flow switch ({regime_label.replace('_', ' ')})",
+                label=f"* Flow switch ({_build_flow_switch_legend_label(flow_switch_slots)})",
             ),
         ],
         loc="lower center",
