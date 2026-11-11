@@ -10,7 +10,7 @@ def main(
     """
     Sweep bin width and kernel bandwidth parameters for fixed point bootstrapping.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #workers
 
     For each combination of bin width and kernel bandwidth this workflow:
 
@@ -28,7 +28,8 @@ def main(
     ----------
     datasets
         List of datasets or dataset collections to sweep parameters for.
-        Defaults to a fixed set of four example datasets.
+        Defaults to datasets in `SUPP_FIG_PARAM_SWEEP` which includes low, high,
+        bistable intermediate, and monostable intermediate, shear stresses.
     patch_type
         Patch type used to calculate the features.
     overwrite_results
@@ -50,6 +51,7 @@ def main(
         upload_bootstrapped_fixed_points_to_fms,
         upload_flow_fields_to_fms,
     )
+    from endo_pipeline.settings.examples import SUPP_FIG_PARAM_SWEEP
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
 
     logger = logging.getLogger(__name__)
@@ -57,7 +59,7 @@ def main(
     if datasets is None:
         # use low, the bifurcation intermediate example from figure 4, and high datasets if no
         # datasets are specified by the user
-        datasets = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
+        datasets = SUPP_FIG_PARAM_SWEEP
 
     parameter_space = get_parameter_space()
 
