@@ -14,7 +14,6 @@ VECTOR_FIELD_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
 }
 """Mapping of patch type to vector field dataframe manifest name."""
 
-
 GRID_BASED_FIXED_POINT_MANIFEST_NAME: str = "drift_fixed_points_grid_based"
 """Dataframe manifest name for grid-based fixed points."""
 
@@ -59,3 +58,15 @@ WINDOW_SWEEP_MANIFEST_NAMES = {
     "start_cell_piling": "window_sweep_start_cell_piling",
 }
 """Mapping of swept boundary to window sweep dataframe manifest name."""
+
+NOISE_STATISTICS_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": "noise_statistics_grid_based",
+    "cell_centered": "noise_statistics_cell_centered",
+}
+"""Mapping of patch type to noise statistics dataframe manifest name."""
+
+NOISE_AMPLITUDE_MANIFEST_NAMES: dict[PatchTypeLiteral, str] = {
+    "grid_based": "noise_amplitude_grid_based",
+    "cell_centered": "noise_amplitude_cell_centered",
+}
+"""Mapping of patch type to noise amplitude tensor field dataframe manifest name."""
