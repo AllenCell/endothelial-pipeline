@@ -94,16 +94,6 @@ def main(
         FIRST_PASSAGE_TIME_PARAMETER_SWEEP_MANIFEST_NAME
     )
 
-    # If a dataset is not in the manifest, log a warning and skip it
-    missing_datasets = [
-        d
-        for d in dataset_names
-        if d not in statistics_manifest.locations or d not in parameter_sweep_manifest.locations
-    ]
-    for dataset in missing_datasets:
-        logger.warning("Dataset %s not found in manifest, skipping", dataset)
-    dataset_names = [d for d in dataset_names if d not in missing_datasets]
-
     fpt_stats_df = pd.concat(
         [
             load_dataframe(get_dataframe_location_for_dataset(statistics_manifest, dataset))
