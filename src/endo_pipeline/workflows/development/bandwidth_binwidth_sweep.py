@@ -41,15 +41,21 @@ def main(
     """
 
     import logging
+    from itertools import product
 
     from tqdm import tqdm
 
     from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
         get_binwidth_bandwidth_dict,
         get_param_sweep_run_name,
-        get_parameter_space,
         upload_bootstrapped_fixed_points_to_fms,
         upload_flow_fields_to_fms,
+    )
+    from endo_pipeline.settings.bandwidth_binwidth_sweep import (
+        SWEEP_BINWIDTHS,
+        SWEEP_BINWIDTHS_NARROW,
+        SWEEP_KERNEL_BANDWIDTHS,
+        SWEEP_KERNEL_BANDWIDTHS_NARROW,
     )
     from endo_pipeline.settings.examples import SUPP_FIG_PARAM_SWEEP
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
@@ -61,7 +67,14 @@ def main(
         # datasets are specified by the user
         datasets = SUPP_FIG_PARAM_SWEEP
 
-    parameter_space = get_parameter_space()
+    # Get the parameter space of bin widths and kernel bandwidths.
+    # combine the broad and narrow parameter sets
+    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
+    sweep_kernel_bandwidths_all = list(
+        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
+    )
+    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
+    parameter_space = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
 
     if fms_upload_only:
         for bw, kb in tqdm(parameter_space, desc=f"Upload-only mode to FMS for: {datasets}"):

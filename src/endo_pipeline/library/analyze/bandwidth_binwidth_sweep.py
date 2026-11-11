@@ -1,5 +1,4 @@
 import logging
-from itertools import product
 
 import pandas as pd
 
@@ -12,12 +11,6 @@ from endo_pipeline.manifests import (
     load_dataframe_manifest,
     load_model_manifest,
     save_dataframe_manifest,
-)
-from endo_pipeline.settings.bandwidth_binwidth_sweep import (
-    SWEEP_BINWIDTHS,
-    SWEEP_BINWIDTHS_NARROW,
-    SWEEP_KERNEL_BANDWIDTHS,
-    SWEEP_KERNEL_BANDWIDTHS_NARROW,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.dynamics_workflows import (
@@ -90,27 +83,6 @@ def get_binwidth_bandwidth_dict(
     bin_widths = dict.fromkeys(BIN_WIDTHS_DYNAMICS.keys(), bin_width)
     kernel_bandwidths = dict.fromkeys(KERNEL_BANDWIDTHS_DYNAMICS.keys(), kernel_bandwidth)
     return bin_widths, kernel_bandwidths
-
-
-def get_parameter_space() -> list[tuple[float, float]]:
-    """
-    Get the parameter space of bin widths and kernel bandwidths.
-
-    Returns
-    -------
-    :
-        (bin width, kernel bandwidth) combinations of the parameters used for the sweep.
-    """
-
-    # combine the broad and narrow parameter sets
-    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
-    sweep_kernel_bandwidths_all = list(
-        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
-    )
-    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
-    param_space_all = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
-
-    return param_space_all
 
 
 def upload_bootstrapped_fixed_points_to_fms(
