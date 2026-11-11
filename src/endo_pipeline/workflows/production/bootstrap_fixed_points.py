@@ -431,11 +431,16 @@ def main(
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = "_".join(filter(None, [name_prefix, dataset_name, name_suffix]))
+        # Ensure the output file name is unique to avoid overwriting existing files
         output_file_name_unique = make_name_unique(f"{output_file_name}.parquet")
-        output_save_path = output_path / Path(
+        # Construct the final output save path with the unique file name and an optional suffix
+        filename_extension = output_file_name_unique.suffix
+        final_output_file_name = (
             "_".join(filter(None, [output_file_name_unique.stem, output_file_name_suffix]))
-            + output_file_name_unique.suffix
+            + filename_extension
         )
+
+        output_save_path = output_path / Path(final_output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 
