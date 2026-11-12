@@ -58,6 +58,8 @@ CROWDING_FILTER = "Cell crowding filter (N removed)"
 SS_FOV = "Shear stress FOV dataset\n(N timepoints)"
 SS_GRID = "Shear stress grid-based\nanalysis dataset (N patches)"
 SS_CELL = "Shear stress cell-centered\nanalysis dataset (N patches)"
+FS_FOV = "Flow switch FOV dataset\n(N timepoints)"
+FS_GRID = "Flow switch grid-based\nanalysis dataset (N patches)"
 DA_FOV = "DiffAE FOV dataset\n(N timepoints)"
 DA_GRID = "DiffAE grid-based\nanalysis dataset (N patches)"
 DA_CELL = "DiffAE cell-centered\nanalysis dataset (N patches)"
@@ -139,8 +141,8 @@ TABLE_S2_FLOW_SWITCH = {
         (OUTLIER_FILTER, "outlier"),
         (STEADY_STATE_FILTER, "steady_state"),
         (CROWDING_FILTER, "piling"),
-        (SS_FOV, "fov_total"),
-        (SS_GRID, "grid"),
+        (FS_FOV, "fov_total"),
+        (FS_GRID, "grid"),
     ],
 }
 
