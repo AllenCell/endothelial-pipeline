@@ -4,8 +4,14 @@ def main() -> None:
 
     #supp-figure #dynamical-systems
 
-    | Panel | Description                                                                                               |
-    | ----- | --------------------------------------------------------------------------------------------------------- |
+    | Panel | Description                                                                                                     |
+    | ----- | --------------------------------------------------------------------------------------------------------------- |
+    | A     | Noise correlation vs lag for all datasets (mean over datasets).                                                 |
+    | B     | Contour of noise tensor entry sigma_11 over 2D slices of the state space for a 6 dyn/cm2 replicate.             |
+    | C     | Contour of noise tensor entry sigma_11 over 2D slices of the state space for a bistable 12 dyn/cm2 replicate.   |
+    | D     | Contour of noise tensor entry sigma_11 over 2D slices of the state space for a monostable 12 dyn/cm2 replicate. |
+    | E     | Contour of noise tensor entry sigma_11 over 2D slices of the state space for a 21 dyn/cm2 replicate.            |
+
 
     ## Example usage
 
@@ -45,8 +51,6 @@ def main() -> None:
     from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
     plt.style.use("endo_pipeline.figure")
-
-    output_path = get_output_path(__file__)
 
     logger = logging.getLogger(__name__)
 
