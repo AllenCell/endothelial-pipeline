@@ -141,7 +141,6 @@ TABLE_S2_FLOW_SWITCH = {
         (CROWDING_FILTER, "piling"),
         (SS_FOV, "fov_total"),
         (SS_GRID, "grid"),
-        (SS_CELL, "cell"),
     ],
 }
 
