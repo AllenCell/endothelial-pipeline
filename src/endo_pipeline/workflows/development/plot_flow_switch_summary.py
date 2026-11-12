@@ -3,11 +3,14 @@ def main(background_alpha: float = 0.25) -> None:
     Plot flow switch fixed points and migration coherence over the shear stress summary.
 
     For each shear stress regime in the `flow_switch` dataset collection (e.g.
-    `min_to_max`, `max_to_min`), fixed points colored by migration coherence are
-    plotted in the summary plot style. Fixed points are split out by flow
-    condition within each dataset, and all datasets in the regime are placed on
-    one plot. The summary plot of all datasets in the `shear_stress` dataset
-    collection is drawn in the background at low opacity.
+    `min_to_max`, `max_to_min`), fixed points are plotted in the summary plot
+    style, once colored by migration coherence and once colored by optical
+    flow speed. Fixed points are split out by flow condition within each
+    dataset, and all datasets in the regime are placed on one plot. The
+    summary plot of all datasets in the `shear_stress` dataset collection is
+    drawn in the background at low opacity. Polar angle and polar radius are
+    plotted together as two panels of one figure, and rho is plotted as a
+    separate figure.
 
     Datasets without bootstrapped fixed points or optical flow features are
     skipped with a warning, and regimes with no remaining datasets are not
@@ -113,11 +116,15 @@ def main(background_alpha: float = 0.25) -> None:
         first_regime = next(iter(datasets_by_regime))
         datasets_by_regime = {first_regime: datasets_by_regime[first_regime]}
 
-    column_names = [ColumnName.DiffAEData.POLAR_ANGLE, ColumnName.DiffAEData.POLAR_RADIUS]
+    # Each group of columns is plotted as a separate figure
+    column_name_groups = [
+        [ColumnName.DiffAEData.POLAR_ANGLE, ColumnName.DiffAEData.POLAR_RADIUS],
+        [ColumnName.DiffAEData.PC3_FLIPPED],
+    ]
     summary_kwargs = {
         "feature_dataframe_manifest": feature_manifest,
         "bootstrap_dataframe_manifest": bootstrap_manifest,
-        "column_names": column_names,
+        "column_names": [name for group in column_name_groups for name in group],
         "stable_only": True,
     }
 
@@ -138,14 +145,20 @@ def main(background_alpha: float = 0.25) -> None:
             logger.warning("No fixed points found for regime [ %s ]. Skipping.", regime)
             continue
 
-        plot_flow_switch_summaries(
-            df_flow_switch,
-            df_background,
-            output_path=output_path,
-            regime_label=regime,
-            column_names=column_names,
-            background_alpha=background_alpha,
-        )
+        for column_names in column_name_groups:
+            for color_by_column in [
+                ColumnName.OpticalFlow.UNIT_VECTOR_MEAN,
+                ColumnName.OpticalFlow.SPEED_MEAN,
+            ]:
+                plot_flow_switch_summaries(
+                    df_flow_switch,
+                    df_background,
+                    output_path=output_path,
+                    regime_label=regime,
+                    column_names=column_names,
+                    color_by_column=color_by_column,
+                    background_alpha=background_alpha,
+                )
 
 
 if __name__ == "__main__":

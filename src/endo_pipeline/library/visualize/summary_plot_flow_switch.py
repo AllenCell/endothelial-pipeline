@@ -492,7 +492,8 @@ def plot_flow_switch_summaries(
 
     figure_name = (
         f"summary_flow_switch_{regime_label}_"
-        f"{join_sorted_strings([str(column_name) for column_name in column_names])}"
+        f"{join_sorted_strings([str(column_name) for column_name in column_names])}_"
+        f"by_{color_by_column}"
     )
     save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
 
