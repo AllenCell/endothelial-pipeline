@@ -117,7 +117,7 @@ TABLE_S2_FLOW_SWITCH = {
     "title": "Table S2: Flow switch datasets",
     "figure_name": "table_s2_flow_switch_datasets",
     "sort_by": [SHEAR_STRESS, REPLICATE],
-    "sort_bottom": ["6, 15", "21, 12"],
+    "sort_bottom": ["21, 6", "6, 15", "21, 12"],
     "annotations_to_include": [
         TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
         TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
