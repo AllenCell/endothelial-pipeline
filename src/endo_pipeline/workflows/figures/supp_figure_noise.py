@@ -78,7 +78,7 @@ def main() -> None:
         )
         all_dataframes.append(noise_statistics_dataframe)
 
-    # Plot mean of noise correlations over all datasets v lag
+    # Plot mean of noise correlations over all datasets vs lag
     noise_statistics_all_datasets = pd.concat(all_dataframes)
     noise_correlations_path = plot_noise_correlation_vs_lag(
         noise_statistics_dataframe=noise_statistics_all_datasets,
