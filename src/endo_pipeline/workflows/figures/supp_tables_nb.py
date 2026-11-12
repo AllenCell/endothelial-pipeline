@@ -149,7 +149,7 @@ TABLE_S3_DIFFAE = {
     "title": "Table S3: DiffAE datasets",
     "figure_name": "table_s3_diffae_training_datasets",
     "sort_by": [SHEAR_STRESS, REPLICATE],
-    "sort_bottom": ["0", "6, 21", "24, 6"],
+    "sort_bottom": ["0", "6, 24", "21, 6"],
     "annotations_to_include": [
         TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
         TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
@@ -226,7 +226,7 @@ TABLE_S6_SEGMENTATION = {
     "title": "Table S6: Segmentation summary",
     "figure_name": "table_s6_segmentation",
     "sort_by": [SHEAR_STRESS, REPLICATE],
-    "sort_bottom": ["0", "6, 21", "24, 6"],
+    "sort_bottom": ["0", "6, 24", "21, 6"],
     "stats_fn": "get_seg_stats",
     "columns": [
         (DATE, "date"),

@@ -311,16 +311,21 @@ def create_supp_table(
     sort_cols = table["sort_by"]
     sort_bottom = table.get("sort_bottom", [])
 
-    # Build _bottom column if needed (push 0 dyn and flow switch datasets to bottom)
+    # Build _bottom column if needed (push listed shear stress values to the bottom)
     if sort_bottom and SHEAR_STRESS in df.columns:
-        df["_bottom"] = df[SHEAR_STRESS].apply(
-            lambda x: 1 if x in sort_bottom or ", " in str(x) else 0
-        )
+        df["_bottom"] = df[SHEAR_STRESS].apply(lambda x: 1 if str(x) in sort_bottom else 0)
     else:
         df["_bottom"] = 0
 
     if sort_cols[0] == SHEAR_STRESS:
         df["_sort"] = df[SHEAR_STRESS].str.split(", ").str[0].astype(int)
+        if sort_bottom:
+            # Within the bottom group, preserve the explicit order given in
+            # sort_bottom instead of the numeric shear-stress sort.
+            bottom_rank = {val: i for i, val in enumerate(sort_bottom)}
+            df.loc[df["_bottom"] == 1, "_sort"] = df.loc[df["_bottom"] == 1, SHEAR_STRESS].map(
+                bottom_rank
+            )
         df = df.sort_values(by=["_bottom", "_sort"] + sort_cols[1:], ignore_index=True).drop(
             columns=["_sort", "_bottom"]
         )
