@@ -6,6 +6,8 @@ import pandas as pd
 from tqdm import tqdm
 
 from endo_pipeline.configs import (
+    DatasetConfig,
+    FlowCondition,
     TimepointAnnotation,
     get_annotated_timepoints_for_position,
     get_datasets_in_collection,
@@ -25,6 +27,25 @@ MAX_CELL_CHARS = 16
 """Maximum number of characters used in supplemental table cell before applying text wrapping"""
 
 SHEAR_STRESS = f"Shear stress (dyn/cm{UnicodeCharacters.SQUARED})"
+
+
+def _get_flow_condition_frame_range(
+    dataset_config: DatasetConfig, flow_condition: FlowCondition
+) -> range:
+    """Get the timepoint range covered by a flow condition, clamped to the dataset duration."""
+    start = max(flow_condition.start, 0)
+    stop = min(flow_condition.stop, dataset_config.duration - 1)
+    return range(start, stop + 1)
+
+
+def _count_timepoints_in_range(
+    timepoints_by_position: dict[int, list[int]], frame_range: range
+) -> int:
+    """Sum, across positions, the number of timepoints that fall within a frame range."""
+    return sum(
+        len([tp for tp in timepoints if tp in frame_range])
+        for timepoints in timepoints_by_position.values()
+    )
 
 
 def get_dataset_stats(
@@ -54,47 +75,82 @@ def get_dataset_stats(
     -------
     dict
         Keys correspond to the stat keys referenced in table column
-        definitions (e.g. "date", "fov_total", "grid", "cell").
+        definitions (e.g. "date", "fov_total", "grid", "cell"). For datasets
+        with multiple flow conditions (e.g. flow switch datasets), the
+        timepoint-dependent stats ("timepoints", "outlier", "steady_state",
+        "piling", "fov_total", "grid") are reported as one value per flow
+        condition joined with ", ", matching how "shear_stress" is reported.
     """
     dataset_config = load_dataset_config(dataset_name)
     # only get the annotations for positions that are unannotated
     # (i.e. not removed by the position filter)
     unannotated_positions = get_unannotated_positions(dataset_config)
 
-    # Count annotated timepoints across all unannotated positions
-    n_outlier = sum(
-        len(
-            get_annotated_timepoints_for_position(
-                dataset_config,
-                pos,
-                annotations=[
-                    TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
-                    TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
-                    TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
-                    TimepointAnnotation.BF_SCOPE_ERROR,
-                    TimepointAnnotation.BF_TEMP_ARTIFACT,
-                    TimepointAnnotation.GFP_SCOPE_ERROR,
-                ],
-            )
+    # Precompute, per position, the full lists of relevant timepoints. These are
+    # sliced per flow condition below so that multi-flow-condition datasets
+    # (e.g. flow switch datasets) report stats separately per condition.
+    outlier_timepoints_by_position = {
+        pos: get_annotated_timepoints_for_position(
+            dataset_config,
+            pos,
+            annotations=[
+                TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
+                TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
+                TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+                TimepointAnnotation.BF_SCOPE_ERROR,
+                TimepointAnnotation.BF_TEMP_ARTIFACT,
+                TimepointAnnotation.GFP_SCOPE_ERROR,
+            ],
         )
         for pos in unannotated_positions
-    )
-    n_steady = sum(
-        len(
-            get_annotated_timepoints_for_position(
-                dataset_config, pos, annotations=[TimepointAnnotation.NOT_STEADY_STATE]
-            )
+    }
+    steady_timepoints_by_position = {
+        pos: get_annotated_timepoints_for_position(
+            dataset_config, pos, annotations=[TimepointAnnotation.NOT_STEADY_STATE]
         )
         for pos in unannotated_positions
-    )
-    n_piling = sum(
-        len(
-            get_annotated_timepoints_for_position(
-                dataset_config, pos, annotations=[TimepointAnnotation.CELL_PILING]
-            )
+    }
+    piling_timepoints_by_position = {
+        pos: get_annotated_timepoints_for_position(
+            dataset_config, pos, annotations=[TimepointAnnotation.CELL_PILING]
         )
         for pos in unannotated_positions
-    )
+    }
+    unannotated_timepoints_by_position = {
+        pos: get_unannotated_timepoints_for_position(
+            dataset_config, pos, annotations=annotations_to_include
+        )
+        for pos in unannotated_positions
+    }
+
+    timepoints_per_condition = []
+    n_outlier_per_condition = []
+    n_steady_per_condition = []
+    n_piling_per_condition = []
+    fov_total_per_condition = []
+    n_grid_per_condition = []
+    for flow_condition in dataset_config.flow_conditions:
+        frame_range = _get_flow_condition_frame_range(dataset_config, flow_condition)
+        timepoints_per_condition.append(len(frame_range))
+        n_outlier_per_condition.append(
+            _count_timepoints_in_range(outlier_timepoints_by_position, frame_range)
+        )
+        n_steady_per_condition.append(
+            _count_timepoints_in_range(steady_timepoints_by_position, frame_range)
+        )
+        n_piling_per_condition.append(
+            _count_timepoints_in_range(piling_timepoints_by_position, frame_range)
+        )
+        fov_total_fc = _count_timepoints_in_range(unannotated_timepoints_by_position, frame_range)
+        fov_total_per_condition.append(fov_total_fc)
+        n_grid_per_condition.append(fov_total_fc * 36)  # 6x6 grid of patches per FOV
+
+    timepoints = ", ".join(str(n) for n in timepoints_per_condition)
+    n_outlier = ", ".join(str(n) for n in n_outlier_per_condition)
+    n_steady = ", ".join(str(n) for n in n_steady_per_condition)
+    n_piling = ", ".join(str(n) for n in n_piling_per_condition)
+    fov_total = ", ".join(str(n) for n in fov_total_per_condition)
+    n_grid = ", ".join(str(n) for n in n_grid_per_condition)
 
     # The NOT_STEADY_STATE annotation can contain multiple ranges per position.
     # The first range represents the adaptation to shear stress period (steady state filter)
@@ -124,18 +180,6 @@ def get_dataset_stats(
     except (FileNotFoundError, KeyError):
         pass
 
-    # Total unannotated timepoints (accounts for overlapping annotations)
-    fov_total = sum(
-        len(
-            get_unannotated_timepoints_for_position(
-                dataset_config, pos, annotations=annotations_to_include
-            )
-        )
-        for pos in unannotated_positions
-    )
-
-    n_grid = fov_total * 36  # 6x6 grid of patches per FOV
-
     return {
         "date": dataset_config.date,
         "cell_line": "\n".join(dataset_config.cell_lines) if dataset_config.cell_lines else "",
@@ -144,7 +188,7 @@ def get_dataset_stats(
         ),
         "replicate": dataset_config.replicate_number,
         "fovs": len(dataset_config.zarr_positions),
-        "timepoints": dataset_config.duration,
+        "timepoints": timepoints,
         "pos_removed": len(dataset_config.zarr_positions) - len(unannotated_positions),
         "outlier": n_outlier,
         "steady_state": n_steady,
