@@ -495,8 +495,10 @@ def plot_noise_tensor_contours_at_fixed_point(
         Directory where the plot will be saved.
     file_name
         Name of the output file.
-    figsize
-        Size of the combined figure.
+    plot_title
+        Optional, title for the plot.
+    figure_size
+        Size of the figure as a tuple (width, height).
 
     Returns
     -------
