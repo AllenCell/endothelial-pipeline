@@ -90,15 +90,10 @@ def main() -> None:
     )
 
     # Plot contour of noise tensor entry sigma_11 over 2D slices of the state space
-    # for two representative datasets
+    # for representative datasets
     # a) sigma_11(theta, r) at rho = rho^*
     # b) sigma_11(r, rho) at theta=theta^*
-    example_datasets = [
-        "20250409_20X",
-        "20250319_20X",
-        "20260304_20X",
-        "20251001_20X",
-    ]
+    example_datasets = get_datasets_in_collection("steady_state_sweep_examples")
     noise_amplitude_paths = []
     for dataset_name in example_datasets:
         dataset_config = load_dataset_config(dataset_name)
