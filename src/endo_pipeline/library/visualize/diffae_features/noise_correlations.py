@@ -187,6 +187,8 @@ def plot_noise_correlation_vs_lag(
         List of feature column names to plot.
     output_path
         Directory where the plot will be saved.
+    file_format
+        Format of the output file.
     plot_title
         Optional, title for the plot.
     file_name
@@ -194,6 +196,8 @@ def plot_noise_correlation_vs_lag(
     single_dataset
         True if the noise statistics dataframe corresponds to a single dataset,
         False otherwise.
+    figure_size
+        Size of the figure as a tuple (width, height).
 
     Returns
     -------
