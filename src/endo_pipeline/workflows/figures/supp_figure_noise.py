@@ -113,7 +113,7 @@ def main() -> None:
             fixed_point_dataframe, stability_label=StabilityLabel.STABLE
         )
         fixed_point_column_names = [ColumnTemplate.FIXED_POINT % column for column in column_names]
-        fixed_point = tuple(stable_fixed_point_dataframe[fixed_point_column_names].iloc[0])
+        fixed_point = tuple(stable_fixed_point_dataframe[fixed_point_column_names].unique.item())
 
         noise_amplitude_manifest = load_dataframe_manifest(
             NOISE_AMPLITUDE_MANIFEST_NAMES["grid_based"]
