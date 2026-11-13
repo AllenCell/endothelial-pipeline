@@ -435,9 +435,11 @@ def overlay_trajectory_heatmap_on_flowfield(
     cbar = plt.colorbar(ax.images[-1], ax=ax, orientation="vertical", pad=0.02)
     cbar.set_label("Normalized trajectory time", rotation=270, labelpad=15)
     save_plot_to_path(
-        figure=fig, output_path=out_dir, figure_name=f"{dataset_name}_trajectory_heatmap"
+        figure=fig,
+        output_path=out_dir,
+        figure_name=f"{dataset_name}_trajectory_heatmap",
+        show_and_close=True,
     )
-    plt.close(fig)
 
 
 PlotMeasFeatAndFlowFieldOverlayArgs = namedtuple(
@@ -824,8 +826,8 @@ def plot_and_save_track_flow_field_deviations(
         figure=fig,
         output_path=out_subdir,
         figure_name=f"{dataset_name}_angular_deviation_histogram",
+        show_and_close=True,
     )
-    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(4, 4))
     sns.histplot(data=mean_track_deviation_dfs, x="track_angular_deviation_deg", y="pc1_pc2_vec_mag", binwidth=(1, None), ax=ax)  # type: ignore[arg-type]
@@ -839,8 +841,8 @@ def plot_and_save_track_flow_field_deviations(
         figure=fig,
         output_path=out_subdir,
         figure_name=f"{dataset_name}_angular_deviation_vs_mag_histogram",
+        show_and_close=True,
     )
-    plt.close(fig)
 
 
 def overlay_flow_fields_on_histograms(
@@ -884,8 +886,8 @@ def overlay_flow_fields_on_histograms(
         figure=fig,
         output_path=out_subdir,
         figure_name=f"{dataset_name}_grid_crops_pc1_pc2_hist2d",
+        show_and_close=True,
     )
-    plt.close(fig)
 
     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
     sns.histplot(
@@ -909,8 +911,8 @@ def overlay_flow_fields_on_histograms(
         figure=fig,
         output_path=out_subdir,
         figure_name=f"{dataset_name}_tracked_crops_pc1_pc2_hist2d",
+        show_and_close=True,
     )
-    plt.close(fig)
 
 
 def plot_and_save_track_flow_field_dot_product_histogram(
@@ -999,11 +1001,10 @@ def plot_first_passage_time_3d_scatter(
         filename,
         tight_layout=False,
         pad_inches=0.2,
-        show_and_close=False,
+        show_and_close=True,
         file_format=".svg",
         bbox_inches="tight",
     )
-    plt.close(fig)
 
 
 def plot_first_passage_time_parameter_sweep(
@@ -1070,9 +1071,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylabel("MFPT (hrs)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_fpt = f"{dataset_name}_FPT_{metric_to_plot}_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
-        fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=False
+        fig, out_dir, filename_param_sweep_fpt, file_format=".svg", show_and_close=True
     )
-    plt.close(fig)
 
     # also plot compute the fraction of trajectories that approached the fixed point
     # for each parameter combination to see how the fixed point distance threshold
@@ -1118,9 +1118,8 @@ def plot_first_passage_time_parameter_sweep(
     ax.set_ylabel("Trajectories reaching\nfixed point (%)", fontsize=FONTSIZE_SMALL, labelpad=2)
     filename_param_sweep_num_traj = f"{dataset_name}_FPT_percent_trajectories_vs_threshold_fp_{fixed_point_index}_{fixed_point_stability}"
     save_plot_to_path(
-        fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=False
+        fig, out_dir, filename_param_sweep_num_traj, file_format=".svg", show_and_close=True
     )
-    plt.close(fig)
 
     return (
         out_dir / f"{filename_param_sweep_fpt}.svg",
@@ -1243,9 +1242,8 @@ def plot_first_passage_time_correlations(
         out_dir,
         filename,
         file_format=".svg",
-        show_and_close=False,
+        show_and_close=True,
     )
-    plt.close(fig)
     return out_dir / f"{filename}.svg"
 
 
@@ -1310,8 +1308,7 @@ def plot_first_passage_time_histogram(
     filename = (
         f"{dataset_name}_FPT_fp_{fixed_point_id}_{fixed_point_stability}_{metric_to_plot}_histogram"
     )
-    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=False)
-    plt.close(fig)
+    save_plot_to_path(fig, out_dir, filename, file_format=".svg", show_and_close=True)
 
 
 def plot_first_passage_time_correlation_summary(
@@ -1382,9 +1379,8 @@ def plot_first_passage_time_correlation_summary(
         out_dir,
         filename,
         file_format=".svg",
-        show_and_close=False,
+        show_and_close=True,
     )
-    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(2, 2))
     sns.histplot(
@@ -1405,6 +1401,5 @@ def plot_first_passage_time_correlation_summary(
         out_dir,
         f"{filename}_histogram",
         file_format=".svg",
-        show_and_close=False,
+        show_and_close=True,
     )
-    plt.close(fig)
