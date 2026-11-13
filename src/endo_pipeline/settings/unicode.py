@@ -18,11 +18,17 @@ class UnicodeCharacters(StrEnum):
     SIGMA = "\u03c3"
     """Unicode for lowercase sigma."""
 
+    TAU = "\u03c4"
+    """Unicode for lowercase tau."""
+
     THETA = "\u03b8"
     """Unicode for lowercase theta."""
 
     DELTA = "\u0394"
     """Unicode for uppercase delta."""
+
+    KAPPA = "\u03ba"
+    """Unicode for lowercase kappa."""
 
     GEQ = "\u2265"
     """Unicode for greater than or equal to (using LaTeX naming convention)."""
