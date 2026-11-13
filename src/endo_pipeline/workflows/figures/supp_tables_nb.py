@@ -58,6 +58,8 @@ CROWDING_FILTER = "Cell crowding filter (N removed)"
 SS_FOV = "Shear stress FOV dataset\n(N timepoints)"
 SS_GRID = "Shear stress grid-based\nanalysis dataset (N patches)"
 SS_CELL = "Shear stress cell-centered\nanalysis dataset (N patches)"
+FS_FOV = "Flow switch FOV dataset\n(N timepoints)"
+FS_GRID = "Flow switch grid-based\nanalysis dataset (N patches)"
 DA_FOV = "DiffAE FOV dataset\n(N timepoints)"
 DA_GRID = "DiffAE grid-based\nanalysis dataset (N patches)"
 DA_CELL = "DiffAE cell-centered\nanalysis dataset (N patches)"
@@ -112,12 +114,44 @@ TABLE_S1_SHEAR_STRESS = {
     ],
 }
 
-TABLE_S2_DIFFAE = {
-    "collection": "diffae_model_training",
-    "title": "Table S2: DiffAE datasets",
-    "figure_name": "table_s2_diffae_training_datasets",
+TABLE_S2_FLOW_SWITCH = {
+    "collection": "flow_switch",
+    "title": "Table S2: Flow switch datasets",
+    "figure_name": "table_s2_flow_switch_datasets",
     "sort_by": [SHEAR_STRESS, REPLICATE],
-    "sort_bottom": ["0", "6, 21", "24, 6"],
+    "sort_bottom": ["21, 6", "6, 15", "21, 12"],
+    "annotations_to_include": [
+        TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
+        TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
+        TimepointAnnotation.AUTO_GFP_SCOPE_ERROR,
+        TimepointAnnotation.BF_SCOPE_ERROR,
+        TimepointAnnotation.BF_TEMP_ARTIFACT,
+        TimepointAnnotation.GFP_SCOPE_ERROR,
+        TimepointAnnotation.NOT_STEADY_STATE,
+        TimepointAnnotation.CELL_PILING,
+    ],
+    "columns": [
+        (DATE, "date"),
+        (CELL_LINE, "cell_line"),
+        (SHEAR_STRESS, "shear_stress"),
+        (REPLICATE, "replicate"),
+        (FOV_POSITIONS, "fovs"),
+        (TIMEPOINTS, "timepoints"),
+        (POSITION_FILTER, "pos_removed"),
+        (OUTLIER_FILTER, "outlier"),
+        (STEADY_STATE_FILTER, "steady_state"),
+        (CROWDING_FILTER, "piling"),
+        (FS_FOV, "fov_total"),
+        (FS_GRID, "grid"),
+    ],
+}
+
+TABLE_S3_DIFFAE = {
+    "collection": "diffae_model_training",
+    "title": "Table S3: DiffAE datasets",
+    "figure_name": "table_s3_diffae_training_datasets",
+    "sort_by": [SHEAR_STRESS, REPLICATE],
+    "sort_bottom": ["0", "6, 24", "21, 6"],
     "annotations_to_include": [
         TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
         TimepointAnnotation.AUTO_BF_TEMP_ARTIFACT,
@@ -143,10 +177,10 @@ TABLE_S2_DIFFAE = {
     ],
 }
 
-TABLE_S3_PERTURBATION = {
+TABLE_S4_PERTURBATION = {
     "collection": "perturbation",
-    "title": "Table S3: VE-cadherin Exon3Del perturbation datasets",
-    "figure_name": "table_s3_perturbation_datasets",
+    "title": "Table S4: VE-cadherin Exon3Del perturbation datasets",
+    "figure_name": "table_s4_perturbation_datasets",
     "sort_by": [CELL_LINE, REPLICATE],
     "annotations_to_include": [
         TimepointAnnotation.AUTO_BF_SCOPE_ERROR,
@@ -175,10 +209,10 @@ TABLE_S3_PERTURBATION = {
     ],
 }
 
-TABLE_S4_NUCLEAR_LABELFREE = {
+TABLE_S5_NUCLEAR_LABELFREE = {
     "collection": "nuclear_labelfree_model_training",
-    "title": "Table S4: Nuclear label-free model training datasets",
-    "figure_name": "table_s4_nuclear_labelfree_training_datasets",
+    "title": "Table S5: Nuclear label-free model training datasets",
+    "figure_name": "table_s5_nuclear_labelfree_training_datasets",
     "sort_by": [DATE],
     "columns": [
         (DATE, "date"),
@@ -189,12 +223,12 @@ TABLE_S4_NUCLEAR_LABELFREE = {
     ],
 }
 
-TABLE_S5_SEGMENTATION = {
+TABLE_S6_SEGMENTATION = {
     "collection": "live_cdh5_seg_based_feat_datasets",
-    "title": "Table S5: Segmentation summary",
-    "figure_name": "table_s5_segmentation",
+    "title": "Table S6: Segmentation summary",
+    "figure_name": "table_s6_segmentation",
     "sort_by": [SHEAR_STRESS, REPLICATE],
-    "sort_bottom": ["0", "6, 21", "24, 6"],
+    "sort_bottom": ["0", "6, 24", "21, 6"],
     "stats_fn": "get_seg_stats",
     "columns": [
         (DATE, "date"),
@@ -215,17 +249,20 @@ TABLE_S5_SEGMENTATION = {
 create_supp_table(TABLE_S1_SHEAR_STRESS, cell_manifest=cell_manifest, save_dir=save_dir)
 
 # %%
-create_supp_table(TABLE_S2_DIFFAE, cell_manifest=cell_manifest, save_dir=save_dir)
+create_supp_table(TABLE_S2_FLOW_SWITCH, cell_manifest=cell_manifest, save_dir=save_dir)
 
 # %%
-create_supp_table(TABLE_S3_PERTURBATION, cell_manifest=cell_manifest, save_dir=save_dir)
+create_supp_table(TABLE_S3_DIFFAE, cell_manifest=cell_manifest, save_dir=save_dir)
 
 # %%
-create_supp_table(TABLE_S4_NUCLEAR_LABELFREE, cell_manifest=cell_manifest, save_dir=save_dir)
+create_supp_table(TABLE_S4_PERTURBATION, cell_manifest=cell_manifest, save_dir=save_dir)
+
+# %%
+create_supp_table(TABLE_S5_NUCLEAR_LABELFREE, cell_manifest=cell_manifest, save_dir=save_dir)
 
 # %%
 create_supp_table(
-    TABLE_S5_SEGMENTATION,
+    TABLE_S6_SEGMENTATION,
     cell_manifest=seg_manifest,
     save_dir=save_dir,
     shear_stress_datasets=shear_stress_datasets,
