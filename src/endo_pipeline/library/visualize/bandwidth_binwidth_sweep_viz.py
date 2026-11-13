@@ -19,14 +19,15 @@ from matplotlib.ticker import MaxNLocator
 
 from endo_pipeline.configs import load_dataset_config
 from endo_pipeline.io import load_dataframe, save_plot_to_path
-from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
-    get_param_sweep_run_name,
-    get_parameter_space,
-)
+from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import get_param_sweep_run_name
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings import plot_defaults
 from endo_pipeline.settings.bandwidth_binwidth_sweep import (
+    SWEEP_BINWIDTHS,
+    SWEEP_BINWIDTHS_NARROW,
+    SWEEP_KERNEL_BANDWIDTHS,
+    SWEEP_KERNEL_BANDWIDTHS_NARROW,
     SWEEP_PARAM_EXAMPLE_BINWIDTHS,
     SWEEP_PARAM_EXAMPLE_KERNEL_BANDWIDTHS,
 )
@@ -137,8 +138,18 @@ def load_sweep_fixed_points(unwrap_angle: bool = True) -> pd.DataFrame:
         binwidth and kernel bandwidth of each run in the `BINWIDTH_COLUMN` and
         `KERNEL_BANDWIDTH_COLUMN` columns.
     """
+
+    # Get the parameter space of bin widths and kernel bandwidths.
+    # combine the broad and narrow parameter sets
+    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
+    sweep_kernel_bandwidths_all = list(
+        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
+    )
+    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
+    parameter_space = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
+
     dataframes = []
-    for bw, kb in get_parameter_space():
+    for bw, kb in parameter_space:
         sweep_run_name = get_param_sweep_run_name(bw, kb)
         manifest = load_dataframe_manifest(
             f"{GRID_BASED_BOOTSTRAPPING_MANIFEST_NAME}_{sweep_run_name}"
@@ -325,7 +336,16 @@ def plot_fixed_point_count_heatmaps(
     :
         Path to the saved figure file.
     """
-    parameter_space = get_parameter_space()
+
+    # Get the parameter space of bin widths and kernel bandwidths.
+    # combine the broad and narrow parameter sets
+    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
+    sweep_kernel_bandwidths_all = list(
+        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
+    )
+    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
+    parameter_space = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
+
     # seaborn draws the first row of a heatmap at the top, so order the binwidths from largest to
     # smallest to place the smallest binwidth at the bottom of the y-axis
     sweep_binwidths = sorted({bw for bw, _ in parameter_space}, reverse=True)
