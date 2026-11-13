@@ -541,3 +541,6 @@ SUPP_FIG_RETRACTION_FIBER_BLOB: ExampleImage = ExampleImage(
     crop_y_start=690,  # res level 0
 )
 """Example image for illustrating spatial correlation of retraction fibers and bright blobs."""
+
+SUPP_FIG_PARAM_SWEEP = ["20250618_20X", "20250611_20X", "20250319_20X", "20260304_20X"]
+"""Example datasets for the parameter sweep supplementary figure."""
