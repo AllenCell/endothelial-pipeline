@@ -7,6 +7,9 @@ class ColumnName:
     DATASET = "dataset"
     """Name of dataset."""
 
+    REPLICATE = "replicate"
+    """Replicate number of the dataset."""
+
     POSITION = "position"
     """Zarr file position (FOV) of the corresponding segmentation or patch."""
 
