@@ -37,6 +37,7 @@ flow_conditions:
 include_scenes: null
 notes: Imaging ended around 46h due to cell piling.
 replicate_number: 1
+differentiation_batch: null
 stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
