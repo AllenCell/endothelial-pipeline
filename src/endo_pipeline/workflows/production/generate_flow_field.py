@@ -6,7 +6,7 @@ def main(
     patch_type: PatchType = "grid_based",
     columns: StrList | None = None,
     datasets: Datasets | None = None,
-    sweep_name: str | None = None,
+    output_file_name_suffix: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
     overwrite_results: bool = True,
@@ -25,19 +25,30 @@ def main(
 
     Any combination of these features can be used to generate the flow field
     with the corresponding dimensionality. By default, the workflow will
-    generate the a 3D flow field using all three features.
+    generate the 3D flow field using all three features. Requested columns that
+    are not one of these features are skipped.
 
     Using the feature space defined by the specified input features, this
     workflow does the following for each specified dataset:
 
-    1. Estimate drift flow fields using a kernel-based method for estimating
-       Kramers-Moyal coefficients from time series data
-    2. Use interpolation to get a callable flow field function
-    3. Identify stable fixed points of the flow field using a root-finding
-       method applied to the flow field function
-    4. Save the following outputs for each dataset as parquet files:
+    1. Load the filtered feature dataframe for the specified patch type and
+       keep only steady-state timepoints
+    2. For each flow condition in the dataset:
+        a. Estimate the drift vector field on a grid using a kernel-based
+           method for estimating Kramers-Moyal coefficients from time series
+           data, with a kernel and bin width for each feature
+        b. Use interpolation to get a callable flow field function
+        c. Identify fixed points of the flow field using a root-finding method
+           initialized from samples of the data, keep only fixed points within
+           a percentile range of the data, and label each by its stability
+    3. Save the following outputs for each dataset as parquet files:
         - Dataframe with the drift vector field
-        - Dataframe with the drift fixed points
+        - Dataframe with the drift fixed points for all flow conditions (only
+          saved if any fixed points were found)
+
+    Output dataframe manifests are named with the patch type, the sorted list
+    of selected features, and the sweep name (if provided). The kernel and bin
+    width parameters are recorded in the manifests.
 
     ## Example usage
 
@@ -68,11 +79,22 @@ def main(
     patch_type
         Patch type used to calculate the features.
     columns
-        Specific columns to use to generate flow field.
+        Specific feature columns to use to generate the flow field. Defaults to
+        all supported features.
     datasets
         List of datasets or dataset collections to generate flow fields for.
-    run_name
-        Optional name for the current run, used for organizing output files.
+    output_file_name_suffix
+        Optional suffix appended to the output manifest and file names, used to
+        distinguish outputs from parameter sweeps.
+    kernel_bandwidths_dynamics
+        Optional map of feature column to kernel bandwidth used for drift
+        estimation. Defaults to `KERNEL_BANDWIDTHS_DYNAMICS`.
+    bin_widths_dynamics
+        Optional map of feature column to bin width used for the drift
+        estimation grid. Defaults to `BIN_WIDTHS_DYNAMICS`.
+    overwrite_results
+        True to regenerate outputs for datasets that already have results in
+        the output manifests, False to skip them.
     """
 
     import logging
@@ -135,9 +157,6 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    if sweep_name is None:
-        sweep_name = ""
-
     if kernel_bandwidths_dynamics is None:
         kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
 
@@ -176,10 +195,12 @@ def main(
     # columns used to generate the flow field.
     name_suffix = join_sorted_strings(column_names)
     vector_field_dataframe_manifest_name = "_".join(
-        filter(None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+        filter(
+            None, [VECTOR_FIELD_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix]
+        )
     )
     fixed_points_dataframe_manifest_name = "_".join(
-        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix])
     )
     vector_field_dataframe_manifest = create_dataframe_manifest(
         vector_field_dataframe_manifest_name, workflow_name=__file__
@@ -322,7 +343,7 @@ def main(
 
             # Save dataframe to file
             output_filename = "_".join(
-                filter(None, [name_prefix, dataset_name, name_suffix, sweep_name])
+                filter(None, [name_prefix, dataset_name, name_suffix, output_file_name_suffix])
             )
             save_path = output_path / f"{output_filename}.parquet"
             dataframe.to_parquet(save_path, index=False)

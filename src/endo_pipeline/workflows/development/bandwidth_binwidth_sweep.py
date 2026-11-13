@@ -10,15 +10,15 @@ def main(
     """
     Sweep bin width and kernel bandwidth parameters for fixed point bootstrapping.
 
-    #dynamical-systems #fixed-points #grid-based #cell-centered
+    #dynamical-systems #fixed-points #grid-based #cell-centered #workers
 
-    For each combination of bin width and kernel bandwidth in
-    `BIN_WIDTHS_SWEEP` x `KERNEL_BANDWIDTHS_SWEEP`, this workflow:
+    For each combination of bin width and kernel bandwidth this workflow:
 
-    1. Temporarily overrides `BIN_WIDTHS_DYNAMICS` and `KERNEL_BANDWIDTHS_DYNAMICS`
-       (uniformly across all `DYNAMICS_COLUMN_NAMES`) and tags the vector field,
-       fixed point, and bootstrapping manifest names with the parameter
-       combination so that each combination's outputs are kept separate.
+    1. Applies the bin width and kernel bandwidth uniformly across all
+       `DYNAMICS_COLUMN_NAMES` and tags the vector field, fixed point, and
+       bootstrapping manifest and file names with the parameter combination
+       (via `output_file_name_suffix`) so that each combination's outputs are
+       kept separate.
     2. Runs `generate_flow_field.main()` to compute the drift vector field and
        baseline fixed points for the parameter combination.
     3. Runs `bootstrap_fixed_points.main()` to compute bootstrap confidence
@@ -26,23 +26,38 @@ def main(
 
     Parameters
     ----------
-    patch_type
-        Patch type used to calculate the features.
     datasets
         List of datasets or dataset collections to sweep parameters for.
+        Defaults to datasets in `SUPP_FIG_PARAM_SWEEP` which includes low, high,
+        bistable intermediate, and monostable intermediate, shear stresses.
+    patch_type
+        Patch type used to calculate the features.
+    overwrite_results
+        True to regenerate (or re-upload) outputs that already exist, False to
+        skip them.
+    fms_upload_only
+        True to only upload existing local sweep outputs to FMS without
+        running the analyses.
     """
 
     import logging
+    from itertools import product
 
     from tqdm import tqdm
 
     from endo_pipeline.library.analyze.bandwidth_binwidth_sweep import (
         get_binwidth_bandwidth_dict,
         get_param_sweep_run_name,
-        get_parameter_space,
         upload_bootstrapped_fixed_points_to_fms,
         upload_flow_fields_to_fms,
     )
+    from endo_pipeline.settings.bandwidth_binwidth_sweep import (
+        SWEEP_BINWIDTHS,
+        SWEEP_BINWIDTHS_NARROW,
+        SWEEP_KERNEL_BANDWIDTHS,
+        SWEEP_KERNEL_BANDWIDTHS_NARROW,
+    )
+    from endo_pipeline.settings.examples import SUPP_FIG_PARAM_SWEEP
     from endo_pipeline.workflows.production import bootstrap_fixed_points, generate_flow_field
 
     logger = logging.getLogger(__name__)
@@ -50,9 +65,16 @@ def main(
     if datasets is None:
         # use low, the bifurcation intermediate example from figure 4, and high datasets if no
         # datasets are specified by the user
-        datasets = ["20250618_20X", "20250319_20X", "20260304_20X", "20250611_20X"]
+        datasets = SUPP_FIG_PARAM_SWEEP
 
-    parameter_space = get_parameter_space()
+    # Get the parameter space of bin widths and kernel bandwidths.
+    # combine the broad and narrow parameter sets
+    sweep_binwidths_all = list(set(SWEEP_BINWIDTHS) | set(SWEEP_BINWIDTHS_NARROW))
+    sweep_kernel_bandwidths_all = list(
+        set(SWEEP_KERNEL_BANDWIDTHS) | set(SWEEP_KERNEL_BANDWIDTHS_NARROW)
+    )
+    # create the full parameter space of all combinations of the bin widths and kernel bandwidths
+    parameter_space = list(product(sweep_binwidths_all, sweep_kernel_bandwidths_all))
 
     if fms_upload_only:
         for bw, kb in tqdm(parameter_space, desc=f"Upload-only mode to FMS for: {datasets}"):
@@ -65,7 +87,7 @@ def main(
 
                 # Flow field uploads:
                 upload_flow_fields_to_fms(
-                    sweep_name=run_name_for_sweep_condition,
+                    output_file_name_suffix=run_name_for_sweep_condition,
                     dataset_name=dataset_name,
                     patch_type=patch_type,
                     overwrite_fmsids=overwrite_results,
@@ -73,7 +95,7 @@ def main(
 
                 # Bootstrapped fixed points uploads:
                 upload_bootstrapped_fixed_points_to_fms(
-                    sweep_name=run_name_for_sweep_condition,
+                    output_file_name_suffix=run_name_for_sweep_condition,
                     dataset_name=dataset_name,
                     patch_type=patch_type,
                     overwrite_fmsids=overwrite_results,
@@ -97,7 +119,7 @@ def main(
         generate_flow_field.main(
             patch_type=patch_type,
             datasets=datasets,
-            sweep_name=run_name_for_sweep_condition,
+            output_file_name_suffix=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
             overwrite_results=overwrite_results,
@@ -118,7 +140,7 @@ def main(
         bootstrap_fixed_points.main(
             patch_type=patch_type,
             datasets=datasets,
-            sweep_name=run_name_for_sweep_condition,
+            output_file_name_suffix=run_name_for_sweep_condition,
             kernel_bandwidths_dynamics=kernel_bandwidths,
             bin_widths_dynamics=bin_widths,
             overwrite_results=overwrite_results,

@@ -29,7 +29,7 @@ def main(
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
-    sweep_name: str | None = None,
+    output_file_name_suffix: str | None = None,
     kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
     bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
     overwrite_results: bool = True,
@@ -110,8 +110,19 @@ def main(
         Percentile defining upper bound of the bootstrap confidence intervals.
     batch_size_factor
         Factor used to determine size of batch for parallel processing.
-    run_name
-        Optional name for the current run, used for organizing output files.
+    output_file_name_suffix
+        Optional suffix appended to the baseline fixed point manifest name, the
+        bootstrap results manifest name, and the output file names (e.g. to
+        distinguish outputs from parameter sweeps).
+    kernel_bandwidths_dynamics
+        Optional map of feature column to kernel bandwidth used for drift
+        estimation. Defaults to `KERNEL_BANDWIDTHS_DYNAMICS`.
+    bin_widths_dynamics
+        Optional map of feature column to bin width used for the drift
+        estimation grid. Defaults to `BIN_WIDTHS_DYNAMICS`.
+    overwrite_results
+        True to regenerate outputs for datasets that already have results in
+        the output manifest, False to skip them.
     """
 
     import logging
@@ -182,9 +193,6 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    if sweep_name is None:
-        sweep_name = ""
-
     if kernel_bandwidths_dynamics is None:
         kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
 
@@ -203,14 +211,16 @@ def main(
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = join_sorted_strings(column_names)
     baseline_fixed_point_manifest_name = "_".join(
-        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, sweep_name])
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix])
     )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
     name_prefix = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
     name_suffix = "demo" if DEMO_MODE else ""
-    bootstrap_results_manifest_name = "_".join(filter(None, [name_prefix, name_suffix, sweep_name]))
+    bootstrap_results_manifest_name = "_".join(
+        filter(None, [name_prefix, name_suffix, output_file_name_suffix])
+    )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
@@ -421,11 +431,16 @@ def main(
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
         output_file_name = "_".join(filter(None, [name_prefix, dataset_name, name_suffix]))
+        # Ensure the output file name is unique to avoid overwriting existing files
         output_file_name_unique = make_name_unique(f"{output_file_name}.parquet")
-        output_save_path = output_path / Path(
-            "_".join(filter(None, [output_file_name_unique.stem, sweep_name]))
-            + output_file_name_unique.suffix
+        # Construct the final output save path with the unique file name and an optional suffix
+        filename_extension = output_file_name_unique.suffix
+        final_output_file_name = (
+            "_".join(filter(None, [output_file_name_unique.stem, output_file_name_suffix]))
+            + filename_extension
         )
+
+        output_save_path = output_path / Path(final_output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 

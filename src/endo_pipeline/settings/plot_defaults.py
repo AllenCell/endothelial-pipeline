@@ -18,6 +18,8 @@ SHEAR_COLOR_DICT = {
     (ShearStressRegime.MAX,): "tab:blue",
     (ShearStressRegime.MIN, ShearStressRegime.MAX): "tab:brown",
     (ShearStressRegime.MAX, ShearStressRegime.MIN): "tab:olive",
+    (ShearStressRegime.MAX, ShearStressRegime.MEDIUM): "tab:gray",
+    (ShearStressRegime.MIN, ShearStressRegime.HIGH): "tab:pink",
 }
 """Color dictionary for shear stress levels to color code histogram plots."""
 
