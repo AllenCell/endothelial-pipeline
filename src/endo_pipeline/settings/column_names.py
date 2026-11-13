@@ -7,6 +7,9 @@ class ColumnName:
     DATASET = "dataset"
     """Name of dataset."""
 
+    REPLICATE = "replicate"
+    """Replicate number of the dataset."""
+
     POSITION = "position"
     """Zarr file position (FOV) of the corresponding segmentation or patch."""
 
@@ -682,6 +685,21 @@ class ColumnName:
         NUM_WINDOW_TIMEPOINTS = "num_window_timepoints"
         """Number of window timepoints (rows pooled across all FOVs)."""
 
+    NOISE_CORRELATIONS_LAG = "lag"
+    """Lag at which the noise correlation is computed."""
+
+    NOISE_CORRELATIONS_FEATURE_1 = "feature_1"
+    """First feature variable in the noise correlation pair."""
+
+    NOISE_CORRELATIONS_FEATURE_2 = "feature_2"
+    """Second feature variable in the noise correlation pair."""
+
+    NOISE_CORRELATION_VALUE = "noise_correlation"
+    """Normalized correlation value of the noise between feature_1 and feature_2 at given lag."""
+
+    MEASUREMENT_NOISE_COVARIANCE = "measurement_noise_covariance"
+    """Estimated covariance of the independent measurement error between feature_1 and feature_2."""
+
     RANDOM_SEED = "random_seed"
     """Random number generator seed."""
 
@@ -747,6 +765,9 @@ class ColumnNameTemplate(StrEnum):
 
     MESH_GRID = "%s_mesh_grid"
     """Column name template: Vector field mesh grid in %s."""
+
+    NOISE_AMPLITUDE = "%s_%s_noise_amplitude"
+    """Column name template: Component of the histogram-based noise amplitude tensor sigma_ij corresponding to features %s, %s."""
 
     BASELINE_FIXED_POINT = "%s_baseline"
     """Column name template: Baseline fixed point location in %s."""

@@ -44,7 +44,6 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.analyze.window_sweep import SweptBoundary
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
-        build_empty_panel,
         build_figure_from_panels,
         get_figure_asset_dir,
         parse_placeholder_panels,
@@ -74,7 +73,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     assets_dir = get_figure_asset_dir()
     schematic_path = assets_dir / "steady_state_sweep_schematic.svg"
 
-    datasets = get_datasets_in_collection("supp_figure_examples")
+    datasets = get_datasets_in_collection("steady_state_sweep_examples")
 
     bootstrap_manifest = load_dataframe_manifest(BOOTSTRAPPING_MANIFEST_NAMES["grid_based"])
     start_sweep_manifest = load_dataframe_manifest(
@@ -129,23 +128,13 @@ def main(include_panels: UniqueStrList | None = None) -> None:
                 sweep_df[Column.SteadyStateWindow.WINDOW_EDGE_MINUTES] / 60
             )
             sweep_dfs[boundary] = sweep_df
-        if not sweep_dfs:
-            # Temporary fix until workflow run is done on high shear dataset:
-            # build empty panel
-            panel_path = build_empty_panel(
-                output_path,
-                f"Steady state sweep for {dataset_name}",
-                3.15,
-                2.25,
-            )
-        else:
-            panel_path = plot_sweep_subset(
-                sweep_dfs,
-                baseline_df=bootstrap_df,
-                dataset_config=dataset_config,
-                output_path=output_path,
-                **placeholders[panel_label],
-            )
+        panel_path = plot_sweep_subset(
+            sweep_dfs,
+            baseline_df=bootstrap_df,
+            dataset_config=dataset_config,
+            output_path=output_path,
+            **placeholders[panel_label],
+        )
         figure_paths.append(panel_path)
 
     panels = [
