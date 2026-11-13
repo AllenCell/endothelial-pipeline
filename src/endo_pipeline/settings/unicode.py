@@ -39,6 +39,9 @@ class UnicodeCharacters(StrEnum):
     SQUARED = "\u00b2"
     """Unicode for superscript 2."""
 
+    SUBSCRIPT_2 = "\u2082"
+    """Unicode for subscript 2."""
+
     PLUS_MINUS = "\u00b1"
     """Unicode for plus-minus sign."""
 

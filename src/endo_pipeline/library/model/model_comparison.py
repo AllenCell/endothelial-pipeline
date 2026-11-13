@@ -3,16 +3,28 @@
 import logging
 from typing import Literal, NamedTuple
 
+import colorcet
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
 from omegaconf import DictConfig
-from scipy.stats import pearsonr
+from scipy.stats import circmean, pearsonr
+from skimage.color import label2rgb
+from skimage.exposure import rescale_intensity
+from skimage.measure import regionprops
 from skimage.metrics import structural_similarity as ssim
+from skimage.transform import pyramid_expand
 
 from endo_pipeline.configs import load_dataset_config
-from endo_pipeline.io import load_dataframe, load_image
+from endo_pipeline.io import get_output_path, load_dataframe, load_image
+from endo_pipeline.library.process.cdh5_preprocessing import (
+    generate_segmentations,
+    get_thresholds,
+    preprocess,
+    split_multinucleate_regions,
+)
 from endo_pipeline.library.process.image_processing import crop_image
+from endo_pipeline.library.visualize.figure_utils import plot_image_thumbnail
 from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps import (
     apply_img_transforms,
     create_data_dict_loaded_image,
@@ -21,22 +33,97 @@ from endo_pipeline.library.visualize.model_inputs.image_preprocessing_steps impo
 )
 from endo_pipeline.manifests import (
     get_dataframe_location_for_dataset,
+    get_image_location_for_dataset,
     get_zarr_location_for_position,
     load_dataframe_manifest,
+    load_image_manifest,
 )
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.examples import ExampleImage
-from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL
+from endo_pipeline.settings.image_data import DIFFAE_ZARR_RESOLUTION_LEVEL, DIMENSION_ORDER
 from endo_pipeline.settings.workflow_defaults import (
     DEFAULT_CHANNEL_KEY_FOR_DIFFUSION_INPUT,
     DEFAULT_MODEL_QC_DATAFRAME_MANIFEST_PREFIX,
+    DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX,
 )
 
 logger = logging.getLogger(__name__)
 
+STRUCTURE_AWARE_COMPARISON_COLUMN = "comparison"
+"""Comparison type column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_METRIC_COLUMN = "metric"
+"""Metric name column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_VALUE_COLUMN = "value"
+"""Metric value column in long-format structure-aware comparison metrics."""
+
+STRUCTURE_AWARE_CROP_MEAN_COLUMN = "crop_mean"
+"""Mean of each crop's structure-aware comparison metric across random seeds."""
+
+STRUCTURE_AWARE_CROP_SEM_COLUMN = "crop_sem"
+"""SEM of each crop's structure-aware comparison metric across random seeds."""
+
+
+def get_refined_segmentation_from_downscaled_image(
+    cell_boundaries_image: "NDArray", nuclei_segmentations: "NDArray"
+) -> "NDArray | None":
+    """
+    Get refined segmentation for the given image using classic segmentation
+    and splitting multinucleate regions.
+
+    Parameters
+    ----------
+    cell_boundaries_image
+        Downscaled image of cell boundaries.
+    nuclei_segmentations
+        Downscaled image of nuclei segmentations.
+
+    Returns
+    -------
+    :
+        Refined segmentation mask, or None if segmentation fails.
+    """
+    # Determine the upscale factor required to restore the image to native resolution based on the
+    # resolution level of the ZARR dataset. Cell segmentation expects images at native resolution.
+    upscale_factor = 2**DIFFAE_ZARR_RESOLUTION_LEVEL
+
+    # Squeeze out dimensions of size 1
+    cell_boundaries_image = cell_boundaries_image.squeeze()
+    nuclei_segmentations = nuclei_segmentations.squeeze()
+    upscaled_cell_boundaries_image = pyramid_expand(cell_boundaries_image, upscale=upscale_factor)
+    upscaled_nuclei_segmentations = pyramid_expand(nuclei_segmentations, upscale=upscale_factor)
+    upscaled_nuclei_segmentations = np.around(upscaled_nuclei_segmentations).astype(int)
+
+    # Perform classic segmentation on the upscaled images and refine the segmentation by splitting
+    # multinucleate regions. Segmentation can fail on images without cell boundary structure (e.g.
+    # the scrambled controls) when all regions are filtered out or merged into one, leaving no
+    # boundaries.
+    try:
+        processed_img = preprocess(upscaled_cell_boundaries_image)
+        hyst, hyst_clean, hyst_removed = get_thresholds(processed_img)
+        seg2_lab_no_mask_merge, _ = generate_segmentations(
+            processed_img, hyst, hyst_clean, hyst_removed, 80
+        )
+        refined_segmentation, _ = split_multinucleate_regions(
+            cell_segmentations=seg2_lab_no_mask_merge,
+            nuclei_segmentations=upscaled_nuclei_segmentations,
+            cell_boundary_thresh=hyst,
+            cell_boundary_image=processed_img,
+        )
+    except ValueError as error:
+        logger.debug("Segmentation failed with error [ %s ]", error)
+        return None
+
+    return refined_segmentation
+
 
 class ModelComparisonMetrics(NamedTuple):
-    """Container for image similarity metrics used for model comparison."""
+    """
+    Container for image similarity metrics used for model comparison.
+
+    Segmentation-based metrics default to NaN when they are not computed.
+    """
 
     correlation: float
     """Pearson correlation coefficient between the two images (range [-1, 1])."""
@@ -46,6 +133,12 @@ class ModelComparisonMetrics(NamedTuple):
 
     lpips: float
     """Learned Perceptual Image Patch Similarity (LPIPS) score (lower is better, 0 = identical)."""
+
+    mean_orientation_difference: float = np.nan
+    """Mean orientation (deg) difference between the two images (lower is better, 0 = identical)."""
+
+    mean_relative_aspect_ratio: float = np.nan
+    """Mean elongation of image 2 relative to mean elongation of image 1 (lower is better, 1 = identical)."""
 
 
 class ModelComparisonMetricsCalculator:
@@ -93,7 +186,7 @@ class ModelComparisonMetricsCalculator:
         """
 
         corr, _ = pearsonr(img1.ravel(), img2.ravel())
-        return float(corr)
+        return float(corr)  # type: ignore[reportArgumentType]
 
     @classmethod
     def compute_ssim(
@@ -129,7 +222,7 @@ class ModelComparisonMetricsCalculator:
         if data_range is None:
             data_range = 2.0
 
-        return float(ssim(img1, img2, data_range=data_range))
+        return float(ssim(img1, img2, data_range=data_range))  # type: ignore[reportArgumentType]
 
     @classmethod
     def compute_lpips(cls, img1: "NDArray", img2: "NDArray") -> float:
@@ -171,13 +264,106 @@ class ModelComparisonMetricsCalculator:
         return score.item()
 
     @classmethod
-    def compute_all_metrics(
-        cls,
-        img1: NDArray,
-        img2: NDArray,
-    ) -> ModelComparisonMetrics:
+    def compute_orientation(cls, img1: "NDArray", img2: "NDArray") -> float:
+        """
+        Run segmentation on and compute mean orientations of two images.
+
+        Parameters
+        ----------
+        img1
+            First image to compute mean orientation for.
+        img2
+            Second image to compute mean orientation for.
+        img_nuc_seg
+            Nuclei segmentation image (used to refine segmentations).
+
+        Returns
+        -------
+        :
+            Orientations for image 1 and image 2.
+        """
+        if img1.ndim > 2:
+            img1 = img1.squeeze()
+        if img2.ndim > 2:
+            img2 = img2.squeeze()
+
+        props1 = regionprops(img1)
+        props2 = regionprops(img2)
+
+        # Compute mean orientation for each image using circular mean to account for angle wrapping
+        orientation_max = np.pi / 2
+        orientation_min = -np.pi / 2
+        mean_orientation1 = circmean(
+            [prop.orientation for prop in props1],
+            high=orientation_max,
+            low=orientation_min,  # type: ignore[reportArgumentType]
+        )
+        mean_orientation2 = circmean(
+            [prop.orientation for prop in props2],
+            high=orientation_max,
+            low=orientation_min,  # type: ignore[reportArgumentType]
+        )
+
+        # NOTE: we do not use the existing get_smallest_angle_difference method because it requires
+        # the angle range to be a full 2*pi, and here we have a range of -pi/2 to pi/2.
+        # Unwrap orientations to ensure continuity for angle difference calculation
+        unwrapped_orientations = np.unwrap(
+            [mean_orientation1, mean_orientation2], period=orientation_max - orientation_min
+        )
+        mean_orientation_difference = np.abs(np.diff(unwrapped_orientations))
+
+        return float(mean_orientation_difference)
+
+    @classmethod
+    def compute_relative_aspect_ratio(cls, img1: "NDArray", img2: "NDArray") -> float:
+        """
+        Compute mean aspect ratio of image 2 relative to mean aspect ratio of image 1.
+
+        Parameters
+        ----------
+        img1
+            First image to compute mean aspect ratio for.
+        img2
+            Second image to compute mean aspect ratio for.
+
+        Returns
+        -------
+        :
+            Mean aspect ratio of image 2 relative to mean aspect ratio of image 1.
+        """
+        if img1.ndim > 2:
+            img1 = img1.squeeze()
+        if img2.ndim > 2:
+            img2 = img2.squeeze()
+
+        props1 = regionprops(img1)
+        props2 = regionprops(img2)
+
+        mean_aspect_ratio1 = np.mean(
+            [
+                prop.major_axis_length / prop.minor_axis_length
+                for prop in props1
+                if prop.minor_axis_length > 0
+            ]
+        )
+        mean_aspect_ratio2 = np.mean(
+            [
+                prop.major_axis_length / prop.minor_axis_length
+                for prop in props2
+                if prop.minor_axis_length > 0
+            ]
+        )
+
+        mean_aspect_ratio_normalized = mean_aspect_ratio2 / mean_aspect_ratio1
+
+        return float(mean_aspect_ratio_normalized)
+
+    @classmethod
+    def compute_image_metrics(cls, img1: NDArray, img2: NDArray) -> ModelComparisonMetrics:
         """
         Compute correlation, SSIM, and LPIPS between two images.
+
+        Segmentation-based metrics are not computed and are left as NaN.
 
         Parameters
         ----------
@@ -189,7 +375,7 @@ class ModelComparisonMetricsCalculator:
         Returns
         -------
         :
-            Computed correlation, SSIM, and LPIPS metrics.
+            Computed image metrics, with NaN for segmentation-based metrics.
         """
 
         return ModelComparisonMetrics(
@@ -197,6 +383,84 @@ class ModelComparisonMetricsCalculator:
             ssim=cls.compute_ssim(img1, img2),
             lpips=cls.compute_lpips(img1, img2),
         )
+
+    @classmethod
+    def compute_all_metrics(
+        cls,
+        img1: NDArray,
+        img2: NDArray,
+        img1_seg: NDArray | None = None,
+        img2_seg: NDArray | None = None,
+    ) -> ModelComparisonMetrics:
+        """
+        Compute image and segmentation-based metrics between two images.
+
+        Image metrics (correlation, SSIM, and LPIPS) are computed directly on the images.
+        Segmentation-based metrics are computed on the given refined cell segmentations of each
+        image (see ``get_refined_segmentation_from_downscaled_image``).
+
+        Parameters
+        ----------
+        img1
+            First image to compare.
+        img2
+            Second image to compare.
+        img1_seg
+            Refined cell segmentation of the first image.
+        img2_seg
+            Refined cell segmentation of the second image.
+
+        Returns
+        -------
+        :
+            Computed metrics. Segmentation-based metrics are NaN if the segmentation for either
+            image is not given.
+        """
+
+        metrics = cls.compute_image_metrics(img1, img2)
+
+        # Exit early and leave segmentation-based metrics as NaN if either segmentation is missing
+        if img1_seg is None or img2_seg is None:
+            return metrics
+
+        return metrics._replace(
+            mean_orientation_difference=cls.compute_orientation(img1_seg, img2_seg),
+            mean_relative_aspect_ratio=cls.compute_relative_aspect_ratio(img1_seg, img2_seg),
+        )
+
+
+def load_nuclei_segmentation_image(
+    example: "ExampleImage", model_config: "DictConfig"
+) -> "NDArray":
+    """
+    Load nuclei segmentation image for select example.
+
+    Parameters
+    ----------
+    example
+        Example image metadata.
+    model_config
+        Model configuration instance.
+
+    Returns
+    -------
+    :
+        Nuclei segmentation image.
+    """
+    dataset_config = load_dataset_config(example.dataset_name)
+    nuc_manifest = load_image_manifest("nuclear_labelfree_seg_zarr")
+    nuc_location = get_image_location_for_dataset(nuc_manifest, dataset_config, example.position)
+    nuc_seg = load_image(
+        nuc_location,
+        level=DIFFAE_ZARR_RESOLUTION_LEVEL,
+        timepoints=example.timepoint,
+        squeeze=False,
+        compute=True,
+    )
+    nuc_seg = nuc_seg.squeeze(axis=(DIMENSION_ORDER.index("T"), DIMENSION_ORDER.index("C")))
+
+    crop_size = model_config.model.image_shape[-1]
+    return crop_image(nuc_seg, example.crop_x_start, example.crop_y_start, crop_size)
 
 
 def load_transformed_example_image(
@@ -428,3 +692,201 @@ def group_aggregate_model_comparison_metrics(aggregate_df: pd.DataFrame) -> dict
         ).to_dict("index")
 
     return aggregate_by_group
+
+
+def load_structure_aware_comparison_metrics(
+    model_manifest_names: list[str],
+    run_name: str,
+    comparisons: list[Column.ModelComparisonType],
+    metrics: list[Column.ModelComparisonMetric],
+) -> pd.DataFrame:
+    """
+    Load structure-aware comparison metrics for the given models in long format.
+
+    The wide-format metric columns are melted into one row per (example, seed,
+    comparison, metric). Relative aspect ratios are converted to log2 fold
+    changes, so that reductions and increases by the same factor are weighted
+    equally (e.g. halving is -1 and doubling is +1).
+
+    Parameters
+    ----------
+    model_manifest_names
+        List of model manifest names.
+    run_name
+        Name of the model run (shared across all model manifests).
+    comparisons
+        Comparison types to keep.
+    metrics
+        Metrics to keep. Use LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO to keep the
+        converted relative aspect ratios.
+
+    Returns
+    -------
+    :
+        Long-format dataframe of structure-aware comparison metrics.
+    """
+
+    # Load the structure-aware comparison metrics dataframe for each model manifest
+    all_metrics = []
+    for model_manifest_name in model_manifest_names:
+        dataframe_manifest = load_dataframe_manifest(
+            f"{DEFAULT_STRUCTURE_AWARE_QC_DATAFRAME_MANIFEST_PREFIX}_{model_manifest_name}"
+        )
+        location = get_dataframe_location_for_dataset(dataframe_manifest, run_name)
+        all_metrics.append(load_dataframe(location))
+
+    # Combine into a single dataframe, with model manifest and run name columns identifying rows
+    all_metrics_df = pd.concat(all_metrics, ignore_index=True)
+
+    # Melt into long format with one row per (example, seed, comparison, metric), splitting each
+    # metric column name into the comparison type and the metric name
+    id_columns = [
+        Column.DiffAEData.MODEL_MANIFEST,
+        Column.DiffAEData.MODEL_RUN,
+        Column.EXAMPLE_KEY,
+        Column.RANDOM_SEED,
+        Column.DATASET,
+        Column.POSITION,
+        Column.TIMEPOINT,
+        Column.CROP_INDEX,
+        Column.DiffAEData.START_X,
+        Column.DiffAEData.START_Y,
+    ]
+    metrics_df = all_metrics_df.melt(
+        id_vars=id_columns, var_name="column", value_name=STRUCTURE_AWARE_VALUE_COLUMN
+    )
+
+    # Split out the existing wide-format column names into comparison and metric components
+    comparison_pattern = "|".join(Column.ModelComparisonType)
+    metric_pattern = "|".join(Column.ModelComparisonMetric)
+    metrics_df[[STRUCTURE_AWARE_COMPARISON_COLUMN, STRUCTURE_AWARE_METRIC_COLUMN]] = metrics_df[
+        "column"
+    ].str.extract(rf"^({comparison_pattern})_({metric_pattern})$")
+
+    # Convert the relative aspect ratios to log2 fold changes
+    is_aspect_ratio = (
+        metrics_df[STRUCTURE_AWARE_METRIC_COLUMN]
+        == Column.ModelComparisonMetric.MEAN_RELATIVE_ASPECT_RATIO
+    )
+    metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_VALUE_COLUMN] = np.log2(
+        metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_VALUE_COLUMN]
+    )
+    metrics_df.loc[is_aspect_ratio, STRUCTURE_AWARE_METRIC_COLUMN] = (
+        Column.ModelComparisonMetric.LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO
+    )
+
+    # Keep only the requested comparisons and metrics
+    return metrics_df[
+        metrics_df[STRUCTURE_AWARE_COMPARISON_COLUMN].isin(comparisons)
+        & metrics_df[STRUCTURE_AWARE_METRIC_COLUMN].isin(metrics)
+    ]
+
+
+def calculate_structure_aware_crop_stats(
+    metrics_df: pd.DataFrame, baseline_model_manifest_name: str
+) -> pd.DataFrame:
+    """
+    Calculate the mean and SEM across random seeds of each crop's structure-aware
+    comparison metrics.
+
+    The baseline comparison (target vs. next timepoint) does not use a DiffAE
+    model and is identical for every model, so only the crops from one model are
+    kept for the baseline (to avoid counting each crop once per model).
+
+    Parameters
+    ----------
+    metrics_df
+        Long-format dataframe of structure-aware comparison metrics.
+    baseline_model_manifest_name
+        Model manifest name whose crops are kept for the baseline comparison.
+
+    Returns
+    -------
+    :
+        Dataframe with the mean and SEM across seeds for each crop, comparison,
+        and metric.
+    """
+
+    # Example key is used rather than crop index because crop indices repeat across positions and
+    # timepoints
+    crop_stats_df = (
+        metrics_df.groupby(
+            [
+                STRUCTURE_AWARE_METRIC_COLUMN,
+                Column.DiffAEData.MODEL_MANIFEST,
+                Column.DATASET,
+                Column.EXAMPLE_KEY,
+                Column.CROP_INDEX,
+                STRUCTURE_AWARE_COMPARISON_COLUMN,
+            ]
+        )[STRUCTURE_AWARE_VALUE_COLUMN]
+        .agg(["mean", "sem"])
+        .rename(
+            columns={
+                "mean": STRUCTURE_AWARE_CROP_MEAN_COLUMN,
+                "sem": STRUCTURE_AWARE_CROP_SEM_COLUMN,
+            }
+        )
+        .reset_index()
+    )
+
+    is_baseline = (
+        crop_stats_df[STRUCTURE_AWARE_COMPARISON_COLUMN] == Column.ModelComparisonType.BASELINE
+    )
+    is_baseline_model = (
+        crop_stats_df[Column.DiffAEData.MODEL_MANIFEST] == baseline_model_manifest_name
+    )
+    return crop_stats_df[~is_baseline | is_baseline_model]
+
+
+def plot_image_validation(
+    example_name: str,
+    img: np.ndarray,
+    img_nuc_seg: np.ndarray,
+    img_seg: np.ndarray | None,
+) -> None:
+    """
+    Plot validation images of an image, the nuclear segmentation overlaid on the image, and the
+    cell segmentation of the image (if available).
+
+    Parameters
+    ----------
+    example_name
+        Name of the example.
+    img
+        Image.
+    img_nuc_seg
+        Nuclear segmentation.
+    img_seg
+        Cell segmentation of the image, or None if segmentation failed.
+    """
+    output_path = get_output_path(__file__, "segmentation_validation")
+    cmap = colorcet.cm.glasbey_bw
+    plot_image_thumbnail(
+        img.squeeze(),
+        f"{example_name}_img",
+        output_path=output_path,
+        figsize=(2, 2),
+    )
+    overlay = label2rgb(
+        label=img_nuc_seg.squeeze(),
+        image=rescale_intensity(img.squeeze(), out_range="uint8"),
+        bg_label=0,
+        alpha=0.5,
+    )
+    plot_image_thumbnail(
+        overlay,
+        f"{example_name}_nuc_seg_on_img",
+        output_path=output_path,
+        figsize=(2, 2),
+        image_colormap=cmap,
+    )
+
+    if img_seg is not None:
+        plot_image_thumbnail(
+            img_seg.squeeze(),
+            f"{example_name}_img_seg",
+            output_path=output_path,
+            figsize=(2, 2),
+            image_colormap=cmap,
+        )

@@ -74,6 +74,8 @@ def main(
     )
     from endo_pipeline.library.model.model_comparison import (
         ModelComparisonMetricsCalculator,
+        get_refined_segmentation_from_downscaled_image,
+        load_nuclei_segmentation_image,
         load_transformed_conditioning_example_image,
         load_transformed_diffusion_example_image,
     )
@@ -170,7 +172,7 @@ def main(
         model_location = model_manifest.locations[run_name]
         model_ = load_model(model_location, instantiate=False)
         config: DictConfig = cast(DictConfig, model_.cfg)
-        model = instantiate_model_target_class(model_)
+        model = instantiate_model_target_class(model_)  # type: ignore[reportArgumentType]
 
         for random_seed in seeds_to_evaluate:
             # Set RNG seed
@@ -182,6 +184,10 @@ def main(
                 diffusion_ex = load_transformed_diffusion_example_image(example, config)
                 next_diffusion_ex = load_transformed_diffusion_example_image(next_example, config)
 
+                # Load nuclei segmentation image for the example (used to refine segmentations which
+                # are used to compute segmentation-based features).
+                img_nuc_seg = load_nuclei_segmentation_image(example, config)
+
                 # Apply noise to conditioning image and then denoise
                 noise = rng.standard_normal(size=conditioning_ex.shape)
                 latent = get_latent_vector_from_crop(model, conditioning_ex, num_gpus=NUM_GPUS)
@@ -189,31 +195,128 @@ def main(
                     model, latent, noise, num_gpus=NUM_GPUS
                 )
 
-                # Consume RNG state for reproducibility with model performance
-                # assessment outputs
+                scrambled_latent_control = generate_from_coords_and_noised_image(
+                    model, rng.permuted(latent), noise, num_gpus=NUM_GPUS
+                )
+
+                scrambled_image_latent = get_latent_vector_from_crop(
+                    model, rng.permuted(conditioning_ex), num_gpus=NUM_GPUS
+                )
+                scrambled_image_control = generate_from_coords_and_noised_image(
+                    model, scrambled_image_latent, noise, num_gpus=NUM_GPUS
+                )
+
+                # Consume RNG state for reproducibility with model performance assessment outputs
                 _ = rng.permuted(latent)
                 _ = rng.permuted(conditioning_ex.ravel())
 
-                # Calculate comparison metrics for baseline (between input
-                # diffusion image at current timepoint and the next timepoint)
-                # for the denoised image (between ground truth input diffusion
-                # image and result of denoising the conditioning image)
-                baseline_results = calculator.compute_all_metrics(diffusion_ex, next_diffusion_ex)
-                denoise_results = calculator.compute_all_metrics(diffusion_ex, denoised_ex)
+                # Segment the input image once, since it is the reference image in every
+                # comparison, and segment the input image at the next timepoint, the denoised
+                # image, and the scrambled latent and scrambled image controls
+                diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    diffusion_ex, img_nuc_seg
+                )
+                next_diffusion_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    next_diffusion_ex, img_nuc_seg
+                )
+                denoised_ex_seg = get_refined_segmentation_from_downscaled_image(
+                    denoised_ex, img_nuc_seg
+                )
+                scrambled_latent_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_latent_control, img_nuc_seg
+                )
+                scrambled_image_control_seg = get_refined_segmentation_from_downscaled_image(
+                    scrambled_image_control, img_nuc_seg
+                )
+
+                # Warn if segmentation failed, since the segmentation-based metrics will be NaN
+                example_name = f"{example}_{model_manifest_name}_{run_name}_seed{random_seed}"
+                for image_name, seg in [
+                    ("input", diffusion_ex_seg),
+                    ("next_timepoint", next_diffusion_ex_seg),
+                    ("denoise", denoised_ex_seg),
+                    ("scrambled_latent", scrambled_latent_control_seg),
+                    ("scrambled_image", scrambled_image_control_seg),
+                ]:
+                    if seg is None:
+                        logger.warning(
+                            "Segmentation failed for example [ %s ]. "
+                            "Setting segmentation metrics to NaN.",
+                            f"{example_name}_{image_name}",
+                        )
+
+                # Calculate comparison metrics between the input image vs. itself,
+                # input image at the current timepoint vs. the next timepoint, and
+                # input image vs. denoised image for a given seed
+                self_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=diffusion_ex,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=diffusion_ex_seg,
+                )
+                baseline_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=next_diffusion_ex,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=next_diffusion_ex_seg,
+                )
+                denoise_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=denoised_ex,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=denoised_ex_seg,
+                )
+                scrambled_latent_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=scrambled_latent_control,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_latent_control_seg,
+                )
+                scrambled_image_results = calculator.compute_all_metrics(
+                    img1=diffusion_ex,
+                    img2=scrambled_image_control,
+                    img1_seg=diffusion_ex_seg,
+                    img2_seg=scrambled_image_control_seg,
+                )
 
                 results.append(
                     {
+                        # Model comparison general info
                         Column.DiffAEData.MODEL_MANIFEST: model_manifest_name,
                         Column.DiffAEData.MODEL_RUN: run_name,
                         Column.EXAMPLE_KEY: str(example),
                         Column.RANDOM_SEED: random_seed,
                         Column.MODEL_COMPARISON_EXAMPLE_GROUP: group,
+                        # Model comparison of input image with itself
+                        Column.MODEL_COMPARISON_SELF_CORRELATION: self_results.correlation,
+                        Column.MODEL_COMPARISON_SELF_SSIM: self_results.ssim,
+                        Column.MODEL_COMPARISON_SELF_LPIPS: self_results.lpips,
+                        Column.MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE: self_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO: self_results.mean_relative_aspect_ratio,
+                        # Model comparison of input image with baseline
                         Column.MODEL_COMPARISON_BASELINE_CORRELATION: baseline_results.correlation,
                         Column.MODEL_COMPARISON_BASELINE_SSIM: baseline_results.ssim,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE: baseline_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO: baseline_results.mean_relative_aspect_ratio,
                         Column.MODEL_COMPARISON_BASELINE_LPIPS: baseline_results.lpips,
+                        # Model comparison of input image with denoised image
                         Column.MODEL_COMPARISON_CORRELATION: denoise_results.correlation,
                         Column.MODEL_COMPARISON_SSIM: denoise_results.ssim,
                         Column.MODEL_COMPARISON_LPIPS: denoise_results.lpips,
+                        Column.MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE: denoise_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO: denoise_results.mean_relative_aspect_ratio,
+                        # Model comparison of input image with scrambled image
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION: scrambled_image_results.correlation,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM: scrambled_image_results.ssim,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS: scrambled_image_results.lpips,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE: scrambled_image_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_ASPECT_RATIO: scrambled_image_results.mean_relative_aspect_ratio,
+                        # Model comparison of input image with scrambled latent vector
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION: scrambled_latent_results.correlation,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM: scrambled_latent_results.ssim,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS: scrambled_latent_results.lpips,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE: scrambled_latent_results.mean_orientation_difference,
+                        Column.MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_ASPECT_RATIO: scrambled_latent_results.mean_relative_aspect_ratio,
                     }
                 )
 

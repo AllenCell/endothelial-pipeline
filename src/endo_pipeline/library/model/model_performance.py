@@ -79,6 +79,7 @@ def denoise_with_scrambled_latent_vector(
     noise_examples: list["NDArray"],
     latent: "NDArray",
     num_gpus: int | None = None,
+    show_progress: bool = True,
 ) -> list["NDArray"]:
     """
     Scramble latent vector before denoising the given noise examples.
@@ -95,11 +96,15 @@ def denoise_with_scrambled_latent_vector(
         Latent vector from conditioning image example.
     num_gpus
         Number of GPUs to use. If None, run on CPU.
+    show_progress
+        True to show progress bar for each denoising step, False otherwise.
     """
 
     scrambled_latent = rng.permuted(latent)
     return [
-        generate_from_coords_and_noised_image(model, scrambled_latent, crop, num_gpus)
+        generate_from_coords_and_noised_image(
+            model, scrambled_latent, crop, num_gpus, show_progress=show_progress
+        )
         for crop in noise_examples
     ]
 
@@ -110,6 +115,7 @@ def denoise_with_scrambled_conditioning_input(
     noised_examples: list["NDArray"],
     conditioning_example: "NDArray",
     num_gpus: int | None = None,
+    show_progress: bool = True,
 ) -> list["NDArray"]:
     """
     Scramble the conditioning input before denoising the given noise examples.
@@ -126,6 +132,8 @@ def denoise_with_scrambled_conditioning_input(
         Conditioning image example.
     num_gpus
         Number of GPUs to use. If None, run on CPU.
+    show_progress
+        True to show progress bar for each denoising step, False otherwise.
     """
 
     scrambled_conditioning = rng.permuted(conditioning_example.ravel()).reshape(
@@ -138,7 +146,9 @@ def denoise_with_scrambled_conditioning_input(
     )
 
     return [
-        generate_from_coords_and_noised_image(model, latent_scrambled_input, crop, num_gpus)
+        generate_from_coords_and_noised_image(
+            model, latent_scrambled_input, crop, num_gpus, show_progress=show_progress
+        )
         for crop in noised_examples
     ]
 

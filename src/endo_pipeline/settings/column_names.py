@@ -52,6 +52,9 @@ class ColumnName:
     SHEAR_STRESS_REGIME = "shear_stress_regime"
     """Experimentalist categorization of the shear stress response."""
 
+    SHEAR_REPLICATE_NAME = "shear_replicate_name"
+    """Dataset label combining shear stress bin and replicate number (e.g. "12 replicate 5")."""
+
     CDH5_CHANNEL_INDEX_ZARR = "cdh5_channel_index_in_zarr"
     """Index of the CDH5 channel in the Zarr file."""
 
@@ -718,6 +721,12 @@ class ColumnName:
     MODEL_COMPARISON_BASELINE_LPIPS = "baseline_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between ground truth and next timepoint."""
 
+    MODEL_COMPARISON_BASELINE_MEAN_ORIENTATION_DIFFERENCE = "baseline_mean_orientation_difference"
+    """Mean orientation difference between ground truth and next timepoint."""
+
+    MODEL_COMPARISON_BASELINE_MEAN_RELATIVE_ASPECT_RATIO = "baseline_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between ground truth and next timepoint."""
+
     MODEL_COMPARISON_CORRELATION = "denoised_correlations"
     """Pearson correlation between input and denoised image."""
 
@@ -726,6 +735,104 @@ class ColumnName:
 
     MODEL_COMPARISON_LPIPS = "denoised_lpips"
     """Learned Perceptual Image Patch Similarity (LPIPS) between input and denoised image."""
+
+    MODEL_COMPARISON_MEAN_ORIENTATION_DIFFERENCE = "denoised_mean_orientation_difference"
+    """Mean orientation difference between input and denoised image."""
+
+    MODEL_COMPARISON_MEAN_RELATIVE_ASPECT_RATIO = "denoised_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between input and denoised image."""
+
+    MODEL_COMPARISON_SELF_CORRELATION = "self_correlations"
+    """Pearson correlation between input and itself."""
+
+    MODEL_COMPARISON_SELF_SSIM = "self_ssim"
+    """Structural Similarity Index (SSIM) between input and itself."""
+
+    MODEL_COMPARISON_SELF_LPIPS = "self_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and itself."""
+
+    MODEL_COMPARISON_SELF_MEAN_ORIENTATION_DIFFERENCE = "self_mean_orientation_difference"
+    """Mean orientation difference between input and itself."""
+
+    MODEL_COMPARISON_SELF_MEAN_RELATIVE_ASPECT_RATIO = "self_mean_relative_aspect_ratio"
+    """Mean relative aspect ratio between input and itself."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_CORRELATION = "scrambled_image_correlations"
+    """Pearson correlation between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_SSIM = "scrambled_image_ssim"
+    """Structural Similarity Index (SSIM) between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_LPIPS = "scrambled_image_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_ORIENTATION_DIFFERENCE = (
+        "scrambled_image_mean_orientation_difference"
+    )
+    """Mean orientation difference between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_IMAGE_MEAN_RELATIVE_ASPECT_RATIO = (
+        "scrambled_image_mean_relative_aspect_ratio"
+    )
+    """Mean relative aspect ratio between input and scrambled image."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_CORRELATION = "scrambled_latent_correlations"
+    """Pearson correlation between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_SSIM = "scrambled_latent_ssim"
+    """Structural Similarity Index (SSIM) between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_LPIPS = "scrambled_latent_lpips"
+    """Learned Perceptual Image Patch Similarity (LPIPS) between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_ORIENTATION_DIFFERENCE = (
+        "scrambled_latent_mean_orientation_difference"
+    )
+    """Mean orientation difference between input and scrambled latent representation."""
+
+    MODEL_COMPARISON_SCRAMBLED_LATENT_MEAN_RELATIVE_ASPECT_RATIO = (
+        "scrambled_latent_mean_relative_aspect_ratio"
+    )
+    """Mean relative aspect ratio between input and scrambled latent representation."""
+
+    class ModelComparisonType(StrEnum):
+        """Comparison types (column name prefixes) used in structure-aware model comparison."""
+
+        SELF = "self"
+        """Comparison between input and itself."""
+
+        BASELINE = "baseline"
+        """Comparison between ground truth and next timepoint."""
+
+        DENOISED = "denoised"
+        """Comparison between input and denoised image."""
+
+        SCRAMBLED_IMAGE = "scrambled_image"
+        """Comparison between input and scrambled image."""
+
+        SCRAMBLED_LATENT = "scrambled_latent"
+        """Comparison between input and image denoised from scrambled latent representation."""
+
+    class ModelComparisonMetric(StrEnum):
+        """Metrics (column name suffixes) used in structure-aware model comparison."""
+
+        CORRELATION = "correlations"
+        """Pearson correlation between two images."""
+
+        SSIM = "ssim"
+        """Structural Similarity Index (SSIM) between two images."""
+
+        LPIPS = "lpips"
+        """Learned Perceptual Image Patch Similarity (LPIPS) between two images."""
+
+        MEAN_ORIENTATION_DIFFERENCE = "mean_orientation_difference"
+        """Mean orientation difference between segmentations of two images."""
+
+        MEAN_RELATIVE_ASPECT_RATIO = "mean_relative_aspect_ratio"
+        """Mean aspect ratio of segmentations of second image relative to first image."""
+
+        LOG2_FOLD_CHANGE_MEAN_ASPECT_RATIO = "log2_fold_change_mean_aspect_ratio"
+        """Log2 fold change in mean cell aspect ratio."""
 
 
 class ColumnNameTemplate(StrEnum):
@@ -892,5 +999,7 @@ ColumnNameType = (
     | ColumnName.OpticalFlow
     | ColumnName.VectorField
     | ColumnName.AutoCorrelation
+    | ColumnName.ModelComparisonType
+    | ColumnName.ModelComparisonMetric
 )
 """Type hint for all column name enums."""
