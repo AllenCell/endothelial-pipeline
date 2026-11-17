@@ -142,6 +142,7 @@ def main(background_alpha: float = 0.25) -> None:
                     column_names=column_names,
                     color_by_column=color_by_column,
                     background_alpha=background_alpha,
+                    file_format=".png",
                 )
 
 

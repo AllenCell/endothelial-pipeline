@@ -3,7 +3,7 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -289,7 +289,8 @@ def plot_flow_switch_summaries(
     figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH, 1.5),
     marker_size_plot: float = 4.2,
     highlight_bistable: bool = True,
-    ylabel_rotation: float = 90,
+    ylabel_rotation: float = 0,
+    file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
 ) -> Path:
     """
     Plot fixed points of flow switch datasets over a faded cross-dataset summary.
@@ -333,6 +334,8 @@ def plot_flow_switch_summaries(
         True to add a grey background spanning all bistable background datasets.
     ylabel_rotation
         Rotation angle for y axis label.
+    file_format
+        Format of the output file (e.g., ".png", ".svg", ".pdf").
 
     Returns
     -------
@@ -495,6 +498,8 @@ def plot_flow_switch_summaries(
         f"{join_sorted_strings([str(column_name) for column_name in column_names])}_"
         f"by_{color_by_column}"
     )
-    save_plot_to_path(fig, output_path, figure_name, file_format=".svg", tight_layout=False)
+    file_save_path = save_plot_to_path(
+        fig, output_path, figure_name, file_format=file_format, tight_layout=False
+    )
 
-    return output_path / f"{figure_name}.svg"
+    return file_save_path
