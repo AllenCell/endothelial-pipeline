@@ -615,7 +615,7 @@ def plot_sweep_subset(
                 middle_boundary_time - num_hours_window - 0.1,
                 middle_boundary_time + num_hours_window + 0.1,
             )
-            # add add dashed vertical lines for per-position annotations
+            # add dashed vertical lines for per-position annotations
             for annotation_time in per_position_annotations:
                 ax.axvline(
                     annotation_time * TIME_STEP_IN_HOURS,
