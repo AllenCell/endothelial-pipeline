@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 
 from endo_pipeline.configs import DatasetConfig, load_dataset_config
 from endo_pipeline.io import join_sorted_strings, save_plot_to_path
+from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.library.visualize.summary_plot import (
     BINNED_MEAN_FEATURES,
     DEFAULT_SUMMARY_COLUMN_NAMES,
@@ -27,6 +28,7 @@ from endo_pipeline.library.visualize.summary_plot import (
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName
 from endo_pipeline.settings.figures import FONTSIZE_MEDIUM, FONTSIZE_XSMALL, MAX_FIGURE_WIDTH
+from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 
 if TYPE_CHECKING:
     from endo_pipeline.settings.column_names import ColumnNameType
@@ -134,7 +136,7 @@ def _build_flow_switch_legend_label(flow_switch_slots: list[_Slot]) -> str:
                 if slot.flow_condition_index == flow_condition_index
             }
         )
-        return f"{'/'.join(str(b) for b in bins)} dyn/cm2"
+        return f"{'/'.join(str(b) for b in bins)} dyn/cm{Unicode.SQUARED}"
 
     return f"{format_bins(0)} to {format_bins(1)}"
 
@@ -278,6 +280,7 @@ def _plot_points(
         )
 
 
+@figure_panel("Flow switch summary plot.")
 def plot_flow_switch_summaries(
     df_flow_switch: pd.DataFrame,
     df_background: pd.DataFrame,
