@@ -54,7 +54,7 @@ def main(background_alpha: float = 0.25) -> None:
         build_dataframe_for_fixed_point_dataset_summary,
     )
     from endo_pipeline.library.visualize.summary_plot_flow_switch import plot_flow_switch_summaries
-    from endo_pipeline.manifests import load_dataframe_manifest
+    from endo_pipeline.manifests import check_dataset_has_dataframes, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
@@ -74,28 +74,12 @@ def main(background_alpha: float = 0.25) -> None:
     optical_flow_manifest = load_dataframe_manifest(
         OPTICAL_FLOW_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
     )
-
-    def has_required_data(dataset_name: str) -> bool:
-        """Check that dataset has features, bootstrapped fixed points, and optical flow."""
-        missing = [
-            name
-            for name, manifest in [
-                ("features", feature_manifest),
-                ("bootstrapped fixed points", bootstrap_manifest),
-                ("optical flow features", optical_flow_manifest),
-            ]
-            if dataset_name not in manifest.locations
-        ]
-        if missing:
-            logger.warning(
-                "Dataset [ %s ] is missing %s. Skipping.", dataset_name, " and ".join(missing)
-            )
-        return not missing
+    required_dataframe_manifests = [feature_manifest, bootstrap_manifest, optical_flow_manifest]
 
     # Group flow switch datasets by shear stress regime (e.g. "min_to_max")
     datasets_by_regime: dict[str, list[str]] = defaultdict(list)
     for dataset_name in get_datasets_in_collection("flow_switch"):
-        if not has_required_data(dataset_name):
+        if not check_dataset_has_dataframes(required_dataframe_manifests, dataset_name):
             continue
         regime = load_dataset_config(dataset_name).shear_stress_regime
         datasets_by_regime["_to_".join(r.value for r in regime)].append(dataset_name)
@@ -107,7 +91,7 @@ def main(background_alpha: float = 0.25) -> None:
     background_datasets = [
         dataset_name
         for dataset_name in get_datasets_in_collection("shear_stress")
-        if has_required_data(dataset_name)
+        if check_dataset_has_dataframes(required_dataframe_manifests, dataset_name)
     ]
 
     if DEMO_MODE:
