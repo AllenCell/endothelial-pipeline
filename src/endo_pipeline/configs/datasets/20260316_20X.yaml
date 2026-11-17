@@ -35,11 +35,12 @@ flow_conditions:
   stop: 576
   shear_stress: 6.28
 include_scenes: null
-notes: FLAGGED CAUTION - notable gaps in monolayer in FOV 2, 4, and 5 (1-indexed).
-  High to low SS 48h. Mostly perpendicular at high SS, then mostly parallel after
-  low SS change. Debris bottom-right FOV 1 from start. FOV 1 flickers dark at TP22.
-  FOV 2 flickers dark at TP239. FOV 4 flickers dark at TP241. FOV 2 flickers dark
-  top at TP292 and TP405.
+notes: FLAGGED CAUTION - FOV 1 has persistent gap throughout, but also observe notable
+  gaps in monolayer in FOV 2, 4, and 5 (1-indexed). High to low SS 48h. Mostly
+  perpendicular at high SS, then mostly parallel after low SS change. Debris
+  bottom-right FOV 1 from start. FOV 1 flickers dark at TP22. FOV 2 flickers
+  dark at TP239. FOV 4 flickers dark at TP241. FOV 2 flickers darktop at TP292
+  and TP405.
 replicate_number: 1
 timepoint_annotations:
   auto_bf_scope_error:
