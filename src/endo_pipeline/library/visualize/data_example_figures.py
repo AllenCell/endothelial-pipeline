@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 
-from endo_pipeline.configs import load_dataset_config
+from endo_pipeline.configs import get_flow_bin_at_frame, load_dataset_config
 from endo_pipeline.io.output import save_plot_to_path
 from endo_pipeline.library.process.image_processing import (
     convert_to_uint8,
@@ -64,7 +64,7 @@ def create_panel_biological_system_examples(
 
     for example in examples:
         dataset_config = load_dataset_config(example.dataset_name)
-        shear_stress_value = round(dataset_config.flow_conditions[0].shear_stress)
+        shear_stress_value = get_flow_bin_at_frame(dataset_config, example.timepoint)
 
         gfp_max_proj = load_processed_egfp_image_crop(
             dataset_config,
@@ -272,6 +272,91 @@ def create_panel_intermediate_examples(
         fig,
         save_dir,
         f"intermediate_examples_scale_bar_{scale_bar_um}um",
+        file_format=".svg",
+        tight_layout=False,
+        pad_inches=0,
+    )
+
+
+@figure_panel("Example images from flow switch datasets.")
+def create_panel_flow_switch_examples(
+    examples: list[ExampleImage],
+    output_path: Path,
+    crop_size: int = 1000,
+    scale_bar_um: int = 100,
+    figure_size: tuple[float, float] = (MAX_FIGURE_WIDTH * 0.25, 3),
+) -> Path:
+    """Create panel of flow switch example images."""
+    image_panel_list = []
+    row_titles = []
+
+    for i, example in enumerate(examples):
+        dataset_config = load_dataset_config(example.dataset_name)
+        shear_stress_switch_str = " to ".join(
+            [flow.shear_stress_bin for flow in dataset_config.flow_conditions]
+        )
+        shear_stress_switch_label = f"{shear_stress_switch_str} dyn/cm{Unicode.SQUARED}"
+        gfp_max_proj = load_processed_egfp_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
+        )
+        log_bf_std_dev = load_processed_bf_std_dev_image_crop(
+            dataset_config,
+            example.position,
+            example.timepoint,
+            example.crop_x_start,
+            example.crop_y_start,
+            crop_size,
+        )
+
+        image_panel_list.extend([gfp_max_proj, log_bf_std_dev])
+        if shear_stress_switch_label not in row_titles:
+            row_titles.append(shear_stress_switch_label)
+
+    fig = make_contact_sheet(
+        image_panel_list,
+        max_rows=len(examples) // 2,
+        max_cols=2,
+        col_titles=["First shear stress", "Second shear stress"],
+        row_titles=row_titles,
+        direction="left-right first",
+        font_size=FONTSIZE_MEDIUM,
+        subplot_kwargs={"frame_on": False},
+        gridspec_kwargs={"wspace": 0.01, "hspace": 0.01},
+        fig_kwargs={"figsize": figure_size, "layout": "constrained"},
+    )
+
+    for i, ax in enumerate(fig.axes):
+        ax.xaxis.labelpad = 3
+        ax.yaxis.labelpad = 3
+
+        add_scalebar(
+            ax,
+            scale_bar_um=scale_bar_um,
+            pixel_size=PIXEL_SIZE_3i_20x,
+            location="lower right",
+            bar_thickness=25,
+            padding=25,
+            include_label=True if i == 0 else False,
+            label_xy=(0.98, 0.06),
+            label_fontsize=FONTSIZE_XSMALL,
+        )
+
+        # draw grid lines every 256 pixels to show tile boundaries
+        im_height, im_width = image_panel_list[i].shape[:2]
+        for x in range(256, im_width, 256):
+            ax.axvline(x, color="yellow", linewidth=0.5)
+        for y in range(256, im_height, 256):
+            ax.axhline(y, color="yellow", linewidth=0.5)
+
+    return save_plot_to_path(
+        fig,
+        output_path,
+        f"flow_switch_examples_scale_bar_{scale_bar_um}um",
         file_format=".svg",
         tight_layout=False,
         pad_inches=0,
