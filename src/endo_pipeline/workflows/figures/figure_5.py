@@ -36,6 +36,9 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     from endo_pipeline.configs import get_datasets_in_collection, load_dataset_config
     from endo_pipeline.io import get_output_path
+    from endo_pipeline.library.visualize.data_example_figures import (
+        create_panel_flow_switch_examples,
+    )
     from endo_pipeline.library.visualize.figures import (
         FigurePanel,
         build_figure_from_panels,
@@ -47,6 +50,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.summary_plot_flow_switch import plot_flow_switch_summaries
     from endo_pipeline.manifests import check_dataset_has_dataframes, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
+    from endo_pipeline.settings.examples import FIGURE_5_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
@@ -63,7 +67,12 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E"])
 
-    # Example images will go here once implemented (panel A)
+    example_images_path = create_panel_flow_switch_examples(
+        examples=FIGURE_5_EXAMPLE_IMAGES,
+        output_path=output_path,
+        figure_size=(MAX_FIGURE_WIDTH / 4, 3.0),
+        **placeholders["A"],
+    )
 
     feature_manifest = load_dataframe_manifest(
         FEATURES_FILTERED_MANIFEST_NAMES[MIGRATION_COHERENCE_PATCH_TYPE]
@@ -127,6 +136,14 @@ def main(include_panels: UniqueStrList | None = None) -> None:
         )
 
     panels = [
+        FigurePanel(
+            letter="A",
+            path=example_images_path,
+            x_position=0,
+            y_position=0,
+            x_offset=0.0,
+            y_offset=0.0,
+        ),
         FigurePanel(
             letter="B",
             path=path_dict["min_to_max"],

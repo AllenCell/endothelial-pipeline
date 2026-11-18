@@ -52,7 +52,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
     from endo_pipeline.manifests import load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import FIGURE_5_EXAMPLE_IMAGES
+    from endo_pipeline.settings.examples import FIGURE_6_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
     from endo_pipeline.settings.migration_coherence import MIGRATION_COHERENCE_PATCH_TYPE
@@ -67,7 +67,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     # Example images of perturbation at low shear stress
     example_images_path = create_panel_perturbation_examples(
-        examples=FIGURE_5_EXAMPLE_IMAGES,
+        examples=FIGURE_6_EXAMPLE_IMAGES,
         output_path=output_path,
         figure_size=(MAX_FIGURE_WIDTH, 3.4),
         inset_coordinates=(50, 500),
