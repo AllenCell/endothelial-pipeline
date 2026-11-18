@@ -50,7 +50,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     from endo_pipeline.library.visualize.summary_plot_flow_switch import plot_flow_switch_summaries
     from endo_pipeline.manifests import check_dataset_has_dataframes, load_dataframe_manifest
     from endo_pipeline.settings.column_names import ColumnName as Column
-    from endo_pipeline.settings.examples import FIGURE_5_EXAMPLE_IMAGES
+    from endo_pipeline.settings.examples import FLOW_SWITCH_EXAMPLE_IMAGES
     from endo_pipeline.settings.figures import MAX_FIGURE_HEIGHT, MAX_FIGURE_WIDTH
     from endo_pipeline.settings.manifest_names import (
         BOOTSTRAPPING_MANIFEST_NAMES,
@@ -65,12 +65,16 @@ def main(include_panels: UniqueStrList | None = None) -> None:
 
     output_path = get_output_path(__file__)
 
-    placeholders = parse_placeholder_panels(include_panels, ["A", "B", "C", "D", "E"])
+    image_panel_letter = "A"
+    summary_plot_panel_letters = ["B", "C", "D", "E"]
+    placeholders = parse_placeholder_panels(
+        include_panels, [image_panel_letter, *summary_plot_panel_letters]
+    )
 
     example_images_path = create_panel_flow_switch_examples(
-        examples=FIGURE_5_EXAMPLE_IMAGES,
+        examples=FLOW_SWITCH_EXAMPLE_IMAGES,
         output_path=output_path,
-        figure_size=(MAX_FIGURE_WIDTH / 4, 3.0),
+        figure_size=(MAX_FIGURE_WIDTH, 2.75),
         **placeholders["A"],
     )
 
@@ -117,8 +121,11 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     )
 
     path_dict: dict[str, Path] = {}
-    for regime, dataset_names, placeholder in zip(
-        datasets_by_regime.keys(), datasets_by_regime.values(), placeholders.values(), strict=True
+    for regime, dataset_names, placeholder_key in zip(
+        datasets_by_regime.keys(),
+        datasets_by_regime.values(),
+        summary_plot_panel_letters,
+        strict=True,
     ):
         df_flow_switch = build_dataframe_for_fixed_point_dataset_summary(
             dataset_names=dataset_names, all_flow_conditions=True, **summary_kwargs
@@ -132,7 +139,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             figure_size=(3.25, 1.25),
             column_names=[Column.DiffAEData.POLAR_ANGLE, Column.DiffAEData.POLAR_RADIUS],
             color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
-            **placeholder,
+            **placeholders[placeholder_key],
         )
 
     panels = [
