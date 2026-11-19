@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: [5, 6, 7, 8, 9]
 notes: no flow dataset (24 hours)
 replicate_number: null
+differentiation_batch: null
 stability_category: null
 timepoint_annotations: null
 position_annotations: null

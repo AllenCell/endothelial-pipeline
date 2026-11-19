@@ -34,6 +34,7 @@ flow_conditions:
 include_scenes: null
 notes: cells become extremely crowded at end of video
 replicate_number: 2
+differentiation_batch: 66
 stability_category: monostable
 timepoint_annotations:
   auto_bf_scope_error:

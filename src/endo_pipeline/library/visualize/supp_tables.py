@@ -136,6 +136,12 @@ def get_dataset_stats(
 
     n_grid = fov_total * 36  # 6x6 grid of patches per FOV
 
+    diff_batch_str = (
+        "-"
+        if dataset_config.differentiation_batch is None
+        else str(dataset_config.differentiation_batch)
+    )
+
     return {
         "date": dataset_config.date,
         "cell_line": "\n".join(dataset_config.cell_lines) if dataset_config.cell_lines else "",
@@ -143,6 +149,7 @@ def get_dataset_stats(
             str(fc.shear_stress_bin) for fc in dataset_config.flow_conditions
         ),
         "replicate": dataset_config.replicate_number,
+        "differentiation_batch": diff_batch_str,
         "fovs": len(dataset_config.zarr_positions),
         "timepoints": dataset_config.duration,
         "pos_removed": len(dataset_config.zarr_positions) - len(unannotated_positions),
