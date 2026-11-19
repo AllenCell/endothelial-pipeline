@@ -36,7 +36,7 @@ flow_conditions:
   shear_stress: 23.77
 include_scenes: null
 notes: some cell death that occurs after the switch to high SS
-replicate_number: 1
+replicate_number: 2
 stability_category: null
 timepoint_annotations:
   auto_bf_scope_error:
