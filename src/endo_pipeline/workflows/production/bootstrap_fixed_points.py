@@ -10,6 +10,7 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
     FP_CI_UPPER_PERCENTILE,
     NUM_BOOTSTRAP_ITERATIONS,
 )
+from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def main(
@@ -28,6 +29,10 @@ def main(
         float, Parameter(name="--ci-upper")
     ] = FP_CI_UPPER_PERCENTILE,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
+    output_file_name_suffix: str | None = None,
+    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    overwrite_results: bool = True,
 ) -> None:
     """
     Bootstrap fixed point confidence intervals by subsampling data.
@@ -105,11 +110,25 @@ def main(
         Percentile defining upper bound of the bootstrap confidence intervals.
     batch_size_factor
         Factor used to determine size of batch for parallel processing.
+    output_file_name_suffix
+        Optional suffix appended to the baseline fixed point manifest name, the
+        bootstrap results manifest name, and the output file names (e.g. to
+        distinguish outputs from parameter sweeps).
+    kernel_bandwidths_dynamics
+        Optional map of feature column to kernel bandwidth used for drift
+        estimation. Defaults to `KERNEL_BANDWIDTHS_DYNAMICS`.
+    bin_widths_dynamics
+        Optional map of feature column to bin width used for the drift
+        estimation grid. Defaults to `BIN_WIDTHS_DYNAMICS`.
+    overwrite_results
+        True to regenerate outputs for datasets that already have results in
+        the output manifest, False to skip them.
     """
 
     import logging
     import os
     from concurrent.futures import ProcessPoolExecutor
+    from pathlib import Path
 
     import numpy as np
     import pandas as pd
@@ -174,6 +193,12 @@ def main(
 
     output_path = get_output_path(__file__)
 
+    if kernel_bandwidths_dynamics is None:
+        kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
+
+    if bin_widths_dynamics is None:
+        bin_widths_dynamics = BIN_WIDTHS_DYNAMICS
+
     rng = np.random.default_rng(RANDOM_SEED)
 
     column_names = list(DYNAMICS_COLUMN_NAMES)
@@ -185,13 +210,17 @@ def main(
 
     # get dataframe manifest for baseline results to match against in bootstrapping
     name_suffix = join_sorted_strings(column_names)
-    baseline_fixed_point_manifest_name = f"{FIXED_POINT_MANIFEST_NAMES[patch_type]}_{name_suffix}"
+    baseline_fixed_point_manifest_name = "_".join(
+        filter(None, [FIXED_POINT_MANIFEST_NAMES[patch_type], name_suffix, output_file_name_suffix])
+    )
     baseline_fixed_point_manifest = load_dataframe_manifest(baseline_fixed_point_manifest_name)
 
     # load or initialize dataframe manifest for bootstrap results
     name_prefix = BOOTSTRAPPING_MANIFEST_NAMES[patch_type]
-    name_suffix = "_demo" if DEMO_MODE else ""
-    bootstrap_results_manifest_name = f"{name_prefix}{name_suffix}"
+    name_suffix = "demo" if DEMO_MODE else ""
+    bootstrap_results_manifest_name = "_".join(
+        filter(None, [name_prefix, name_suffix, output_file_name_suffix])
+    )
     bootstrap_results_manifest = create_dataframe_manifest(
         bootstrap_results_manifest_name, workflow_name=__file__
     )
@@ -211,11 +240,11 @@ def main(
         kernels.append(
             KramersMoyalKernel(
                 name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=KERNEL_BANDWIDTHS_DYNAMICS[column_name],
+                bandwidth=kernel_bandwidths_dynamics[column_name],
                 period=KERNEL_PERIODS_DYNAMICS[column_name],
             )
         )
-        bin_widths.append(BIN_WIDTHS_DYNAMICS[column_name])
+        bin_widths.append(bin_widths_dynamics[column_name])
 
     # Add workflow parameters to the output manifest for traceability
     bootstrap_results_manifest.parameters = {
@@ -250,6 +279,20 @@ def main(
                 "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
                 feature_dataframe_manifest_name,
+            )
+            continue
+
+        bootstrap_evaluated = (
+            bootstrap_results_manifest.locations.get(dataset_name, DataframeLocation()).fmsid
+            is not None
+        )
+        if bootstrap_evaluated and overwrite_results is False:
+            logger.warning(
+                """Bootstrap results for dataset '%s': bin_widths '%s', kernel bandwidths '%s' already
+                exist and overwrite is disabled. Skipping.""",
+                dataset_name,
+                bin_widths,
+                kernels,
             )
             continue
 
@@ -387,8 +430,17 @@ def main(
         # Concatenate results across flow conditions for this dataset
         bootstrap_results_df = pd.concat(bootstrap_dataframe_list, ignore_index=True)
         # Save results, upload to FMS (if specified), and update manifest
-        output_file_name = f"{name_prefix}_{dataset_name}{name_suffix}.parquet"
-        output_save_path = make_name_unique(output_path / output_file_name)
+        output_file_name = "_".join(filter(None, [name_prefix, dataset_name, name_suffix]))
+        # Ensure the output file name is unique to avoid overwriting existing files
+        output_file_name_unique = make_name_unique(f"{output_file_name}.parquet")
+        # Construct the final output save path with the unique file name and an optional suffix
+        filename_extension = output_file_name_unique.suffix
+        final_output_file_name = (
+            "_".join(filter(None, [output_file_name_unique.stem, output_file_name_suffix]))
+            + filename_extension
+        )
+
+        output_save_path = output_path / Path(final_output_file_name)
         bootstrap_results_df.to_parquet(output_save_path)
         logger.info("Saved bootstrap fixed point CI dataframe locally to [ %s ].", output_save_path)
 
@@ -401,7 +453,7 @@ def main(
             annotations = build_fms_annotations(
                 dataset_config,
                 model_manifest=load_model_manifest(DEFAULT_MODEL_MANIFEST_NAME),
-                run_name=DEFAULT_MODEL_RUN_NAME,
+                run_name=DEFAULT_MODEL_MANIFEST_NAME,
                 additional_notes=FMS_ANNOTATION_NOTES_BOOTSTRAPPING,
             )
             fmsid = upload_file_to_fms(

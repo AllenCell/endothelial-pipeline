@@ -27,6 +27,9 @@ class UnicodeCharacters(StrEnum):
     DELTA = "\u0394"
     """Unicode for uppercase delta."""
 
+    KAPPA = "\u03ba"
+    """Unicode for lowercase kappa."""
+
     GEQ = "\u2265"
     """Unicode for greater than or equal to (using LaTeX naming convention)."""
 

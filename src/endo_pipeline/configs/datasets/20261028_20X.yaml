@@ -1,0 +1,84 @@
+name: 20261028_20X
+date: '20261028'
+original_path: //allen/programs/allencell/data/proj0/7ae/a1e/87e/e8b/93d/fb8/347/90c/c7a/3ab/81/20261028_GE00011640_20X_sldy/20261028_GE00011640_20X_sldy.sldy
+zarr_positions: [0, 1, 2, 3, 4, 5]
+fmsid: 813abc7a90c347fb893de8b87ea1e7ae
+barcode: GE00011640
+cell_lines: [AICS-126]
+live_or_fixed_sample: live
+is_timelapse: true
+microscope: 3i
+objective: 20X
+shear_stress_regime: min_to_high
+pixel_size_xy_in_um: 0.382
+duration: 525
+time_interval_in_minutes: 5.0
+n_total_positions: 6
+original_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+zarr_channel_indices:
+  brightfield: 1
+  channel_488: 0
+  channel_405: null
+  channel_561: null
+  channel_640: null
+channel_names: [VE-cadherin_mEGFP, Brightfield]
+flow_conditions:
+- start: -18
+  stop: 231
+  shear_stress: 6.17
+- start: 232
+  stop: 525
+  shear_stress: 15.03
+include_scenes: null
+notes: ''
+replicate_number: null
+stability_category: null
+timepoint_annotations:
+  auto_bf_scope_error:
+    0: [5, 7, 70, 323]
+    1: [7, 32, 82, 433]
+    2: [2, 40, 59, 267, 273, 322]
+    3: [2, 67]
+    4: [2, 94, 267]
+    5: [5, 6, 61, 245]
+  auto_bf_temp_artifact:
+    0: [62, 134, 232]
+    1: [25, 126]
+    2: [82, 232]
+    3: [62, 232]
+    4: [12, 62, 267, 524]
+    5: [232, 524]
+  auto_gfp_scope_error:
+    0: [232]
+    1: []
+    2: []
+    3: []
+    4: []
+    5: []
+  cell_piling:
+    0: [[498, 525]]
+    1: [[480, 525]]
+    2: [[479, 525]]
+    3: [[505, 525]]
+    4: [[435, 525]]
+    5: [[409, 525]]
+  not_steady_state:
+    0: [[0, 145], [232, 284]]
+    1: [[0, 102], [232, 319]]
+    2: [[0, 145], [232, 304]]
+    3: [[0, 140], [232, 344]]
+    4: [[0, 134], [232, 342]]
+    5: [[0, 151], [232, 292]]
+position_annotations: null
+center_z_plane:
+  0: 11
+  1: 11
+  2: 10
+  3: 10
+  4: 10
+  5: 11

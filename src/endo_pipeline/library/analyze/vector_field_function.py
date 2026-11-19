@@ -233,8 +233,14 @@ def get_callable_vector_field(
 
     def vf_general(point: np.ndarray) -> np.ndarray:
         # point: shape (N,) or (M, N), where N is the number of dimensions
-        point = np.atleast_2d(point)
-        return np.stack([interp(point) for interp in interpolators], axis=-1).squeeze()
+        point = np.asarray(point)
+        is_single_point = point.ndim == 1
+        point_2d = np.atleast_2d(point)
+        result = np.stack([interp(point_2d) for interp in interpolators], axis=-1)
+        # only collapse the (1, N) result of a single point to (N,); for
+        # multi-point input, the trailing axis is the (possibly size-1)
+        # component axis and must not be squeezed away (ndim == 1 case)
+        return result[0] if is_single_point else result
 
     def vf_solve_ivp(t: float, y: np.ndarray) -> np.ndarray:
         # y: shape (N,)
