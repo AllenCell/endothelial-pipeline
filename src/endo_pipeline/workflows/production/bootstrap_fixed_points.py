@@ -10,7 +10,6 @@ from endo_pipeline.settings.bootstrap_fixed_points import (
     FP_CI_UPPER_PERCENTILE,
     NUM_BOOTSTRAP_ITERATIONS,
 )
-from endo_pipeline.settings.column_names import ColumnName as Column
 
 
 def main(
@@ -30,8 +29,8 @@ def main(
     ] = FP_CI_UPPER_PERCENTILE,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
     output_file_name_suffix: str | None = None,
-    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
-    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    kernel_bandwidths_dynamics: dict[str, float] | None = None,
+    bin_widths_dynamics: dict[str, float] | None = None,
     overwrite_results: bool = True,
 ) -> None:
     """
@@ -193,11 +192,9 @@ def main(
 
     output_path = get_output_path(__file__)
 
-    if kernel_bandwidths_dynamics is None:
-        kernel_bandwidths_dynamics = KERNEL_BANDWIDTHS_DYNAMICS
+    kernel_bandwidths_dict = kernel_bandwidths_dynamics or KERNEL_BANDWIDTHS_DYNAMICS
 
-    if bin_widths_dynamics is None:
-        bin_widths_dynamics = BIN_WIDTHS_DYNAMICS
+    bin_widths_dict = bin_widths_dynamics or BIN_WIDTHS_DYNAMICS
 
     rng = np.random.default_rng(RANDOM_SEED)
 
@@ -240,11 +237,11 @@ def main(
         kernels.append(
             KramersMoyalKernel(
                 name=KERNEL_NAMES_DYNAMICS[column_name],
-                bandwidth=kernel_bandwidths_dynamics[column_name],
+                bandwidth=kernel_bandwidths_dict[column_name],
                 period=KERNEL_PERIODS_DYNAMICS[column_name],
             )
         )
-        bin_widths.append(bin_widths_dynamics[column_name])
+        bin_widths.append(bin_widths_dict[column_name])
 
     # Add workflow parameters to the output manifest for traceability
     bootstrap_results_manifest.parameters = {
