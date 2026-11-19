@@ -401,18 +401,36 @@ def create_timelapse_movie(
             writer.append_data(image)  # type: ignore[attr-defined]
 
 
+def get_timepoints_without_cell_piling(example: ExampleImage) -> list[int]:
+    """Get all timepoints (including transients) except cell piling for example position."""
+
+    dataset_config = load_dataset_config(example.dataset_name)
+
+    return get_unannotated_timepoints_for_position(
+        dataset_config,
+        position=example.position,
+        annotations=[TimepointAnnotation.CELL_PILING],
+    )
+
+
 def create_stitched_timelapse_movie_for_example(
     example: ExampleImage,
     output_path: Path,
     file_prefix: str,
+    include_transient: bool = False,
 ):
-    """Wrapper for creating stitched timelapse movie for a given example."""
+    """
+    Wrapper for creating stitched timelapse movie for a given example.
+
+    Timepoints are filtered to steady state, unless include_transient is True,
+    in which case only cell piling timepoints are excluded.
+    """
 
     create_timelapse_movie(
         dataset_name=example.dataset_name,
         channel_types=["EGFP", "BF_std_dev"],
         output_path=output_path,
-        timepoints=None,
+        timepoints=get_timepoints_without_cell_piling(example) if include_transient else None,
         positions=None,
         frames_per_second=MOVIE_FRAMES_PER_SECOND,
         annotate_shear_stress=True,
@@ -420,7 +438,7 @@ def create_stitched_timelapse_movie_for_example(
         orientation="vertical",
         crop=None,
         merge_channels=False,
-        steady_state=example.position,
+        steady_state=None if include_transient else example.position,
         file_prefix=file_prefix,
     )
 

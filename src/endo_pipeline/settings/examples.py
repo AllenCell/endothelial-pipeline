@@ -542,5 +542,41 @@ SUPP_FIG_RETRACTION_FIBER_BLOB: ExampleImage = ExampleImage(
 )
 """Example image for illustrating spatial correlation of retraction fibers and bright blobs."""
 
+FLOW_SWITCH_EXAMPLE_IMAGES: list[ExampleImage] = [
+    ExampleImage(
+        dataset_name="20250224_20X",
+        description="flow switch from 6 to 21 dyn/cm2",
+        position=0,
+        timepoint=263,  # first timepoint after flow switch
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20260323_20X",
+        description="flow switch from 21 to 6 dyn/cm2",
+        position=0,
+        timepoint=276,  # first timepoint after flow switch
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20261028_20X",
+        description="flow switch from 6 to 15 dyn/cm2",
+        position=0,
+        timepoint=232,  # first timepoint after flow switch
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+    ExampleImage(
+        dataset_name="20261021_20X",
+        description="flow switch from 21 to 12 dyn/cm2",
+        position=0,
+        timepoint=258,  # first timepoint after flow switch
+        crop_x_start=0,  # res level 0
+        crop_y_start=0,  # res level 0
+    ),
+]
+"""Example images for flow switch replicate stitched movies (one per switch direction)."""
+
 SUPP_FIG_PARAM_SWEEP = ["20250618_20X", "20250611_20X", "20250319_20X", "20260304_20X"]
 """Example datasets for the parameter sweep supplementary figure."""
