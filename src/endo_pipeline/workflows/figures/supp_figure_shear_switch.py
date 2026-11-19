@@ -3,7 +3,7 @@ from endo_pipeline.cli import UniqueStrList
 
 def main(include_panels: UniqueStrList | None = None) -> None:
     """
-    **Figure 5**. Analysis of the flow switch experiments
+    **Supplemental Figure**. Analysis of the flow switch experiments
 
     #main-figure #perturbation
 
@@ -122,7 +122,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             df_background,
             output_path=output_path,
             regime_label=regime,
-            figure_size=(3.25, 1.25),
+            figure_size=(3.15, 1.5),
             column_names=[Column.DiffAEData.PC3_FLIPPED],
             color_by_column=Column.OpticalFlow.UNIT_VECTOR_MEAN,
             **placeholders[rho_panel_letters[regime]],
@@ -133,7 +133,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             df_background,
             output_path=output_path,
             regime_label=regime,
-            figure_size=(3.25, 1.25),
+            figure_size=(3.15, 1.5),
             column_names=[Column.OpticalFlow.SPEED_MEAN],
             point_color="black",
             ylabel_rotation=90,
@@ -146,18 +146,69 @@ def main(include_panels: UniqueStrList | None = None) -> None:
     # Left and right columns, with rho panels above speed panels
     panels = [
         FigurePanel(
-            letter=letters[regime],
-            path=plots[regime],
-            x_position=3.25 * (i % 2),
-            y_position=y_start + 1.75 * (i // 2),
+            letter="A",
+            path=rho_plots_dict["min_to_max"],
+            x_position=0,
+            y_position=0,
             x_offset=0.0,
             y_offset=0.05,
-        )
-        for plots, letters, y_start in [
-            (rho_plots_dict, rho_panel_letters, 0),
-            (speed_plots_dict, speed_panel_letters, 3.5),
-        ]
-        for i, regime in enumerate(regime_order)
+        ),
+        FigurePanel(
+            letter="B",
+            path=rho_plots_dict["max_to_min"],
+            x_position=3.25,
+            y_position=0,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="C",
+            path=rho_plots_dict["min_to_high"],
+            x_position=0,
+            y_position=1.75,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="D",
+            path=rho_plots_dict["max_to_medium"],
+            x_position=3.25,
+            y_position=1.75,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="E",
+            path=speed_plots_dict["min_to_max"],
+            x_position=0,
+            y_position=3.5,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="F",
+            path=speed_plots_dict["max_to_min"],
+            x_position=3.25,
+            y_position=3.5,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="G",
+            path=speed_plots_dict["min_to_high"],
+            x_position=0,
+            y_position=5.25,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
+        FigurePanel(
+            letter="H",
+            path=speed_plots_dict["max_to_medium"],
+            x_position=3.25,
+            y_position=5.25,
+            x_offset=0.0,
+            y_offset=0.05,
+        ),
     ]
 
     build_figure_from_panels(
