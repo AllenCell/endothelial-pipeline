@@ -6,10 +6,11 @@
 | Table | Description                                | Type           |
 | ----- | ------------------------------------------ | -------------- |
 | 1     | Shear stress datasets                      | _dataset_      |
-| 2     | DiffAE model training datasets             | _dataset_      |
-| 3     | VE-cadherin Exon3Del perturbation datasets | _dataset_      |
-| 4     | Nuclear label-free model training datasets | _dataset_      |
-| 5     | Segmentation summary                       | _segmentation_ |
+| 2     | Shear stress switch datasets               | _dataset_      |
+| 3     | DiffAE model training datasets             | _dataset_      |
+| 4     | VE-cadherin Exon3Del perturbation datasets | _dataset_      |
+| 5     | Nuclear label-free model training datasets | _dataset_      |
+| 6     | Segmentation summary                       | _segmentation_ |
 
 ## Example usage
 
@@ -116,7 +117,7 @@ TABLE_S1_SHEAR_STRESS = {
 
 TABLE_S2_FLOW_SWITCH = {
     "collection": "flow_switch",
-    "title": "Table S2: Flow switch datasets",
+    "title": "Table S2: Shear stress switch datasets",
     "figure_name": "table_s2_flow_switch_datasets",
     "sort_by": [SHEAR_STRESS, REPLICATE],
     "sort_bottom": ["21, 6", "6, 15", "21, 12"],
