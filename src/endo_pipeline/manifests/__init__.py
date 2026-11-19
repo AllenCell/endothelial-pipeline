@@ -9,6 +9,7 @@ from .dataframe_manifest_io import (
 from .dataframe_manifest_utils import (
     build_dataframe_location_from_path,
     build_dataframe_location_from_string,
+    check_dataset_has_dataframes,
     get_dataframe_location_for_dataset,
     get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
@@ -66,6 +67,7 @@ __all__ = [
     "build_dataframe_location_from_path",
     "build_dataframe_location_from_string",
     "build_image_location_from_string",
+    "check_dataset_has_dataframes",
     "create_dataframe_manifest",
     "create_extra_manifest",
     "create_image_manifest",

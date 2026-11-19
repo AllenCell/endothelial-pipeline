@@ -23,6 +23,21 @@ def list_datasets_with_dataframes(manifest: DataframeManifest) -> list[str]:
     ]
 
 
+def check_dataset_has_dataframes(manifests: list[DataframeManifest], dataset_name: str) -> bool:
+    """Check if the dataset has dataframe locations in all given manifests."""
+
+    if len(manifests) == 0:
+        return False
+
+    for manifest in manifests:
+        if dataset_name not in manifest.locations:
+            return False
+        location = manifest.locations[dataset_name]
+        if location.fmsid is None and location.s3uri is None and location.path is None:
+            return False
+    return True
+
+
 def get_dataframe_location_for_dataset(
     manifest: DataframeManifest, dataset_name: str
 ) -> DataframeLocation:

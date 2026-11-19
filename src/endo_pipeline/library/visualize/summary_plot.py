@@ -159,7 +159,7 @@ def _convert_polar_angle_to_nematic_order(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _build_color_by_column_mappable(
+def build_color_by_column_mappable(
     df: pd.DataFrame,
     color_by_column: "ColumnNameType",
 ) -> tuple[cm.ScalarMappable | None, str, ColumnMetadata | None]:
@@ -256,10 +256,35 @@ def _compute_replicate_positions(
             for cat in unique_categories
         ]
 
+    return compute_positions_from_group_keys(unique_categories, group_keys, gap)
+
+
+def compute_positions_from_group_keys(
+    categories: list[str],
+    group_keys: list,
+    gap: float = 0.25,
+) -> dict[str, float]:
+    """Compute x-positions with an extra gap between consecutive groups.
+
+    Parameters
+    ----------
+    categories
+        Ordered list of categories as they appear on the x-axis.
+    group_keys
+        Group key for each category (same length and order as ``categories``).
+    gap
+        Extra space inserted between consecutive groups.
+
+    Returns
+    -------
+    dict
+        Mapping of category to its x-position.
+    """
+
     positions: dict[str, float] = {}
     x = 0.0
     prev_key = None
-    for cat, key in zip(unique_categories, group_keys, strict=False):
+    for cat, key in zip(categories, group_keys, strict=False):
         if prev_key is not None and key != prev_key:
             x += gap
         positions[cat] = x
@@ -368,6 +393,29 @@ def _add_shear_stress_brackets(
         )
         for cat in unique_categories
     ]
+    draw_shear_stress_brackets(ax, unique_categories, group_keys, positions)
+
+
+def draw_shear_stress_brackets(
+    ax: Axes,
+    unique_categories: list[str],
+    group_keys: list[tuple[int, str]],
+    positions: dict[str, float],
+) -> None:
+    """Draw brackets below the x-axis for consecutive groups of (bin, stability) keys.
+
+    Parameters
+    ----------
+    ax
+        Axes to annotate.
+    unique_categories
+        Ordered list of categories as they appear on the x-axis.
+    group_keys
+        ``(shear_stress_bin, stability)`` for each category (same length and
+        order as ``unique_categories``).
+    positions
+        Mapping of category to its x-position (with gaps).
+    """
 
     idx = 0
     for (ss_bin, stability), group in groupby(group_keys):
@@ -404,7 +452,7 @@ def _add_cell_line_brackets(
         idx += group_size
 
 
-def _sort_and_categorize_datasets(
+def sort_and_categorize_datasets(
     df: pd.DataFrame,
     axis_mode: SummaryPlotAxisMode,
     category_column: str,
@@ -546,6 +594,67 @@ def _configure_replicate_axis(
     _add_shear_stress_brackets(ax, unique_categories, dataset_configs, positions)
 
 
+def add_error_bar_bounds(df: pd.DataFrame, column_name: "ColumnNameType | str") -> float:
+    """
+    Add ``_lower_bound`` and ``_upper_bound`` error bar columns to the dataframe.
+
+    Bounds are computed from the bootstrap confidence interval columns for
+    ``column_name`` if both exist, otherwise they are set to zero.
+
+    Returns
+    -------
+    :
+        Scale factor for error bar caps (zero if no confidence intervals).
+    """
+
+    ci_lower_col = ColumnTemplate.BOOTSTRAP_CI_LOWER % column_name
+    ci_upper_col = ColumnTemplate.BOOTSTRAP_CI_UPPER % column_name
+
+    if ci_lower_col in df and ci_upper_col in df:
+        df["_lower_bound"] = (df[column_name] - df[ci_lower_col]).clip(lower=0)
+        df["_upper_bound"] = (df[ci_upper_col] - df[column_name]).clip(lower=0)
+        return 0.75
+
+    df["_lower_bound"] = 0
+    df["_upper_bound"] = 0
+    return 0.0
+
+
+def draw_error_bar_markers(
+    ax: Axes,
+    x_values,
+    y_values,
+    colors,
+    markers,
+    lower_bounds,
+    upper_bounds,
+    marker_size_plot: float,
+    capsize_scale: float,
+    alpha: float | None = None,
+    zorder: float = 3,
+) -> None:
+    """Draw one marker with error bars for each point."""
+
+    for x, y, color, marker, lower, upper in zip(
+        x_values, y_values, colors, markers, lower_bounds, upper_bounds, strict=True
+    ):
+        ax.errorbar(
+            x,
+            y,
+            yerr=[[lower], [upper]],
+            fmt=marker,
+            color=color,
+            markeredgecolor="black",
+            markeredgewidth=0.6,
+            markersize=marker_size_plot,
+            capsize=marker_size_plot * capsize_scale,
+            elinewidth=0.8,
+            ecolor="black",
+            alpha=alpha,
+            zorder=zorder,
+        )
+
+
 def _plot_cross_dataset_summary_for_column(
     df: pd.DataFrame,
     ax: Axes,
@@ -639,7 +748,7 @@ def _plot_cross_dataset_summary_for_column(
     # Build continuous colormap if color_by_column is provided (overrides style_mode colors)
     plotting_column: str | None = None
     if color_by_column is not None:
-        scalar_mappable, plotting_column, _ = _build_color_by_column_mappable(df, color_by_column)
+        scalar_mappable, plotting_column, _ = build_color_by_column_mappable(df, color_by_column)
     else:
         scalar_mappable = None
 
@@ -657,7 +766,7 @@ def _plot_cross_dataset_summary_for_column(
         df[category_column] = df[ColumnName.DATASET].map(shear_stress_map)
 
     # Sort datasets, apply category ordering, compute x-positions
-    df, unique_categories, _positions = _sort_and_categorize_datasets(
+    df, unique_categories, _positions = sort_and_categorize_datasets(
         df,
         axis_mode,
         category_column,
@@ -674,19 +783,8 @@ def _plot_cross_dataset_summary_for_column(
     column_metadata = COLUMN_METADATA[column_name]
     column_name = f"mean_{column_name}" if column_name in BINNED_MEAN_FEATURES else column_name
 
-    # Get column names for confidence interval
-    ci_lower_col = ColumnTemplate.BOOTSTRAP_CI_LOWER % column_name
-    ci_upper_col = ColumnTemplate.BOOTSTRAP_CI_UPPER % column_name
-
-    # If both confidence interval columns exist, calculate upper and lower bounds
-    if ci_lower_col in df and ci_upper_col in df:
-        df["_lower_bound"] = (df[column_name] - df[ci_lower_col]).clip(lower=0)
-        df["_upper_bound"] = (df[ci_upper_col] - df[column_name]).clip(lower=0)
-        capsize_scale = 0.75
-    else:
-        df["_lower_bound"] = 0
-        df["_upper_bound"] = 0
-        capsize_scale = 0.0
+    # Add error bar bounds (if confidence intervals are available)
+    capsize_scale = add_error_bar_bounds(df, column_name)
 
     # Iterate through each category to plot points and (if available) error
     # bars. Points are colored based on selected style mode while position on
@@ -731,23 +829,17 @@ def _plot_cross_dataset_summary_for_column(
         lower_bounds = category_df["_lower_bound"]
         upper_bounds = category_df["_upper_bound"]
 
-        for x, y, color, marker, lower, upper in zip(
-            x_values, y_values, colors, markers, lower_bounds, upper_bounds, strict=True
-        ):
-            ax.errorbar(
-                x,
-                y,
-                yerr=[[lower], [upper]],
-                fmt=marker,
-                color=color,
-                markeredgecolor="black",
-                markeredgewidth=0.6,
-                markersize=marker_size_plot,
-                capsize=marker_size_plot * capsize_scale,
-                elinewidth=0.8,
-                ecolor="black",
-                zorder=3,
-            )
+        draw_error_bar_markers(
+            ax,
+            x_values,
+            y_values,
+            colors,
+            markers,
+            lower_bounds,
+            upper_bounds,
+            marker_size_plot=marker_size_plot,
+            capsize_scale=capsize_scale,
+        )
 
     # Include legend if using stability style mode (only when not overridden)
     if style_mode == "stability" and scalar_mappable is None and point_color is None:
@@ -788,6 +880,47 @@ def _plot_cross_dataset_summary_for_column(
     # Set the x axis limits with padding to avoid cutting of jittered points
     x_padding = 0.5
     ax.set_xlim(category_positions[0] - x_padding, category_positions[-1] + x_padding)
+
+    format_value_axis(
+        ax,
+        column_name,
+        column_metadata,
+        ylabel_rotation=ylabel_rotation,
+        ylabel_horizontal_alignment=ylabel_horizontal_alignment,
+        ylabel_vertical_alignment=ylabel_vertical_alignment,
+        yaxis_for_fixed_points=yaxis_for_fixed_points,
+    )
+
+
+def format_value_axis(
+    ax: Axes,
+    column_name: "ColumnNameType | str",
+    column_metadata: ColumnMetadata,
+    ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
+) -> None:
+    """
+    Format the y axis (ticks, limits, label, grid) of a summary plot panel.
+
+    Parameters
+    ----------
+    ax
+        Axes to format.
+    column_name
+        Plotted column name (including any ``mean_`` prefix).
+    column_metadata
+        Column metadata for the plotted feature.
+    ylabel_rotation
+        Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
+    """
 
     # Set y ticks if they are available for the given column
     if column_metadata.ticks is not None:
@@ -1038,7 +1171,7 @@ def plot_cross_dataset_summaries(
 
     # Add a single shared colorbar if color_by_column is active
     if color_by_column is not None:
-        scalar_mappable, _, color_column_metadata = _build_color_by_column_mappable(
+        scalar_mappable, _, color_column_metadata = build_color_by_column_mappable(
             df, color_by_column
         )
         if scalar_mappable is not None:
@@ -1080,6 +1213,7 @@ def build_dataframe_for_fixed_point_dataset_summary(
     convert_angle_to_nematic: bool = False,
     unwrap_angle: bool = True,
     stable_only: bool = True,
+    all_flow_conditions: bool = False,
 ) -> pd.DataFrame:
     """
     Build dataframe for plotting fixed point dataset summary.
@@ -1103,11 +1237,16 @@ def build_dataframe_for_fixed_point_dataset_summary(
         periodic boundary.
     stable_only
         True to only include stable fixed points.
+    all_flow_conditions
+        True to include fixed points for every flow condition of datasets with
+        multiple flow conditions (distinguished by the shear stress column),
+        False to only include the final flow condition.
 
     Returns
     -------
     :
-        Dataframe to use for making cross dataset summary plots.
+        Dataframe to use for making cross dataset summary plots. Empty if no
+        fixed points were found.
     """
 
     if column_names is None:
@@ -1156,68 +1295,78 @@ def build_dataframe_for_fixed_point_dataset_summary(
             bootstrap_dataframe_manifest.locations[dataset_name], delay=False
         )
 
-        # If the dataset has multiple flow conditions, only use final condition
-        flow_condition = dataset_config.flow_conditions[-1]
-        df_features_flow = filter_dataframe_to_flow_condition_by_timepoint(
-            df_features, dataset_config, flow_condition
-        )
-        df_bootstrap_flow = filter_dataframe_by_shear_stress(
-            df_bootstrap, flow_condition.shear_stress
+        # By default, only use the final flow condition for datasets with
+        # multiple flow conditions
+        flow_conditions = (
+            dataset_config.flow_conditions
+            if all_flow_conditions
+            else dataset_config.flow_conditions[-1:]
         )
 
-        # Filter bootstrap dataframe to only include high confidence values
-        df_fixed_points = df_bootstrap_flow[
-            df_bootstrap_flow[ColumnName.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold
-        ].copy()
-
-        if df_fixed_points.empty:
-            logger.warning(
-                "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
-                "[ %s ] with shear stress [ %.2f ] (%d fixed points in total). "
-                "Skipping plot for this dataset.",
-                bootstrap_threshold,
-                dataset_name,
-                flow_condition.shear_stress,
-                len(df_bootstrap_flow),
+        for flow_condition in flow_conditions:
+            df_features_flow = filter_dataframe_to_flow_condition_by_timepoint(
+                df_features, dataset_config, flow_condition
             )
-            return pd.DataFrame()
-
-        for feature_key in BINNED_MEAN_FEATURES:
-            df_features_flow_no_nan = df_features_flow.dropna(subset=[feature_key])
-            df_fixed_points = add_binned_mean_to_fixed_points(
-                df_fixed_points,
-                df_features_flow_no_nan,
-                binned_col=feature_key,
-                **columns_to_bin,  # type: ignore[arg-type]
+            df_bootstrap_flow = filter_dataframe_by_shear_stress(
+                df_bootstrap, flow_condition.shear_stress
             )
 
-        if ColumnName.DiffAEData.POLAR_ANGLE in column_names:
-            if convert_angle_to_nematic:
-                df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
-            if unwrap_angle:
-                # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
-                for template in [
-                    ColumnTemplate.BASELINE_FIXED_POINT,
-                    ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN,
-                    ColumnTemplate.BOOTSTRAP_CI_LOWER,
-                    ColumnTemplate.BOOTSTRAP_CI_UPPER,
-                ]:
-                    angle_column = template % ColumnName.DiffAEData.POLAR_ANGLE
-                    df_fixed_points[angle_column] = df_fixed_points[angle_column].apply(
-                        lambda angle: (
-                            angle - POLAR_ANGLE_PERIOD if angle > (5 * np.pi / 6) else angle
+            # Filter bootstrap dataframe to only include high confidence values
+            df_fixed_points = df_bootstrap_flow[
+                df_bootstrap_flow[ColumnName.FIXED_POINT_DETECTION_RATE] >= bootstrap_threshold
+            ].copy()
+
+            if df_fixed_points.empty:
+                logger.warning(
+                    "No fixed points with bootstrap_detection_rate >= %.2f for dataset "
+                    "[ %s ] with shear stress [ %.2f ] (%d fixed points in total). "
+                    "Skipping this dataset and shear stress.",
+                    bootstrap_threshold,
+                    dataset_name,
+                    flow_condition.shear_stress,
+                    len(df_bootstrap_flow),
+                )
+                continue
+
+            for feature_key in BINNED_MEAN_FEATURES:
+                df_features_flow_no_nan = df_features_flow.dropna(subset=[feature_key])
+                df_fixed_points = add_binned_mean_to_fixed_points(
+                    df_fixed_points,
+                    df_features_flow_no_nan,
+                    binned_col=feature_key,
+                    **columns_to_bin,  # type: ignore[arg-type]
+                )
+
+            if ColumnName.DiffAEData.POLAR_ANGLE in column_names:
+                if convert_angle_to_nematic:
+                    df_fixed_points = _convert_polar_angle_to_nematic_order(df_fixed_points)
+                if unwrap_angle:
+                    # unwrap baseline, bootstrapped cluster mean angle, and CI bounds
+                    for template in [
+                        ColumnTemplate.BASELINE_FIXED_POINT,
+                        ColumnTemplate.BOOTSTRAP_CLUSTER_MEAN,
+                        ColumnTemplate.BOOTSTRAP_CI_LOWER,
+                        ColumnTemplate.BOOTSTRAP_CI_UPPER,
+                    ]:
+                        angle_column = template % ColumnName.DiffAEData.POLAR_ANGLE
+                        df_fixed_points[angle_column] = df_fixed_points[angle_column].apply(
+                            lambda angle: (
+                                angle - POLAR_ANGLE_PERIOD if angle > (5 * np.pi / 6) else angle
+                            )
                         )
-                    )
 
-        if df_fixed_points.empty:
-            continue
+            if stable_only:
+                df_fixed_points = filter_dataframe_by_stability(
+                    df_fixed_points, stability_label=StabilityLabel.STABLE
+                )
 
-        if stable_only:
-            df_fixed_points = filter_dataframe_by_stability(
-                df_fixed_points, stability_label=StabilityLabel.STABLE
-            )
+            if df_fixed_points.empty:
+                continue
 
-        df_fixed_points_list.append(df_fixed_points)
+            df_fixed_points_list.append(df_fixed_points)
+
+    if not df_fixed_points_list:
+        return pd.DataFrame()
 
     # Combine and rename baseline suffix columns so they don't need to be added downstream
     drop_suffix = {ColumnTemplate.BASELINE_FIXED_POINT % col: col for col in column_names}

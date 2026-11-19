@@ -6,6 +6,7 @@ import pytest
 from endo_pipeline.manifests.dataframe_manifest import DataframeLocation, DataframeManifest
 from endo_pipeline.manifests.dataframe_manifest_io import get_dataframe_manifest_dir
 from endo_pipeline.manifests.dataframe_manifest_utils import (
+    check_dataset_has_dataframes,
     get_dataframe_location_for_dataset,
     get_dataframe_manifest_with_parameters,
     list_datasets_with_dataframes,
@@ -43,6 +44,40 @@ def test_list_datasets_with_dataframes_with_invalid_location(manifest):
     datasets = list_datasets_with_dataframes(manifest)
 
     assert datasets == ["dataset_one", "dataset_three"]
+
+
+@pytest.fixture
+def other_manifest():
+    return DataframeManifest(
+        name="other_dataframe_manifest_name",
+        workflow="other_workflow_name",
+        locations={},
+    )
+
+
+def test_check_dataset_has_dataframes_all_manifests_have_dataset(manifest, other_manifest):
+    manifest.locations = {"dataset_one": DataframeLocation(fmsid="dataset_one_fmsid")}
+    other_manifest.locations = {"dataset_one": DataframeLocation(s3uri="s3://dataset_one")}
+
+    assert check_dataset_has_dataframes([manifest, other_manifest], "dataset_one")
+
+
+def test_check_dataset_has_dataframes_dataset_missing_from_one_manifest(manifest, other_manifest):
+    manifest.locations = {"dataset_one": DataframeLocation(fmsid="dataset_one_fmsid")}
+    other_manifest.locations = {"dataset_two": DataframeLocation(fmsid="dataset_two_fmsid")}
+
+    assert not check_dataset_has_dataframes([manifest, other_manifest], "dataset_one")
+
+
+def test_check_dataset_has_dataframes_location_has_no_dataframe(manifest, other_manifest):
+    manifest.locations = {"dataset_one": DataframeLocation(fmsid="dataset_one_fmsid")}
+    other_manifest.locations = {"dataset_one": DataframeLocation()}
+
+    assert not check_dataset_has_dataframes([manifest, other_manifest], "dataset_one")
+
+
+def test_check_dataset_has_dataframes_no_manifests():
+    assert not check_dataset_has_dataframes([], "dataset_one")
 
 
 @pytest.mark.parametrize(
