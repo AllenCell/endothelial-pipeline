@@ -476,7 +476,7 @@ def plot_flow_switch_summaries(
             Patch(
                 facecolor=FLOW_SWITCH_BAND_COLOR,
                 alpha=0.4,
-                label=f"* Flow switch ({_build_flow_switch_legend_label(flow_switch_slots)})",
+                label=f"* Shear stress switch ({_build_flow_switch_legend_label(flow_switch_slots)})",
             ),
         ],
         loc="lower center",
