@@ -166,7 +166,7 @@ FLOW_SWITCH_EXAMPLE_IMAGES: list[ExampleImage] = [
         position=1,
         timepoint=231,
         crop_x_start=0,  # res level 0
-        crop_y_start=0,  # res level 0
+        crop_y_start=250,  # res level 0
     ),
     ExampleImage(
         dataset_name="20261028_20X",
@@ -174,23 +174,23 @@ FLOW_SWITCH_EXAMPLE_IMAGES: list[ExampleImage] = [
         position=1,
         timepoint=350,
         crop_x_start=0,  # res level 0
-        crop_y_start=0,  # res level 0
+        crop_y_start=250,  # res level 0
     ),
     ExampleImage(
         dataset_name="20261021_20X",
         description="21 to 12 flow switch (first shear stress)",
-        position=0,
+        position=1,
         timepoint=256,
-        crop_x_start=600,  # res level 0
-        crop_y_start=0,  # res level 0
+        crop_x_start=150,  # res level 0
+        crop_y_start=50,  # res level 0
     ),
     ExampleImage(
         dataset_name="20261021_20X",
         description="21 to 12 flow switch (second shear stress)",
-        position=0,
-        timepoint=389,
-        crop_x_start=600,  # res level 0
-        crop_y_start=0,  # res level 0
+        position=1,
+        timepoint=410,
+        crop_x_start=150,  # res level 0
+        crop_y_start=50,  # res level 0
     ),
 ]
 
