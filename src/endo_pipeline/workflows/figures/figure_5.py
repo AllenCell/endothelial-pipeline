@@ -155,17 +155,17 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             letter="B",
             path=path_dict["min_to_max"],
             x_position=0,
-            y_position=2.75,
+            y_position=2.8,
             x_offset=0.0,
-            y_offset=0,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="C",
             path=path_dict["max_to_min"],
             x_position=3.25,
-            y_position=2.75,
+            y_position=2.8,
             x_offset=0.0,
-            y_offset=0.0,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="D",
@@ -173,7 +173,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=0,
             y_position=5.4,
             x_offset=0.0,
-            y_offset=0.0,
+            y_offset=0.05,
         ),
         FigurePanel(
             letter="E",
@@ -181,7 +181,7 @@ def main(include_panels: UniqueStrList | None = None) -> None:
             x_position=3.25,
             y_position=5.4,
             x_offset=0.0,
-            y_offset=0.0,
+            y_offset=0.05,
         ),
     ]
 
