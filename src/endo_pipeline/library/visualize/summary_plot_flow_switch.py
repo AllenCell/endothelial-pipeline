@@ -253,6 +253,7 @@ def _plot_points(
     alpha: float | None,
     zorder: float,
     marker_size_plot: float,
+    point_color: str | None = None,
 ) -> None:
     """Plot fixed points with error bars for the given slots."""
 
@@ -260,11 +261,10 @@ def _plot_points(
 
     for slot in slots:
         df_slot = _get_points_for_slot(df, slot)
-        colors = (
-            [scalar_mappable.to_rgba(value) for value in df_slot[plotting_column]]
-            if scalar_mappable is not None
-            else ["steelblue"] * len(df_slot)
-        )
+        if point_color is not None or scalar_mappable is None:
+            colors = [point_color or "steelblue"] * len(df_slot)
+        else:
+            colors = [scalar_mappable.to_rgba(value) for value in df_slot[plotting_column]]
         draw_error_bar_markers(
             ax,
             [positions[slot.key]] * len(df_slot),
@@ -293,6 +293,10 @@ def plot_flow_switch_summaries(
     marker_size_plot: float = 4.2,
     highlight_bistable: bool = True,
     ylabel_rotation: float = 0,
+    ylabel_horizontal_alignment: Literal["left", "center", "right"] = "left",
+    ylabel_vertical_alignment: Literal["top", "center", "bottom"] = "center",
+    yaxis_for_fixed_points: bool = True,
+    point_color: str | None = None,
     file_format: Literal[".png", ".svg", ".pdf"] = ".svg",
 ) -> Path:
     """
@@ -310,6 +314,9 @@ def plot_flow_switch_summaries(
     second flow condition band. Slots are highlighted with a colored band and labeled with the
     replicate number from the dataset config followed by an asterisk (datasets
     without a replicate number are labeled with only an asterisk).
+
+    If ``point_color`` is given, all points are drawn in that color and no
+    colorbar is added.
 
     Parameters
     ----------
@@ -337,6 +344,15 @@ def plot_flow_switch_summaries(
         True to add a grey background spanning all bistable background datasets.
     ylabel_rotation
         Rotation angle for y axis label.
+    ylabel_horizontal_alignment
+        Horizontal alignment for y axis label.
+    ylabel_vertical_alignment
+        Vertical alignment for y axis label.
+    yaxis_for_fixed_points
+        If True then add a * to the y axis label to denote it is for fixed points.
+    point_color
+        Single color for all points. If None, points are colored by
+        ``color_by_column``.
     file_format
         Format of the output file (e.g., ".png", ".svg", ".pdf").
 
@@ -371,6 +387,8 @@ def plot_flow_switch_summaries(
     scalar_mappable, plotting_column, color_metadata = build_color_by_column_mappable(
         pd.concat([df_background, df_flow_switch], ignore_index=True), color_by_column
     )
+    if point_color is not None:
+        scalar_mappable = None
 
     n_panels = len(column_names)
     fig, axes_ = plt.subplots(
@@ -427,6 +445,7 @@ def plot_flow_switch_summaries(
                 alpha,
                 zorder,
                 marker_size_plot,
+                point_color,
             )
 
         format_value_axis(
@@ -434,6 +453,9 @@ def plot_flow_switch_summaries(
             column_name,
             COLUMN_METADATA[base_column_name],
             ylabel_rotation=ylabel_rotation,
+            ylabel_horizontal_alignment=ylabel_horizontal_alignment,
+            ylabel_vertical_alignment=ylabel_vertical_alignment,
+            yaxis_for_fixed_points=yaxis_for_fixed_points,
         )
 
         ax.set_xticks([positions[key] for key in slot_keys])
@@ -499,7 +521,7 @@ def plot_flow_switch_summaries(
     figure_name = (
         f"summary_flow_switch_{regime_label}_"
         f"{join_sorted_strings([str(column_name) for column_name in column_names])}_"
-        f"by_{color_by_column}"
+        f"by_{point_color or color_by_column}"
     )
     file_save_path = save_plot_to_path(
         fig, output_path, figure_name, file_format=file_format, tight_layout=False
