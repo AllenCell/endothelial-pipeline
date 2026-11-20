@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import circmean
 
+from endo_pipeline.io import join_sorted_strings
 from endo_pipeline.library.analyze.kramers_moyal.km_computation import get_kramers_moyal_coeffs
 from endo_pipeline.library.analyze.kramers_moyal.km_kernels import KramersMoyalKernel
 from endo_pipeline.library.analyze.numerics.binning import circpercentile
@@ -18,6 +19,7 @@ from endo_pipeline.library.analyze.vector_field_estimation import (
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
 from endo_pipeline.settings.dynamics_workflows import (
+    DYNAMICS_COLUMN_NAMES,
     LOWER_PERCENTILE_FOR_FILTERING_FPTS,
     NUM_INIT_SAMPLES,
     POLAR_ANGLE_RANGE,
@@ -25,12 +27,62 @@ from endo_pipeline.settings.dynamics_workflows import (
     TIME_STEP_IN_HOURS,
     UPPER_PERCENTILE_FOR_FILTERING_FPTS,
 )
+from endo_pipeline.settings.literal_types import PatchTypeLiteral
+from endo_pipeline.settings.manifest_names import BOOTSTRAPPING_MANIFEST_NAMES
 
 logger = logging.getLogger(__name__)
 
 # needed for multiprocessing loop to share data across iterations without
 # passing as arguments (which causes pickling overhead)
 _worker_state: dict = {}
+
+
+def get_bootstrap_manifest_name(
+    patch_type: PatchTypeLiteral,
+    column_names: list[str | Column.DiffAEData] | None = None,
+    output_file_name_suffix: str | None = None,
+    demo_mode: bool = False,
+) -> str:
+    """
+    Get the dataframe manifest name for bootstrapped fixed points.
+
+    Bootstrapping on the full set of dynamics columns (`DYNAMICS_COLUMN_NAMES`)
+    uses the unsuffixed manifest name for backwards compatibility. Bootstrapping
+    on a subset of the columns (e.g. 1D in theta or 2D in (r, rho)) appends the
+    sorted list of columns to the manifest name.
+
+    Parameters
+    ----------
+    patch_type
+        Patch type used to calculate the features.
+    column_names
+        Feature columns used for bootstrapping. Defaults to all columns in
+        `DYNAMICS_COLUMN_NAMES`.
+    output_file_name_suffix
+        Optional suffix appended to the manifest name (e.g. for parameter sweeps).
+    demo_mode
+        True to append the "demo" suffix used for demo mode runs.
+
+    Returns
+    -------
+    :
+        Bootstrap dataframe manifest name.
+    """
+    columns_suffix = None
+    if column_names is not None and set(column_names) != set(DYNAMICS_COLUMN_NAMES):
+        columns_suffix = join_sorted_strings(column_names)
+
+    return "_".join(
+        filter(
+            None,
+            [
+                BOOTSTRAPPING_MANIFEST_NAMES[patch_type],
+                columns_suffix,
+                "demo" if demo_mode else None,
+                output_file_name_suffix,
+            ],
+        )
+    )
 
 
 def sample_trajectories_and_displacements_for_bootstrapping(
@@ -150,6 +202,12 @@ def run_flow_field_and_fixed_points(
     drift_coeffs = get_kramers_moyal_coeffs(
         trajectories, displacements, bins=bins, dt=TIME_STEP_IN_HOURS, kernel=kernels
     )[0]
+
+    # Ensure drift_coeffs always has a trailing components dimension (shape
+    # ..., N) so that the 1D case (single column) is handled the same as
+    # multi-dimensional cases (consistent with `compute_drift_vector_field`).
+    if drift_coeffs.ndim == 1:
+        drift_coeffs = drift_coeffs[:, np.newaxis]
 
     extrapolated_vf = compute_extrapolated_vector_field(
         drift_coeffs, centers, method="linear", for_vtk_files=False
