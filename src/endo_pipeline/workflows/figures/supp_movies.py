@@ -82,6 +82,8 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
+    import dask.config
+
     from endo_pipeline.cli import NUM_WORKERS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.timelapse_movies import (
@@ -184,10 +186,15 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             movie_builder(**kwargs)
         return
 
-    # Run movies in parallel. If a worker is killed (e.g. out of memory), the
+    # Run movies in parallel. Each worker uses the synchronous dask scheduler,
+    # which reduces peak memory per worker by ~4x compared to the default
+    # threaded scheduler. If a worker is killed (e.g. out of memory), the
     # executor raises BrokenProcessPool instead of hanging.
     with ProcessPoolExecutor(
-        max_workers=num_workers, mp_context=multiprocessing.get_context("spawn")
+        max_workers=num_workers,
+        mp_context=multiprocessing.get_context("spawn"),
+        initializer=dask.config.set,
+        initargs=({"scheduler": "synchronous"},),
     ) as executor:
         futures = [executor.submit(builder, **kwargs) for builder, kwargs in movie_tasks]
 
