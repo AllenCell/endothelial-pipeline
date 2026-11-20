@@ -35,7 +35,7 @@ from endo_pipeline.manifests import load_dataframe_manifest
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
 from endo_pipeline.settings.column_names import ColumnName as Column
 from endo_pipeline.settings.column_names import ColumnNameTemplate as ColumnTemplate
-from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES
+from endo_pipeline.settings.dynamics_workflows import DYNAMICS_COLUMN_NAMES, RESCALED_THETA_PERIOD
 from endo_pipeline.settings.figures import FONTSIZE_SMALL, FONTSIZE_XSMALL
 from endo_pipeline.settings.first_passage_time import FIRST_PASSAGE_TIME_STATISTICS_MANIFEST_NAME
 from endo_pipeline.settings.flow_field_2d import (
@@ -61,6 +61,56 @@ from endo_pipeline.settings.plot_defaults import (
 )
 from endo_pipeline.settings.unicode import UnicodeCharacters as Unicode
 from endo_pipeline.settings.workflow_defaults import GRID_BASED_FEATURES_FILTERED_MANIFEST_NAME
+
+FIXED_POINT_ERRORBAR_KWARGS: dict = {
+    "ecolor": "k",
+    "elinewidth": 0.75,
+    "capsize": 1.5,
+    "capthick": 0.75,
+}
+"""Style of bootstrap confidence interval error bars on fixed points."""
+
+
+def get_fixed_point_errorbar_extents(
+    fixed_point: np.ndarray,
+    ci_lower: np.ndarray,
+    ci_upper: np.ndarray,
+    period: float | None = None,
+) -> np.ndarray:
+    """
+    Get error bar extents from confidence interval bounds of fixed points.
+
+    Converts absolute confidence interval bounds into the (lower, upper)
+    distances from the fixed point expected by `matplotlib.axes.Axes.errorbar`.
+    For periodic coordinates, the distances are computed modulo the period so
+    that intervals that wrap around the periodic boundary are handled
+    correctly. Missing (NaN) bounds result in zero-length error bars.
+
+    Parameters
+    ----------
+    fixed_point
+        Fixed point coordinates, with shape (n,).
+    ci_lower
+        Lower confidence interval bounds, with shape (n,).
+    ci_upper
+        Upper confidence interval bounds, with shape (n,).
+    period
+        Period of the coordinate, if periodic.
+
+    Returns
+    -------
+    :
+        Array of error bar extents with shape (2, n).
+    """
+    lower_extent = np.asarray(fixed_point, dtype=float) - np.asarray(ci_lower, dtype=float)
+    upper_extent = np.asarray(ci_upper, dtype=float) - np.asarray(fixed_point, dtype=float)
+
+    if period is not None:
+        lower_extent = np.mod(lower_extent, period)
+        upper_extent = np.mod(upper_extent, period)
+
+    extents = np.stack([lower_extent, upper_extent], axis=0)
+    return np.nan_to_num(np.clip(extents, 0.0, None), nan=0.0)
 
 
 def add_colorbar_to_contour_plot(
@@ -153,9 +203,14 @@ def make_2d_contour_plot_panel(
     filename: str,
     include_legend: bool = True,
     include_colorbar: bool = True,
+    stable_fixed_point_ci_lower: np.ndarray | None = None,
+    stable_fixed_point_ci_upper: np.ndarray | None = None,
 ) -> Path:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
+
+    If confidence interval bounds (with the same shape as `stable_fixed_point`)
+    are provided, they are shown as error bars on the stable fixed points.
     """
     column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
@@ -212,16 +267,35 @@ def make_2d_contour_plot_panel(
         axes_rects=subplot_rects,
     )
 
+    # get error bar extents for the stable fixed points, if provided
+    fixed_point_xerr = None
+    fixed_point_yerr = None
+    if stable_fixed_point_ci_lower is not None and stable_fixed_point_ci_upper is not None:
+        fixed_point_xerr = get_fixed_point_errorbar_extents(
+            stable_fixed_point[..., 0],
+            stable_fixed_point_ci_lower[..., 0],
+            stable_fixed_point_ci_upper[..., 0],
+        )
+        fixed_point_yerr = get_fixed_point_errorbar_extents(
+            stable_fixed_point[..., 1],
+            stable_fixed_point_ci_lower[..., 1],
+            stable_fixed_point_ci_upper[..., 1],
+        )
+
     for ax_index, ax_ in enumerate(list(axes_)):
-        # add stable fixed point on top of the contour plot
-        ax_.plot(
+        # add stable fixed point (with error bars, if provided) on top of the
+        # contour plot
+        ax_.errorbar(
             stable_fixed_point[..., 0],
             stable_fixed_point[..., 1],
-            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+            xerr=fixed_point_xerr,
+            yerr=fixed_point_yerr,
+            fmt=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
             color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=5,
+            **FIXED_POINT_ERRORBAR_KWARGS,
         )
         # adjust label padding and drop tick labels on shared x axis
         ax_.set_box_aspect(1.0)
@@ -302,13 +376,20 @@ def make_1d_drift_plot_panel(
     drift: np.ndarray,
     theta_values: np.ndarray,
     column_label: str,
-    stable_fixed_point: float,
+    stable_fixed_point: np.ndarray,
     filename: str,
     arrow_scale: float,
     arrow_width: float,
     include_legend: bool = True,
+    stable_fixed_point_ci_lower: np.ndarray | None = None,
+    stable_fixed_point_ci_upper: np.ndarray | None = None,
 ) -> Path:
-    """Make and save plot of 1D drift as a function of theta for a given dataset."""
+    """
+    Make and save plot of 1D drift as a function of theta for a given dataset.
+
+    If confidence interval bounds (with the same shape as `stable_fixed_point`)
+    are provided, they are shown as error bars on the stable fixed points.
+    """
     axes_xlim = VECTOR_FIELD_THETA_RANGE
     axes_ylim = (-0.4, 0.4)
 
@@ -344,15 +425,25 @@ def make_1d_drift_plot_panel(
         },
         xlabel_kwargs=XLABEL_KWARGS,
     )
-    # add stable fixed point in theta
-    ax.plot(
+    # add stable fixed point in theta, with error bars (if provided)
+    fixed_point_xerr = None
+    if stable_fixed_point_ci_lower is not None and stable_fixed_point_ci_upper is not None:
+        fixed_point_xerr = get_fixed_point_errorbar_extents(
+            stable_fixed_point,
+            stable_fixed_point_ci_lower,
+            stable_fixed_point_ci_upper,
+            period=RESCALED_THETA_PERIOD,
+        )
+    ax.errorbar(
         stable_fixed_point,
         np.zeros_like(stable_fixed_point),
-        FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+        xerr=fixed_point_xerr,
+        fmt=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
         color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
         markeredgecolor="k",
         markeredgewidth=0.5,
         markersize=5,
+        **FIXED_POINT_ERRORBAR_KWARGS,
     )
 
     if include_legend:
