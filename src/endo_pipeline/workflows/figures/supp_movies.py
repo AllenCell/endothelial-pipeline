@@ -63,10 +63,6 @@ def main(include_movies: UniqueIntList | None = None) -> None:
       to match figure
     - _merge_ = EGFP and BF channels along with merged EGFP+BF
 
-    Flow switch movies (17-20) are not filtered to steady-state timepoints so
-    the transient response to the flow switch is included; only cell piling
-    timepoints are excluded.
-
     Parameters
     ----------
     include_movies
@@ -108,9 +104,9 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             movie_examples_and_types.append((example, "stitched"))
         movie_examples_and_types.append((example, "fov"))
 
-    # Flow switch: S17-S20 (4 examples x 1 video: stitched, including transients)
+    # Flow switch: S17-S20 (4 examples x 1 video: stitched)
     for example in FLOW_SWITCH_EXAMPLE_IMAGES:
-        movie_examples_and_types.append((example, "stitched_flow_switch"))
+        movie_examples_and_types.append((example, "stitched"))
 
     # Figure 5: S21-S25 (3 examples x 2 videos: stitched + FOV, + 1 inset for
     # knock_down; skip stitched and fov for datasets in Figure 1)
@@ -151,11 +147,6 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             crop_size=256,
             crop_x_offset=50,
             crop_y_offset=500,
-        ),
-        "stitched_flow_switch": partial(
-            create_stitched_timelapse_movie_for_example,
-            output_path=output_path,
-            include_transient=False,
         ),
         "merge": partial(
             create_merge_timelapse_movie_for_example,
