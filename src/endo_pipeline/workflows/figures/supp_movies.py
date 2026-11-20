@@ -6,7 +6,7 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     **Supplemental Movies**. Timelapse movies of VE-cadherin maximum intensity
     Z-projection, brightfield, and brightfield standard deviation Z-projections
 
-    #supp-movies
+    #supp-movies #workers
 
     | Movie | Description                                                           | Type       |
     | ----- | --------------------------------------------------------------------- | ---------- |
@@ -51,6 +51,15 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     uv run endopipe supp-movies MOVIE
     ```
 
+    To generate movies in parallel with multiple workers (one movie per worker):
+
+    ```bash
+    uv run endopipe supp-movies -n 4
+    ```
+
+    Each worker holds full z-stacks for all positions in memory when building
+    stitched movies, so keep the number of workers small.
+
     ## Movie types
 
     Movies are one of four types:
@@ -69,8 +78,11 @@ def main(include_movies: UniqueIntList | None = None) -> None:
         List of movies to generate. Leave empty to generate all movies.
     """
 
+    import multiprocessing
+    from concurrent.futures import ProcessPoolExecutor
     from functools import partial
 
+    from endo_pipeline.cli import NUM_WORKERS
     from endo_pipeline.io import get_output_path
     from endo_pipeline.library.visualize.timelapse_movies import (
         create_fov_timelapse_movie_for_example,
@@ -156,11 +168,32 @@ def main(include_movies: UniqueIntList | None = None) -> None:
         ),
     }
 
-    # Run all selected movies
+    # Build list of movie tasks as (builder, keyword arguments)
+    movie_tasks = []
     for movie in include_movies:
         example, movie_type = movie_examples_and_types[movie - 1]
         movie_builder = movie_builder_map[movie_type]
-        movie_builder(example=example, file_prefix=f"supp_movie_{movie}_")
+        movie_tasks.append(
+            (movie_builder, {"example": example, "file_prefix": f"supp_movie_{movie}_"})
+        )
+
+    num_workers = min(NUM_WORKERS or 1, len(movie_tasks))
+
+    if num_workers == 1:
+        for movie_builder, kwargs in movie_tasks:
+            movie_builder(**kwargs)
+        return
+
+    # Run movies in parallel. If a worker is killed (e.g. out of memory), the
+    # executor raises BrokenProcessPool instead of hanging.
+    with ProcessPoolExecutor(
+        max_workers=num_workers, mp_context=multiprocessing.get_context("spawn")
+    ) as executor:
+        futures = [executor.submit(builder, **kwargs) for builder, kwargs in movie_tasks]
+
+        # Wait for all movies and raise any errors from workers
+        for future in futures:
+            future.result()
 
 
 if __name__ == "__main__":
