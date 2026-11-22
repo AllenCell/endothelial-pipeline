@@ -31,8 +31,12 @@ def main(
     ] = FP_CI_UPPER_PERCENTILE,
     batch_size_factor: float = BATCH_SIZE_SCALING_FACTOR,
     output_file_name_suffix: str | None = None,
-    kernel_bandwidths_dynamics: dict[Column.DiffAEData, float] | None = None,
-    bin_widths_dynamics: dict[Column.DiffAEData, float] | None = None,
+    kernel_bandwidths_dynamics: Annotated[
+        dict[Column.DiffAEData, float] | None, Parameter(parse=False)
+    ] = None,
+    bin_widths_dynamics: Annotated[
+        dict[Column.DiffAEData, float] | None, Parameter(parse=False)
+    ] = None,
     overwrite_results: bool = True,
 ) -> None:
     """
@@ -135,9 +139,13 @@ def main(
     kernel_bandwidths_dynamics
         Optional map of feature column to kernel bandwidth used for drift
         estimation. Defaults to `KERNEL_BANDWIDTHS_DYNAMICS`.
+        Not available from the command line; set when called from another
+        workflow (e.g. `bandwidth-binwidth-sweep`).
     bin_widths_dynamics
         Optional map of feature column to bin width used for the drift
         estimation grid. Defaults to `BIN_WIDTHS_DYNAMICS`.
+        Not available from the command line; set when called from another
+        workflow (e.g. `bandwidth-binwidth-sweep`).
     overwrite_results
         True to regenerate outputs for datasets that already have results in
         the output manifest, False to skip them.
