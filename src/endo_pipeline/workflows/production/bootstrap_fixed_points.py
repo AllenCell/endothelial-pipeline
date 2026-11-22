@@ -319,7 +319,7 @@ def main(
             logger.warning(
                 "Dataset '%s' not found in manifest '%s'. Skipping.",
                 dataset_name,
-                feature_dataframe_manifest_name,
+                baseline_fixed_point_manifest_name,
             )
             continue
 
