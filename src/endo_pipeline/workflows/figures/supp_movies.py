@@ -16,26 +16,26 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     | 4     | Example replicate at 21 dyn/cm² stitched across all positions         | _stitched_ |
     | 5     | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
     | 6     | Example replicate at 21 dyn/cm² inset (256 x 256)                     | _inset_    |
-    | 7     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)                   | _fov_      |
-    | 8     | Example replicate at 12 dyn/cm² stitched across all positions         | _stitched_ |
-    | 9     | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
-    | 10    | Example replicate at 12 dyn/cm² stitched across all positions         | _stitched_ |
-    | 11    | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
-    | 12    | Example replicate at 15 dyn/cm² stitched across all positions         | _stitched_ |
-    | 13    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
-    | 14    | Example replicate at 15 dyn/cm² stitched across all positions         | _stitched_ |
-    | 15    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
-    | 16    | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
-    | 17    | Example replicate from 6 to 21 dyn/cm² stitched across all positions  | _stitched_ |
-    | 18    | Example replicate from 21 to 6 dyn/cm² stitched across all positions  | _stitched_ |
-    | 19    | Example replicate from 6 to 15 dyn/cm² stitched across all positions  | _stitched_ |
-    | 20    | Example replicate from 21 to 12 dyn/cm² stitched across all positions | _stitched_ |
-    | 21    | Sorting control replicate stitched across all positions               | _stitched_ |
-    | 22    | Sorting control replicate FOV (1000 x 1000 px)                        | _fov_      |
-    | 23    | Exon3Del replicate stitched across all positions                      | _stitched_ |
-    | 24    | Exon3Del replicate FOV (1000 x 1000 px)                               | _fov_      |
-    | 25    | Exon3Del replicate FOV (256 x 256 px)                                 | _inset_    |
-    | 26    | Retraction fiber blob example crop                                    | _merge_    |
+    | 7     | Retraction fiber blob example crop                                    | _merge_    |
+    | 8     | Example replicate at 6 dyn/cm² FOV (1000 x 1000 px)                   | _fov_      |
+    | 9     | Example replicate at 12 dyn/cm² stitched across all positions         | _stitched_ |
+    | 10    | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
+    | 11    | Example replicate at 12 dyn/cm² stitched across all positions         | _stitched_ |
+    | 12    | Example replicate at 12 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
+    | 13    | Example replicate at 15 dyn/cm² stitched across all positions         | _stitched_ |
+    | 14    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
+    | 15    | Example replicate at 15 dyn/cm² stitched across all positions         | _stitched_ |
+    | 16    | Example replicate at 15 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
+    | 17    | Example replicate at 21 dyn/cm² FOV (1000 x 1000 px)                  | _fov_      |
+    | 18    | Example replicate from 6 to 21 dyn/cm² stitched across all positions  | _stitched_ |
+    | 19    | Example replicate from 21 to 6 dyn/cm² stitched across all positions  | _stitched_ |
+    | 20    | Example replicate from 6 to 15 dyn/cm² stitched across all positions  | _stitched_ |
+    | 21    | Example replicate from 21 to 12 dyn/cm² stitched across all positions | _stitched_ |
+    | 22    | Sorting control replicate stitched across all positions               | _stitched_ |
+    | 23    | Sorting control replicate FOV (1000 x 1000 px)                        | _fov_      |
+    | 24    | Exon3Del replicate stitched across all positions                      | _stitched_ |
+    | 25    | Exon3Del replicate FOV (1000 x 1000 px)                               | _fov_      |
+    | 26    | Exon3Del replicate FOV (256 x 256 px)                                 | _inset_    |
 
     ## Example usage
 
@@ -111,18 +111,21 @@ def main(include_movies: UniqueIntList | None = None) -> None:
         movie_examples_and_types.append((example, "fov"))
         movie_examples_and_types.append((example, "inset_figure_1"))
 
-    # Figure 3: S7-S16 (4 unique stitched + 6 FOV; skip stitched for datasets in Figure 1)
+    # Figure S11: S7 (retraction fiber blob crop)
+    movie_examples_and_types.append((SUPP_FIG_RETRACTION_FIBER_BLOB, "merge"))
+
+    # Figure 3: S8-S17 (4 unique stitched + 6 FOV; skip stitched for datasets in Figure 1)
     fig1_datasets = {example.dataset_name for example in FIGURE_1_BIO_SYSTEM_EXAMPLE_IMAGES}
     for example in FIGURE_3_EXAMPLE_IMAGES:
         if example.dataset_name not in fig1_datasets:
             movie_examples_and_types.append((example, "stitched"))
         movie_examples_and_types.append((example, "fov"))
 
-    # Flow switch: S17-S20 (4 examples x 1 video: stitched)
+    # Figure 5: S18-S21 (4 examples x 1 video: stitched)
     for example in FLOW_SWITCH_EXAMPLE_IMAGES:
         movie_examples_and_types.append((example, "stitched"))
 
-    # Figure 5: S21-S25 (3 examples x 2 videos: stitched + FOV, + 1 inset for
+    # Figure 6: S22-S26 (3 examples x 2 videos: stitched + FOV, + 1 inset for
     # knock_down; skip stitched and fov for datasets in Figure 1)
     for example in FIGURE_5_EXAMPLE_IMAGES:
         if example.dataset_name not in fig1_datasets:
@@ -130,9 +133,6 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             movie_examples_and_types.append((example, "fov"))
         if example.description == "knock_down":
             movie_examples_and_types.append((example, "inset_knock_down"))
-
-    # Supp Figure 8: S26 (retraction fiber blob crop)
-    movie_examples_and_types.append((SUPP_FIG_RETRACTION_FIBER_BLOB, "merge"))
 
     # Generate all movies if specific movies are not selected
     include_movies = include_movies or list(range(1, len(movie_examples_and_types) + 1))
