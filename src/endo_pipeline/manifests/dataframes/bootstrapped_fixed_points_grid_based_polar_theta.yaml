@@ -1,0 +1,23 @@
+name: bootstrapped_fixed_points_grid_based_polar_theta
+workflow: bootstrap_fixed_points
+parameters:
+  model_manifest_name: diffae_baseline
+  run_name: latent_512
+  patch_type: grid_based
+  kernels:
+  - column: polar_theta
+    name: periodic
+    bandwidth: 0.15
+    period: 3.141592653589793
+  bin_widths: [0.05]
+  num_bootstrap_iterations: 500
+columns: {}
+locations:
+  20250409_20X:
+    fmsid: d84a855f65044482ba3fea8c16976480
+    path: null
+    s3uri: null
+  20251001_20X:
+    fmsid: 30621e8d4f174c41a2288a811f0a0003
+    path: null
+    s3uri: null
