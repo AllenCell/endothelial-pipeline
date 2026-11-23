@@ -409,7 +409,7 @@ def make_1d_drift_plot_panel(
         x_values=theta_values_sorted,
         figsize=figure_size,
         axes_limits=[axes_xlim, axes_ylim],
-        axes_labels=[column_label, ""],
+        axes_labels=[column_label, f"d{column_label}/dt"],
         add_flow_arrows=True,
         flow_arrow_kwargs={"color": "dimgrey", "scale": arrow_scale, "width": arrow_width},
         flow_arrow_downsample=10,
@@ -424,6 +424,7 @@ def make_1d_drift_plot_panel(
             "label": f"d{column_label}/dt = 0",
         },
         xlabel_kwargs=XLABEL_KWARGS,
+        ylabel_kwargs=YLABEL_KWARGS,
     )
     # add stable fixed point in theta, with error bars (if provided)
     fixed_point_xerr = None
