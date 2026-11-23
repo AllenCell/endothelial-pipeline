@@ -16,7 +16,11 @@ from endo_pipeline.library.visualize.diffae_features.dynamics import (
     make_legend_handles_for_fixed_pts,
     plot_drift_contours,
 )
-from endo_pipeline.library.visualize.figure_2 import add_colorbar_to_contour_plot
+from endo_pipeline.library.visualize.figure_2 import (
+    FIXED_POINT_ERRORBAR_KWARGS,
+    add_colorbar_to_contour_plot,
+    get_fixed_point_errorbar_extents,
+)
 from endo_pipeline.library.visualize.figure_utils import add_scalebar, make_contact_sheet
 from endo_pipeline.library.visualize.figures import figure_panel
 from endo_pipeline.settings.column_metadata import COLUMN_METADATA
@@ -198,9 +202,14 @@ def make_contour_plot_panel_for_nullcline_walks(
     filename: str,
     include_legend: bool = True,
     include_colorbar: bool = True,
+    stable_fixed_point_ci_lower: np.ndarray | None = None,
+    stable_fixed_point_ci_upper: np.ndarray | None = None,
 ) -> tuple[Path, dict[Column.DiffAEData, np.ndarray]]:
     """
     Make and save plot of drift contours in (r, rho) space for a given dataset.
+
+    If confidence interval bounds (with the same shape as `stable_fixed_point`)
+    are provided, they are shown as error bars on the stable fixed points.
     """
     column_names = [Column.DiffAEData.POLAR_RADIUS, Column.DiffAEData.PC3_FLIPPED]
     column_labels = [COLUMN_METADATA[column].label or str(column) for column in column_names]
@@ -267,6 +276,21 @@ def make_contour_plot_panel_for_nullcline_walks(
     # 2 points on either side if possible
     nullcline_coords = _get_example_points_along_nullcline(nullcline_coords_, stable_fixed_point)
 
+    # get error bar extents for the stable fixed points, if provided
+    fixed_point_xerr = None
+    fixed_point_yerr = None
+    if stable_fixed_point_ci_lower is not None and stable_fixed_point_ci_upper is not None:
+        fixed_point_xerr = get_fixed_point_errorbar_extents(
+            stable_fixed_point[..., 0],
+            stable_fixed_point_ci_lower[..., 0],
+            stable_fixed_point_ci_upper[..., 0],
+        )
+        fixed_point_yerr = get_fixed_point_errorbar_extents(
+            stable_fixed_point[..., 1],
+            stable_fixed_point_ci_lower[..., 1],
+            stable_fixed_point_ci_upper[..., 1],
+        )
+
     for ax_index, ax_ in enumerate(list(axes_)):
         # add nullcline walk points on top of the contour plot
         ax_.plot(
@@ -279,15 +303,19 @@ def make_contour_plot_panel_for_nullcline_walks(
             markersize=3,
         )
 
-        # add stable fixed point on top of the contour plot
-        ax_.plot(
+        # add stable fixed point (with error bars, if provided) on top of the
+        # contour plot
+        ax_.errorbar(
             stable_fixed_point[..., 0],
             stable_fixed_point[..., 1],
-            FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
+            xerr=fixed_point_xerr,
+            yerr=fixed_point_yerr,
+            fmt=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].marker,
             color=FIXED_POINT_PLOT_STYLE[StabilityLabel.STABLE].color,
             markeredgecolor="k",
             markeredgewidth=0.5,
             markersize=5,
+            **FIXED_POINT_ERRORBAR_KWARGS,
         )
         # adjust label padding and drop tick labels on shared y axis
         ax_.set_box_aspect(1.0)
