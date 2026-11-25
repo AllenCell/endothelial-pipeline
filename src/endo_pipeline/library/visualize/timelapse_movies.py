@@ -381,11 +381,11 @@ def create_timelapse_movie(
             "-pix_fmt",
             "yuv420p",  # required for Windows/QuickTime
             "-profile:v",
-            "baseline",  # max compatibility
-            "-level",
-            "3.1",  # supports frame size
+            "high",  # better compression than baseline, still widely supported
+            "-preset",
+            "slow",  # slower encode for smaller files
             "-crf",
-            "18",  # good quality
+            "23",  # keeps large movies under ~150 MB
         ],
     ) as writer:
         for tp in tqdm(timepoints, desc=f"{dataset_name}: Creating movie"):
