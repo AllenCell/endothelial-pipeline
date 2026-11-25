@@ -1,11 +1,15 @@
 import logging
 import math
-from collections.abc import Callable
+import multiprocessing
+from collections import deque
+from collections.abc import Callable, Iterator
+from concurrent.futures import Future, ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
 from typing import Literal
 
 import cv2
+import dask.config
 import imageio
 import numpy as np
 from tqdm import tqdm
@@ -249,6 +253,64 @@ def add_scalebar_to_frame(
     cv2.rectangle(image, [x1, y1], [x2, y2], color, -1)
 
 
+def build_movie_frame(
+    timepoint: int,
+    load_image_at_timepoint: Callable[..., np.ndarray],
+    config: DatasetConfig,
+    scale_factor: float,
+    frame_padding: tuple[int, int],
+    scale_bar_um: int,
+    annotate_shear_stress: bool,
+) -> np.ndarray:
+    """Load, resize, and annotate a single movie frame for the given timepoint."""
+
+    # Load image and apply contrast stretching and size adjustments
+    image = load_image_at_timepoint(timepoint=timepoint)
+    image = resize_and_pad_image(image, scale_factor, frame_padding)
+
+    # Add scalebar and timestamp directly to image array
+    add_scalebar_to_frame(image, scale_bar_um, PIXEL_SIZE_3i_20x / scale_factor)
+    add_timestamp_to_frame(image, config, timepoint, annotate_shear_stress)
+
+    return image
+
+
+def build_movie_frames_in_parallel(
+    build_frame: Callable[[int], np.ndarray], timepoints: list[int], num_workers: int
+) -> Iterator[np.ndarray]:
+    """
+    Build movie frames across worker processes, yielding frames in timepoint order.
+
+    At most two frames per worker are queued or held at any time, so finished
+    frames waiting on an earlier, slower frame cannot pile up in memory. Each
+    worker uses the synchronous dask scheduler to keep peak memory per worker
+    low. If a worker is killed (e.g. out of memory), the executor raises
+    BrokenProcessPool instead of hanging.
+    """
+
+    max_frames_in_flight = 2 * num_workers
+    remaining_timepoints = iter(timepoints)
+    pending_frames: deque[Future] = deque()
+
+    with ProcessPoolExecutor(
+        max_workers=num_workers,
+        mp_context=multiprocessing.get_context("spawn"),
+        initializer=dask.config.set,
+        initargs=({"scheduler": "synchronous"},),
+    ) as executor:
+        for timepoint in remaining_timepoints:
+            pending_frames.append(executor.submit(build_frame, timepoint))
+            if len(pending_frames) >= max_frames_in_flight:
+                break
+
+        while pending_frames:
+            frame = pending_frames.popleft().result()
+            next_timepoint = next(remaining_timepoints, None)
+            if next_timepoint is not None:
+                pending_frames.append(executor.submit(build_frame, next_timepoint))
+            yield frame
+
+
 def create_timelapse_movie(
     dataset_name: str,
     channel_types: list[Literal["EGFP", "BF", "BF_std_dev"]],
@@ -263,9 +325,13 @@ def create_timelapse_movie(
     merge_channels: bool = False,
     steady_state: int | None = None,
     file_prefix: str | None = None,
+    num_workers: int = 1,
 ):
     """
     Create stitched or single FOV timelapse in mp4 format for a given dataset.
+
+    With more than one worker, frames are loaded in parallel across worker
+    processes and written to the movie in timepoint order.
 
     Parameters
     ----------
@@ -295,6 +361,9 @@ def create_timelapse_movie(
         Position for filtering timepoints to steady state. Unfiltered if None.
     file_prefix
         Prefix to add to output file name.
+    num_workers
+        Number of worker processes used to load frames. Each worker holds the
+        z-stacks for one frame in memory.
     """
 
     for channel_type in channel_types:
@@ -370,7 +439,23 @@ def create_timelapse_movie(
     # Use first timepoint image for frame size calculations
     first_image = load_stitched_image_at_timepoint(timepoint=0)
     scale_factor, frame_padding = calculate_frame_sizing(first_image)
-    pixel_size = PIXEL_SIZE_3i_20x / scale_factor
+    del first_image
+
+    build_frame = partial(
+        build_movie_frame,
+        load_image_at_timepoint=load_stitched_image_at_timepoint,
+        config=dataset_config,
+        scale_factor=scale_factor,
+        frame_padding=frame_padding,
+        scale_bar_um=scale_bar_um,
+        annotate_shear_stress=annotate_shear_stress,
+    )
+
+    num_workers = max(1, min(num_workers, len(timepoints)))
+    if num_workers == 1:
+        frames: Iterator[np.ndarray] = map(build_frame, timepoints)
+    else:
+        frames = build_movie_frames_in_parallel(build_frame, timepoints, num_workers)
 
     with imageio.get_writer(
         output_path / file_name,
@@ -381,30 +466,22 @@ def create_timelapse_movie(
             "-pix_fmt",
             "yuv420p",  # required for Windows/QuickTime
             "-profile:v",
-            "baseline",  # max compatibility
-            "-level",
-            "3.1",  # supports frame size
+            "high",  # better compression than baseline, still widely supported
+            "-preset",
+            "medium",
             "-crf",
-            "18",  # good quality
+            "23",  # keeps large movies under ~150 MB
         ],
     ) as writer:
-        for tp in tqdm(timepoints, desc=f"{dataset_name}: Creating movie"):
-            # Load image and apply contrast stretching and size adjustments
-            image = load_stitched_image_at_timepoint(timepoint=tp)
-            image = resize_and_pad_image(image, scale_factor, frame_padding)
-
-            # Add scalebar and timestamp directly to image array
-            add_scalebar_to_frame(image, scale_bar_um, pixel_size)
-            add_timestamp_to_frame(image, dataset_config, tp, annotate_shear_stress)
-
-            # Save image
-            writer.append_data(image)  # type: ignore[attr-defined]
+        for frame in tqdm(frames, total=len(timepoints), desc=f"{dataset_name}: Creating movie"):
+            writer.append_data(frame)  # type: ignore[attr-defined]
 
 
 def create_stitched_timelapse_movie_for_example(
     example: ExampleImage,
     output_path: Path,
     file_prefix: str,
+    num_workers: int = 1,
 ):
     """Wrapper for creating stitched timelapse movie for a given example."""
 
@@ -422,6 +499,7 @@ def create_stitched_timelapse_movie_for_example(
         merge_channels=False,
         steady_state=example.position,
         file_prefix=file_prefix,
+        num_workers=num_workers,
     )
 
 
@@ -430,6 +508,7 @@ def create_fov_timelapse_movie_for_example(
     output_path: Path,
     file_prefix: str,
     crop_size: int,
+    num_workers: int = 1,
 ):
     """Wrapper for creating FOV timelapse movie for a given example."""
 
@@ -447,6 +526,7 @@ def create_fov_timelapse_movie_for_example(
         merge_channels=False,
         steady_state=example.position,
         file_prefix=file_prefix,
+        num_workers=num_workers,
     )
 
 
@@ -457,6 +537,7 @@ def create_inset_timelapse_movie_for_example(
     crop_size: int,
     crop_x_offset: int = 0,
     crop_y_offset: int = 0,
+    num_workers: int = 1,
 ):
     """Wrapper for creating inset timelapse movie for a given example."""
 
@@ -478,6 +559,7 @@ def create_inset_timelapse_movie_for_example(
         merge_channels=False,
         steady_state=example.position,
         file_prefix=file_prefix,
+        num_workers=num_workers,
     )
 
 
@@ -489,6 +571,7 @@ def create_merge_timelapse_movie_for_example(
     timepoint_offset: int = 1,
     crop_x_offset: int = 0,
     crop_y_offset: int = 0,
+    num_workers: int = 1,
 ):
     """Wrapper for creating merge timelapse movie for a given example."""
 
@@ -509,4 +592,5 @@ def create_merge_timelapse_movie_for_example(
         ),
         merge_channels=True,
         file_prefix=file_prefix,
+        num_workers=num_workers,
     )
