@@ -51,14 +51,17 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     uv run endopipe supp-movies MOVIE
     ```
 
-    To generate movies in parallel with multiple workers (one movie per worker):
+    To load frames in parallel with multiple workers (movies are still created
+    one at a time, with frames written in timepoint order):
 
     ```bash
-    uv run endopipe supp-movies -n 4
+    uv run endopipe supp-movies -n 3
     ```
 
-    Each worker holds full z-stacks for all positions in memory when building
-    stitched movies, so keep the number of workers small.
+    Each worker holds the full z-stacks for all positions of one frame in memory
+    when building stitched movies, so keep the number of workers small. Frames
+    are read over the network, so more than ~3 workers is unlikely to help on a
+    1 Gbps connection.
 
     ## Movie types
 
@@ -78,11 +81,7 @@ def main(include_movies: UniqueIntList | None = None) -> None:
         List of movies to generate. Leave empty to generate all movies.
     """
 
-    import multiprocessing
-    from concurrent.futures import ProcessPoolExecutor
     from functools import partial
-
-    import dask.config
 
     from endo_pipeline.cli import NUM_WORKERS
     from endo_pipeline.io import get_output_path
@@ -137,16 +136,21 @@ def main(include_movies: UniqueIntList | None = None) -> None:
     # Generate all movies if specific movies are not selected
     include_movies = include_movies or list(range(1, len(movie_examples_and_types) + 1))
 
+    # Frames within each movie are loaded in parallel across workers
+    num_workers = NUM_WORKERS or 1
+
     # Define movie builders
     movie_builder_map = {
         "stitched": partial(
             create_stitched_timelapse_movie_for_example,
             output_path=output_path,
+            num_workers=num_workers,
         ),
         "fov": partial(
             create_fov_timelapse_movie_for_example,
             output_path=output_path,
             crop_size=1000,
+            num_workers=num_workers,
         ),
         "inset_figure_1": partial(
             create_inset_timelapse_movie_for_example,
@@ -154,6 +158,7 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             crop_size=256,
             crop_x_offset=5,
             crop_y_offset=372,
+            num_workers=num_workers,
         ),
         "inset_knock_down": partial(
             create_inset_timelapse_movie_for_example,
@@ -161,46 +166,22 @@ def main(include_movies: UniqueIntList | None = None) -> None:
             crop_size=256,
             crop_x_offset=50,
             crop_y_offset=500,
+            num_workers=num_workers,
         ),
         "merge": partial(
             create_merge_timelapse_movie_for_example,
             output_path=output_path,
             crop_size=400,
             timepoint_offset=15,
+            num_workers=num_workers,
         ),
     }
 
-    # Build list of movie tasks as (builder, keyword arguments)
-    movie_tasks = []
+    # Create movies one at a time
     for movie in include_movies:
         example, movie_type = movie_examples_and_types[movie - 1]
         movie_builder = movie_builder_map[movie_type]
-        movie_tasks.append(
-            (movie_builder, {"example": example, "file_prefix": f"supp_movie_{movie}_"})
-        )
-
-    num_workers = min(NUM_WORKERS or 1, len(movie_tasks))
-
-    if num_workers == 1:
-        for movie_builder, kwargs in movie_tasks:
-            movie_builder(**kwargs)
-        return
-
-    # Run movies in parallel. Each worker uses the synchronous dask scheduler,
-    # which reduces peak memory per worker by ~4x compared to the default
-    # threaded scheduler. If a worker is killed (e.g. out of memory), the
-    # executor raises BrokenProcessPool instead of hanging.
-    with ProcessPoolExecutor(
-        max_workers=num_workers,
-        mp_context=multiprocessing.get_context("spawn"),
-        initializer=dask.config.set,
-        initargs=({"scheduler": "synchronous"},),
-    ) as executor:
-        futures = [executor.submit(builder, **kwargs) for builder, kwargs in movie_tasks]
-
-        # Wait for all movies and raise any errors from workers
-        for future in futures:
-            future.result()
+        movie_builder(example=example, file_prefix=f"supp_movie_{movie}_")
 
 
 if __name__ == "__main__":
